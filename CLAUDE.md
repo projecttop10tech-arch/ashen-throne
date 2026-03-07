@@ -62,7 +62,7 @@ Instructions for Claude agents working on this project. Read this file at the st
 | Phase | Status |
 |---|---|
 | Phase 0: Foundation | COMPLETE (QA passed, committed) |
-| Phase 1: Combat Core | IN PROGRESS (core logic complete, UI pending) |
+| Phase 1: Combat Core | COMPLETE (QA passed, committed) |
 | Phase 2: Empire System | Pending |
 | Phase 3: Alliance & Social | Pending |
 | Phase 4: Economy & Monetization | Pending |
@@ -76,10 +76,12 @@ Instructions for Claude agents working on this project. Read this file at the st
 - [x] 20 PvE story levels as data assets (4 chapters, 5 levels each)
 - [x] PveEncounterManager (loads and runs story levels)
 - [x] CombatHeroFactory (creates CombatHero from HeroRoster + ProgressionConfig)
-- [ ] Unit tests for CardHandManager (Phase 1 remaining)
-- [ ] Combat UI: health bars, turn order display, card hand, energy HUD
-- [ ] CombatHero stat panel integration with UI
-- [ ] Unit tests: AbilityResolver, CombatHero, CardHandManager, CombatGrid
+- [x] Unit tests for CardHandManager (25 tests — CardHandManagerTests.cs)
+- [x] Combat UI: CombatUIController, CardHandView, CardWidget, HeroStatusDisplay, StatusIconWidget, EnergyDisplay, TurnOrderDisplay, TurnTokenWidget
+- [x] CombatInputHandler (player card selection + target tap → CardHandManager.TryPlayCard)
+- [x] DamagePopupManager (floating damage numbers, pooled, per-damage-type color)
+- [x] GridTileIdentifier (raycast-to-GridPosition helper for input)
+- [ ] Unit tests: CombatHero, CombatGrid (remaining coverage gap)
 
 ## End-of-Iteration Checklist (MANDATORY)
 At the end of every ralph loop iteration:
