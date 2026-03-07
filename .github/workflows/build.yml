@@ -1,0 +1,175 @@
+name: Ashen Throne — Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ──────────────────────────────────────────────────────
+  # Job 1: Backend Tests (Node.js PlayFab Cloud Scripts)
+  # ──────────────────────────────────────────────────────
+  backend-test:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: npm test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
+
+  # ──────────────────────────────────────────────────────
+  # Job 2: Unity Build — Android
+  # ──────────────────────────────────────────────────────
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: backend-test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: game/Library
+          key: Library-Android-${{ hashFiles('game/Assets/**', 'game/Packages/**', 'game/ProjectSettings/**') }}
+          restore-keys: Library-Android-
+
+      - name: Build Android
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: game
+          targetPlatform: Android
+          buildName: AshenThrone
+          androidExportType: androidPackage
+          androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          customParameters: -Development false
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-android
+          path: build/Android/*.apk
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────
+  # Job 3: Unity Build — iOS
+  # ──────────────────────────────────────────────────────
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: backend-test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: game/Library
+          key: Library-iOS-${{ hashFiles('game/Assets/**', 'game/Packages/**', 'game/ProjectSettings/**') }}
+          restore-keys: Library-iOS-
+
+      - name: Build iOS Xcode Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: game
+          targetPlatform: iOS
+          buildName: AshenThrone
+          customParameters: -Development false
+
+      - name: Archive Xcode project
+        run: |
+          cd build/iOS/AshenThrone
+          xcodebuild archive \
+            -scheme Unity-iPhone \
+            -destination "generic/platform=iOS" \
+            -archivePath ../AshenThrone.xcarchive \
+            CODE_SIGN_IDENTITY="${{ secrets.APPLE_CODE_SIGN_IDENTITY }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE }}"
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/iOS/AshenThrone.xcarchive \
+            -exportOptionsPlist game/ExportOptions.plist \
+            -exportPath build/iOS/ipa \
+            -allowProvisioningUpdates
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-ios
+          path: build/iOS/ipa/*.ipa
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────
+  # Job 4: Upload to TestFlight (main branch only)
+  # ──────────────────────────────────────────────────────
+  upload-testflight:
+    name: Upload to TestFlight
+    runs-on: macos-latest
+    needs: build-ios
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-ios
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: '*.ipa'
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+  # ──────────────────────────────────────────────────────
+  # Job 5: Upload to Google Play Internal Track (main only)
+  # ──────────────────────────────────────────────────────
+  upload-google-play:
+    name: Upload to Google Play Internal
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-android
+
+      - name: Upload to Google Play Internal Track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.ashenthronedev.game
+          releaseFiles: '*.apk'
+          track: internal
+          status: completed

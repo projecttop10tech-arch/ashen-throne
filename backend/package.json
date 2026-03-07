@@ -1,0 +1,21 @@
+{
+  "name": "ashen-throne-backend",
+  "version": "0.1.0",
+  "description": "PlayFab Cloud Scripts and backend tests for Ashen Throne",
+  "private": true,
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "lint": "eslint CloudScript/**/*.js"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "eslint": "^8.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/Tests/**/*.test.js"],
+    "collectCoverageFrom": ["CloudScript/**/*.js"],
+    "coverageReporters": ["text", "lcov"]
+  }
+}
