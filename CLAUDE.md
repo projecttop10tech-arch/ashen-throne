@@ -81,7 +81,7 @@ Instructions for Claude agents working on this project. Read this file at the st
 - [x] CombatInputHandler (player card selection + target tap → CardHandManager.TryPlayCard)
 - [x] DamagePopupManager (floating damage numbers, pooled, per-damage-type color)
 - [x] GridTileIdentifier (raycast-to-GridPosition helper for input)
-- [ ] Unit tests: CombatHero, CombatGrid (remaining coverage gap)
+- [x] Unit tests: CombatHero (35 tests), CombatGrid (30 tests)
 
 ## End-of-Iteration Checklist (MANDATORY)
 At the end of every ralph loop iteration:

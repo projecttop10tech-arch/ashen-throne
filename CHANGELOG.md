@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.7.1] — 2026-03-07 (Coverage: CombatHero + CombatGrid tests)
+
+### ADDED
+- **Unit tests — CombatHeroTests** (35 tests): constructor (null throws, level 1 stats, level 10 scaling, unique IDs, player-owned), TakeDamage (reduces HP, physical mitigated, True bypasses, min 1, kills, dead returns 0, OnDied), Heal (restores, clamps, dead returns 0, negative), Shield (absorb, partial, negative, stacking), status effects (None no-op, adds, refresh duration, tick decrements/removes, Slow -3 speed), stat modifiers (clamp 0/0/1), death clears effects, ResetInstanceIdForTesting.
+- **Unit tests — CombatGridTests** (30 tests): dimensions 7x5, GetTile (valid/OOB/all-Normal), SetTileType (changes/OOB warning), PlaceUnit (valid/tracks/occupied/OOB), MoveUnit (valid/updates/clears old/occupied/unknown/OOB), RemoveUnit (clears/unknown no-op), GetUnitPosition (null), zone queries (player 0-2/enemy 4-6/neutral 3), IsInBounds, GetPositionsInRadius (r=0/r=1/corner clamp), GetTickEffects (fire DOT/normal empty/multiple), GridPosition equality/inequality/ToString.
+
+---
+
 ## [0.7.0] — 2026-03-07 (Phase 6: Polish & Launch)
 
 ### ADDED
