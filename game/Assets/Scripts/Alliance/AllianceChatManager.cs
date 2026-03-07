@@ -135,7 +135,7 @@ namespace AshenThrone.Alliance
         public const int MaxHistorySize   = 200;
         public const int MaxSendRatePerMinute = 20; // Rate-limit on client side; server enforces too
 
-        private IChatSanitizer _sanitizer;
+        private IChatSanitizer _sanitizer = new DefaultChatSanitizer();
         private AllianceManager _allianceManager;
 
         // Channel → circular message list (oldest first)

@@ -46,6 +46,18 @@ namespace AshenThrone.Combat
             _cardHand = GetComponent<CardHandManager>();
         }
 
+        private CombatGrid EnsureGrid()
+        {
+            if (_grid == null) _grid = GetComponent<CombatGrid>();
+            return _grid;
+        }
+
+        private CardHandManager EnsureCardHand()
+        {
+            if (_cardHand == null) _cardHand = GetComponent<CardHandManager>();
+            return _cardHand;
+        }
+
         private void OnDestroy()
         {
             _deathSub?.Dispose();
@@ -69,7 +81,7 @@ namespace AshenThrone.Combat
             _heroById.Clear();
             foreach (var h in heroes) _heroById[h.InstanceId] = h;
 
-            _resolver = new AbilityResolver(_grid, _heroById, _config);
+            _resolver = new AbilityResolver(EnsureGrid(), _heroById, _config);
 
             _deathSub?.Dispose();
             _deathSub = EventBus.Subscribe<HeroDiedEvent>(evt => MarkHeroDead(evt.HeroId));

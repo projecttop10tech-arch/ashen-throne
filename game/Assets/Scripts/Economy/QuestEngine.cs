@@ -151,9 +151,12 @@ namespace AshenThrone.Economy
 
             _activeQuests.Clear();
 
-            // Restore reset timestamps from save
-            _lastDailyResetUtc  = save?.LastDailyResetUtc  ?? GetLastMidnightUtc();
-            _lastWeeklyResetUtc = save?.LastWeeklyResetUtc ?? GetLastMondayUtc();
+            // Restore reset timestamps from save. Treat DateTime.MinValue (unset default) as "today" to
+            // avoid spurious resets when no prior save data exists.
+            var savedDaily  = save?.LastDailyResetUtc  ?? default;
+            var savedWeekly = save?.LastWeeklyResetUtc ?? default;
+            _lastDailyResetUtc  = savedDaily  == default ? GetLastMidnightUtc() : savedDaily;
+            _lastWeeklyResetUtc = savedWeekly == default ? GetLastMondayUtc()   : savedWeekly;
 
             // Check if reset is needed before restoring progress
             bool needsDailyReset  = DateTime.UtcNow >= _lastDailyResetUtc.AddDays(1);

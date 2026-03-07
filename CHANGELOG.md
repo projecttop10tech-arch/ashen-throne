@@ -4,6 +4,67 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.6.0] — 2026-03-07 (Phase 5: Events & Notifications)
+
+### ADDED
+- **EventEngine**: MonoBehaviour managing all timed game events from ScriptableObject definitions.
+  - `allEventDefinitions` — inspector-assigned list of `EventDefinition` ScriptableObjects.
+  - `LoadActiveEvents(saves)` — restores active event state from save entries; null clears all; null entries in list are ignored.
+  - `ReportProgress(objectiveType, amount)` — routes progress to all matching active events; zero/negative amounts are no-ops.
+  - `GetActiveEvent(eventId)` — lookup by ID; null if not found.
+  - `ActiveEvents` — read-only list of all loaded `ActiveGameEvent` instances.
+  - `CheckEventSchedules()` — called from `Update()` to activate/expire events by UTC time window.
+- **ActiveGameEvent**: Pure C# runtime state container for a single event instance.
+  - `IsActive` — derived from UTC time window parsed from `EventDefinition.startTimeIso`/`endTimeIso` (ISO 8601 round-trip).
+  - `AddProgress(amount)` — increments `CurrentProgress`; zero/negative ignored; clamped to `ObjectiveTarget`.
+  - `CompletionRatio` — `CurrentProgress / ObjectiveTarget`; returns 1.0 when target is 0 (complete-by-default).
+  - `CurrentProgress` — restored from `EventSaveEntry.Progress` on load.
+- **EventDefinition**: ScriptableObject with fields: `eventId`, `displayName`, `description`, `objectiveType` (`EventObjectiveType` enum), `objectiveTarget`, `startTimeIso`, `endTimeIso`, `rewardShards`.
+- **EventSaveEntry**: Serializable save record with `EventId` and `Progress`.
+- **EventObjectiveType**: Enum — `DamageDealt`, `ShardsEarned`, `BossesDefeated`, `RalliesJoined`, `TerritoryHeld`, `QuestsCompleted`.
+- **WorldBossManager**: MonoBehaviour managing world boss HP, player attack quotas, and live server sync.
+  - `InitializeBossSpawn()` — sets `IsAlive = true`, `CurrentHp = TotalHp`, resets `LocalAttacksUsed`; logs error if `_definition` not assigned.
+  - `RequestAttack(damage)` — validates alive + attacks remaining; returns false otherwise; increments `LocalAttacksUsed`.
+  - `ReceiveServerHpUpdate(newHp)` — clamps to [0, TotalHp]; sets `IsAlive = false` at zero; no-op when definition null.
+  - `HpRatio` — `CurrentHp / TotalHp`; returns 0 when definition null or TotalHp is 0.
+  - `AttacksRemaining` — `MaxAttacksPerPlayer - LocalAttacksUsed`; returns 0 when definition null.
+- **WorldBossDefinition**: ScriptableObject with `[field: SerializeField]` properties: `BossId`, `BossName`, `BossLore`, `TotalHp` (long), `MinDamagePerAttack`, `MaxAttacksPerPlayer`, `MilestoneHpPercents` (float[]), `ParticipationShardReward`, `LeaderboardShardRewards` (int[]).
+- **VoidRiftManager**: MonoBehaviour orchestrating roguelite Void Rift dungeon runs.
+  - `StartNewRun(config)` — creates a `VoidRiftRunState` from config; throws if config null.
+  - `SelectPath(pathIndex)` — delegates to run state; no-op when no active run.
+  - `CompleteCurrentNode(score)` — advances floor, accumulates score.
+  - `EndRun(won)` — marks run over; fires `VoidRiftRunEndedEvent`.
+  - `AddRelic(relic)` — adds to active run's relic list.
+  - `ActiveRun` — current `VoidRiftRunState`; null between runs.
+- **VoidRiftRunState**: Pure C# roguelite run state.
+  - `Floors` — list of `VoidRiftFloor`; boss floor always has exactly 1 path.
+  - `SelectPath(index)` — validates bounds and run-over state; activates chosen node.
+  - `CompleteNode(score)` — advances floor counter; accumulates score with relic multiplier applied.
+  - `EndRunDefeat()` — sets `IsRunOver = true`, `IsWon = false`; idempotent.
+  - `AddRelic(relic)` — null-safe; clamps to `MaxRelics` (8), discards oldest.
+  - `ScoreMultiplier` — sum of all active relic bonuses + 1.0.
+  - `GetFloorNodes(floor)` — returns node list; throws `ArgumentOutOfRangeException` on bad floor index.
+- **VoidRiftConfig**: ScriptableObject with `FloorCount`, `MaxRelics`, `BaseScorePerFloor`.
+- **VoidRiftFloor / VoidRiftNode / VoidRelic**: Pure C# data types for run structure and collectibles.
+- **NotificationScheduler**: MonoBehaviour scheduling and tracking local push notifications.
+  - `ScheduleNotification(notification)` — null-safe; ignores past fire times; idempotent on duplicate IDs; sets `IsDispatched = true` on schedule.
+  - `CancelNotification(id)` — returns false if not found; true if removed.
+  - `CancelAll()` — clears all pending notifications; no-throw when empty.
+  - `IsScheduled(id)` — checks pending list by ID.
+  - `PendingCount` — count of undelivered scheduled notifications.
+- **ScheduledNotification**: Data class with `Id`, `Title`, `Body`, `FireAtUtc`, `IsDispatched`.
+- **Unit tests — ActiveGameEventTests** (17 tests): constructor (null def throws), `IsActive` (active window, ended, future, invalid ISO), `AddProgress` (increment, clamp at target, zero ignored, negative ignored), `CompletionRatio` (zero target=1.0, mid-progress ratio, clamp at 1.0), progress restored from save.
+- **Unit tests — VoidRiftRunStateTests** (26 tests): constructor (null config throws, floor count, initial state), boss floor has 1 path, `SelectPath` (run-over no-op, out-of-range throws, negative throws, valid advances), `CompleteNode` (advances floor, increases score, skips other paths, no-op when run over), full run win + multiplier, `EndRunDefeat` (sets IsRunOver/IsWon=false, idempotent), relics (null no-op, add, clamp+discard-oldest, bonus aggregation), `GetFloorNodes` out-of-range, `VoidRelic` empty-ID throws.
+- **Unit tests — WorldBossManagerTests** (19 tests): null-definition guard paths (InitializeBossSpawn/RequestAttack/AttacksRemaining/HpRatio/ReceiveServerHpUpdate), `InitializeBossSpawn` (alive, full HP, resets attacks), `RequestAttack` (true when alive+remaining, increments used, false at max, false when dead), `AttacksRemaining` (decrements), `ReceiveServerHpUpdate` (updates HP, clamps to zero, sets IsAlive=false at zero), `HpRatio` (1.0 full, 0.0 at zero, 0.5 at half).
+- **Unit tests — NotificationSchedulerTests** (15 tests): `ScheduledNotification` empty-ID throws, `ScheduleNotification` (null no-op, past time skipped, future scheduled, duplicate idempotent, sets IsDispatched, increments count), `IsScheduled` (true/false), `CancelNotification` (not-found=false, found=true+removed), `CancelAll` (clears all, no-throw empty).
+- **Unit tests — EventEngineTests** (12 tests): `LoadActiveEvents` (null clears, null entries ignored, progress restored, unknown event ignored, replaces existing), `ReportProgress` (zero/negative no-op, wrong type no-op, advances on match, inactive event no-op), `GetActiveEvent` (null when empty, missing ID=null, correct ID found).
+
+### FIXED
+- `TurnManager`: Added `EnsureGrid()` and `EnsureCardHand()` lazy-init helpers; `StartBattle` now calls `EnsureGrid()` to prevent `ArgumentNullException` when `Awake()` has not run before the first test setup (Unity EditMode batch runner does not guarantee `Awake()` invocation order).
+- `QuestEngine`: `Initialize()` now treats `DateTime.MinValue` (default struct value when no prior save exists) as "today" for `_lastDailyResetUtc` and `GetLastMondayUtc()` for `_lastWeeklyResetUtc`, preventing spurious daily/weekly resets on first-ever app launch with no save data.
+
+---
+
 ## [0.5.0] — 2026-03-07 (Phase 4: Economy & Monetization)
 
 ### ADDED

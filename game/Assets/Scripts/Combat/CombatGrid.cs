@@ -23,11 +23,12 @@ namespace AshenThrone.Combat
 
         private void Awake()
         {
-            InitializeGrid();
+            EnsureGridInitialized();
         }
 
-        private void InitializeGrid()
+        private void EnsureGridInitialized()
         {
+            if (_grid != null) return;
             _grid = new CombatTile[Columns, Rows];
             for (int c = 0; c < Columns; c++)
             {
@@ -43,6 +44,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public CombatTile GetTile(GridPosition pos)
         {
+            EnsureGridInitialized();
             if (!IsInBounds(pos)) return null;
             return _grid[pos.Column, pos.Row];
         }
@@ -52,6 +54,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public void SetTileType(GridPosition pos, TileType type)
         {
+            EnsureGridInitialized();
             if (!IsInBounds(pos))
             {
                 Debug.LogWarning($"[CombatGrid] SetTileType out of bounds: {pos}");
@@ -67,6 +70,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public bool PlaceUnit(int heroInstanceId, GridPosition pos)
         {
+            EnsureGridInitialized();
             if (!IsInBounds(pos)) return false;
             if (_grid[pos.Column, pos.Row].OccupantId.HasValue)
             {
@@ -84,6 +88,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public bool MoveUnit(int heroInstanceId, GridPosition to)
         {
+            EnsureGridInitialized();
             if (!_unitPositions.TryGetValue(heroInstanceId, out GridPosition from)) return false;
             if (!IsInBounds(to)) return false;
             if (_grid[to.Column, to.Row].OccupantId.HasValue) return false;
@@ -102,6 +107,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public void RemoveUnit(int heroInstanceId)
         {
+            EnsureGridInitialized();
             if (!_unitPositions.TryGetValue(heroInstanceId, out GridPosition pos)) return;
             _grid[pos.Column, pos.Row].OccupantId = null;
             _unitPositions.Remove(heroInstanceId);
@@ -150,6 +156,7 @@ namespace AshenThrone.Combat
         /// </summary>
         public List<TileTickEffect> GetTickEffects()
         {
+            EnsureGridInitialized();
             var effects = new List<TileTickEffect>();
             foreach (var (id, pos) in _unitPositions)
             {

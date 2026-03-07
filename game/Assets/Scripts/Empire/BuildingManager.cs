@@ -38,6 +38,17 @@ namespace AshenThrone.Empire
 
         private void OnDestroy() => ServiceLocator.Unregister<BuildingManager>();
 
+        private ResourceManager EnsureResourceManager()
+        {
+            if (_resourceManager == null)
+            {
+                _resourceManager = GetComponent<ResourceManager>();
+                if (_resourceManager == null)
+                    ServiceLocator.TryGet<ResourceManager>(out _resourceManager);
+            }
+            return _resourceManager;
+        }
+
         private void Update()
         {
             TickBuildQueue();
@@ -58,7 +69,7 @@ namespace AshenThrone.Empire
                 return null;
             }
 
-            if (!_resourceManager.CanAfford(tier0.stoneCost, tier0.ironCost, tier0.grainCost, tier0.arcaneEssenceCost))
+            if (!EnsureResourceManager().CanAfford(tier0.stoneCost, tier0.ironCost, tier0.grainCost, tier0.arcaneEssenceCost))
             {
                 EventBus.Publish(new BuildFailedEvent(data.buildingId, "Insufficient resources"));
                 return null;
@@ -70,7 +81,7 @@ namespace AshenThrone.Empire
                 return null;
             }
 
-            _resourceManager.Spend(tier0.stoneCost, tier0.ironCost, tier0.grainCost, tier0.arcaneEssenceCost);
+            EnsureResourceManager().Spend(tier0.stoneCost, tier0.ironCost, tier0.grainCost, tier0.arcaneEssenceCost);
 
             string placedId = $"{data.buildingId}_{System.Guid.NewGuid():N}";
             var placed = new PlacedBuilding(placedId, data, gridPosition, currentTier: 0);
@@ -113,13 +124,13 @@ namespace AshenThrone.Empire
                 return false;
             }
 
-            if (!_resourceManager.CanAfford(tierData.stoneCost, tierData.ironCost, tierData.grainCost, tierData.arcaneEssenceCost))
+            if (!EnsureResourceManager().CanAfford(tierData.stoneCost, tierData.ironCost, tierData.grainCost, tierData.arcaneEssenceCost))
             {
                 EventBus.Publish(new BuildFailedEvent(placedId, "Insufficient resources"));
                 return false;
             }
 
-            _resourceManager.Spend(tierData.stoneCost, tierData.ironCost, tierData.grainCost, tierData.arcaneEssenceCost);
+            EnsureResourceManager().Spend(tierData.stoneCost, tierData.ironCost, tierData.grainCost, tierData.arcaneEssenceCost);
 
             int maxTime = placed.Data.category == BuildingCategory.Core
                 ? MaxBuildTimeSecondsStronghold

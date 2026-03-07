@@ -40,7 +40,8 @@ namespace AshenThrone.Empire
 
         private void Awake()
         {
-            _resourceManager = GetComponent<ResourceManager>() ?? ServiceLocator.Get<ResourceManager>();
+            _resourceManager = GetComponent<ResourceManager>();
+            if (_resourceManager == null) ServiceLocator.TryGet<ResourceManager>(out _resourceManager);
             ServiceLocator.Register<ResearchManager>(this);
             LoadAllNodes();
         }
@@ -48,6 +49,17 @@ namespace AshenThrone.Empire
         private void OnDestroy()
         {
             ServiceLocator.Unregister<ResearchManager>();
+        }
+
+        private ResourceManager EnsureResourceManager()
+        {
+            if (_resourceManager == null)
+            {
+                _resourceManager = GetComponent<ResourceManager>();
+                if (_resourceManager == null)
+                    ServiceLocator.TryGet<ResourceManager>(out _resourceManager);
+            }
+            return _resourceManager;
         }
 
         private void Update()
@@ -109,13 +121,14 @@ namespace AshenThrone.Empire
                 return false;
             }
 
-            if (_resourceManager == null || !_resourceManager.CanAfford(node.stoneCost, node.ironCost, node.grainCost, node.arcaneEssenceCost))
+            var rm = EnsureResourceManager();
+            if (rm == null || !rm.CanAfford(node.stoneCost, node.ironCost, node.grainCost, node.arcaneEssenceCost))
             {
                 EventBus.Publish(new ResearchFailedEvent(nodeId, "Insufficient resources"));
                 return false;
             }
 
-            _resourceManager.Spend(node.stoneCost, node.ironCost, node.grainCost, node.arcaneEssenceCost);
+            rm.Spend(node.stoneCost, node.ironCost, node.grainCost, node.arcaneEssenceCost);
 
             float duration = CalculateResearchTime(node);
             _researchQueue.Add(new ResearchQueueEntry(nodeId, duration));

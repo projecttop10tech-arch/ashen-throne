@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using AshenThrone.Core;
 
@@ -10,9 +9,16 @@ namespace AshenThrone.Events
     /// Pluggable event engine. Events are defined as EventDefinition ScriptableObjects.
     /// Handles scheduling, activation, objective tracking, and reward distribution.
     /// Active events are synced with PlayFab for cross-session persistence.
+    ///
+    /// Performance notes:
+    /// - Schedule check is throttled to once per ScheduleCheckIntervalSeconds (not every frame).
+    /// - No LINQ in hot paths — explicit loops only (check #19).
     /// </summary>
     public class EventEngine : MonoBehaviour
     {
+        /// <summary>How often (in seconds) to check event start/end schedules.</summary>
+        private const float ScheduleCheckIntervalSeconds = 10f;
+
         [SerializeField] private List<EventDefinition> allEventDefinitions;
 
         private readonly List<ActiveGameEvent> _activeEvents = new();
@@ -21,6 +27,8 @@ namespace AshenThrone.Events
         public event Action<EventDefinition> OnEventStarted;
         public event Action<string> OnEventEnded;                     // eventId
         public event Action<string, float> OnObjectiveProgress;       // eventId, 0–1 progress
+
+        private float _scheduleCheckTimer;
 
         private void Awake()
         {
@@ -34,7 +42,13 @@ namespace AshenThrone.Events
 
         private void Update()
         {
-            CheckEventSchedules();
+            // Throttled schedule check: not every frame (check #20 / #19)
+            _scheduleCheckTimer += Time.deltaTime;
+            if (_scheduleCheckTimer >= ScheduleCheckIntervalSeconds)
+            {
+                _scheduleCheckTimer = 0f;
+                CheckEventSchedules();
+            }
         }
 
         /// <summary>
@@ -43,9 +57,11 @@ namespace AshenThrone.Events
         public void LoadActiveEvents(List<EventSaveEntry> saves)
         {
             _activeEvents.Clear();
+            if (saves == null) return;
             foreach (var save in saves)
             {
-                EventDefinition def = allEventDefinitions.Find(e => e.eventId == save.EventId);
+                if (save == null) continue;
+                EventDefinition def = FindDefinitionById(save.EventId);
                 if (def == null) continue;
                 _activeEvents.Add(new ActiveGameEvent(def, save));
             }
@@ -56,27 +72,51 @@ namespace AshenThrone.Events
         /// </summary>
         public void ReportProgress(EventObjectiveType objectiveType, int amount)
         {
+            if (amount <= 0) return;
             foreach (var active in _activeEvents)
             {
                 if (!active.IsActive || active.Definition.objectiveType != objectiveType) continue;
-                active.CurrentProgress += amount;
-                float normalizedProgress = Mathf.Clamp01((float)active.CurrentProgress / active.Definition.objectiveTarget);
+                active.AddProgress(amount);
+                float normalizedProgress = active.Definition.objectiveTarget > 0
+                    ? Mathf.Clamp01((float)active.CurrentProgress / active.Definition.objectiveTarget)
+                    : 1f;
                 OnObjectiveProgress?.Invoke(active.Definition.eventId, normalizedProgress);
-                EventBus.Publish(new EventProgressUpdatedEvent(active.Definition.eventId, active.CurrentProgress, active.Definition.objectiveTarget));
+                EventBus.Publish(new EventProgressUpdatedEvent(
+                    active.Definition.eventId, active.CurrentProgress, active.Definition.objectiveTarget));
             }
+        }
+
+        /// <summary>Returns the active event with the given ID, or null.</summary>
+        public ActiveGameEvent GetActiveEvent(string eventId)
+        {
+            foreach (var active in _activeEvents)
+            {
+                if (active.Definition.eventId == eventId) return active;
+            }
+            return null;
         }
 
         private void CheckEventSchedules()
         {
+            if (allEventDefinitions == null) return;
             DateTime now = DateTime.UtcNow;
             foreach (var def in allEventDefinitions)
             {
-                bool shouldBeActive = now >= def.startTime && now < def.endTime;
-                bool isCurrentlyActive = _activeEvents.Exists(a => a.Definition.eventId == def.eventId);
+                if (def == null) continue;
+                // Parse ISO-8601 strings to UTC DateTime (avoids UnityEngine.DateTime serialization issues)
+                bool parsedStart = DateTime.TryParse(def.startTimeIso, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out DateTime startTime);
+                bool parsedEnd   = DateTime.TryParse(def.endTimeIso, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out DateTime endTime);
 
-                if (shouldBeActive && !isCurrentlyActive)
+                if (!parsedStart || !parsedEnd) continue;
+
+                bool shouldBeActive = now >= startTime && now < endTime;
+                bool isActive = IsEventActive(def.eventId);
+
+                if (shouldBeActive && !isActive)
                     ActivateEvent(def);
-                else if (!shouldBeActive && isCurrentlyActive)
+                else if (!shouldBeActive && isActive)
                     DeactivateEvent(def.eventId);
             }
         }
@@ -91,9 +131,35 @@ namespace AshenThrone.Events
 
         private void DeactivateEvent(string eventId)
         {
-            _activeEvents.RemoveAll(a => a.Definition.eventId == eventId);
+            for (int i = _activeEvents.Count - 1; i >= 0; i--)
+            {
+                if (_activeEvents[i].Definition.eventId == eventId)
+                {
+                    _activeEvents.RemoveAt(i);
+                    break;
+                }
+            }
             OnEventEnded?.Invoke(eventId);
             EventBus.Publish(new GameEventEndedEvent(eventId));
+        }
+
+        private bool IsEventActive(string eventId)
+        {
+            foreach (var active in _activeEvents)
+            {
+                if (active.Definition.eventId == eventId) return true;
+            }
+            return false;
+        }
+
+        private EventDefinition FindDefinitionById(string eventId)
+        {
+            if (allEventDefinitions == null) return null;
+            foreach (var def in allEventDefinitions)
+            {
+                if (def != null && def.eventId == eventId) return def;
+            }
+            return null;
         }
     }
 
@@ -107,9 +173,15 @@ namespace AshenThrone.Events
         public EventScope scope;
         public Sprite bannerImage;
 
-        [Header("Schedule")]
-        public DateTime startTime;
-        public DateTime endTime;
+        [Header("Schedule (ISO-8601 UTC strings — avoids DateTime Inspector issues)")]
+        /// <summary>
+        /// Start time as ISO-8601 UTC string (e.g., "2026-04-01T18:00:00Z").
+        /// Using string avoids Unity's broken DateTime Inspector serialization.
+        /// Parse at runtime via DateTime.TryParse with RoundtripKind.
+        /// </summary>
+        public string startTimeIso;
+        /// <summary>End time as ISO-8601 UTC string.</summary>
+        public string endTimeIso;
 
         [Header("Objective")]
         public EventObjectiveType objectiveType;
@@ -123,14 +195,39 @@ namespace AshenThrone.Events
     public class ActiveGameEvent
     {
         public EventDefinition Definition { get; }
-        public int CurrentProgress { get; set; }
-        public bool IsActive => DateTime.UtcNow >= Definition.startTime && DateTime.UtcNow < Definition.endTime;
+        public int CurrentProgress { get; private set; }
+
+        public bool IsActive
+        {
+            get
+            {
+                if (!DateTime.TryParse(Definition.startTimeIso, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out DateTime start)) return false;
+                if (!DateTime.TryParse(Definition.endTimeIso, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out DateTime end)) return false;
+                DateTime now = DateTime.UtcNow;
+                return now >= start && now < end;
+            }
+        }
 
         public ActiveGameEvent(EventDefinition def, EventSaveEntry save)
         {
-            Definition = def;
+            Definition = def ?? throw new ArgumentNullException(nameof(def));
             CurrentProgress = save?.Progress ?? 0;
         }
+
+        /// <summary>Add progress, clamped to objectiveTarget.</summary>
+        public void AddProgress(int amount)
+        {
+            if (amount <= 0) return;
+            CurrentProgress = Mathf.Min(CurrentProgress + amount, Definition.objectiveTarget);
+        }
+
+        /// <summary>Returns a normalized completion ratio [0, 1].</summary>
+        public float CompletionRatio =>
+            Definition.objectiveTarget > 0
+                ? Mathf.Clamp01((float)CurrentProgress / Definition.objectiveTarget)
+                : 1f;
     }
 
     [System.Serializable]
@@ -144,7 +241,8 @@ namespace AshenThrone.Events
     public class EventReward
     {
         public string RewardId;
-        public int ProgressThreshold; // Progress required to earn this reward
+        /// <summary>Progress value at which this milestone reward is earned.</summary>
+        public int ProgressThreshold;
         public int ResourceAmount;
         public string ItemId;
     }
@@ -153,11 +251,11 @@ namespace AshenThrone.Events
 
     public enum EventObjectiveType
     {
-        DamageDealt,        // Dragon Siege boss
-        TerritoryCaptures,  // Alliance Tournament
-        ResourcesCollected, // Harvest Crisis
-        ShardsEarned,       // Shard Hunt
-        DungeonFloorsCleared // Void Rift
+        DamageDealt,          // Dragon Siege world boss
+        TerritoryCaptures,    // Alliance Tournament
+        ResourcesCollected,   // Harvest Crisis
+        ShardsEarned,         // Shard Hunt
+        DungeonFloorsCleared  // Void Rift
     }
 
     // --- Events ---
