@@ -9,8 +9,9 @@ namespace AshenThrone.Core
     /// UI (panel stacks), and any system needing explicit state transitions.
     /// TState must be an enum or value type with equality comparison.
     /// </summary>
-    public class StateMachine<TState> where TState : struct, IEquatable<TState>
+    public class StateMachine<TState> where TState : struct
     {
+        private static readonly EqualityComparer<TState> _comparer = EqualityComparer<TState>.Default;
         private readonly Dictionary<TState, IState<TState>> _states = new();
         private IState<TState> _currentStateHandler;
 
@@ -56,7 +57,7 @@ namespace AshenThrone.Core
                 Debug.LogError("[StateMachine] Cannot transition before Initialize is called.");
                 return;
             }
-            if (CurrentState.Equals(newState)) return;
+            if (_comparer.Equals(CurrentState, newState)) return;
             if (!_states.TryGetValue(newState, out IState<TState> nextHandler))
             {
                 Debug.LogError($"[StateMachine] No handler registered for state '{newState}'.");

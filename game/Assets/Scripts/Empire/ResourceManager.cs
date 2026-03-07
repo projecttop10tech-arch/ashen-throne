@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using AshenThrone.Core;
+using AshenThrone.Data;
 
 namespace AshenThrone.Empire
 {

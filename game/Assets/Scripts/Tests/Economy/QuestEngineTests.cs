@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using AshenThrone.Economy;
 using AshenThrone.Data;
+using Object = UnityEngine.Object;
 
 namespace AshenThrone.Tests.Economy
 {

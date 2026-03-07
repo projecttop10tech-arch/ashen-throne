@@ -3,11 +3,13 @@
 // Location: Assets/Scripts/Tests/Combat/ — Unity discovers automatically.
 
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using AshenThrone.Combat;
 using AshenThrone.Data;
 using AshenThrone.Core;
+using Object = UnityEngine.Object;
 
 namespace AshenThrone.Tests.Combat
 {

@@ -103,7 +103,7 @@ namespace AshenThrone.Economy
         public bool CanSummon(HeroData heroData)
         {
             if (heroData == null) return false;
-            return GetShardCount(heroData.heroId) >= heroData.ShardsToSummon;
+            return GetShardCount(heroData.heroId) >= heroData.shardsToUnlock;
         }
 
         // -------------------------------------------------------------------
@@ -126,11 +126,11 @@ namespace AshenThrone.Economy
             if (!CanSummon(heroData))
             {
                 Debug.LogWarning($"[HeroShardSystem] Cannot summon {heroData.heroId}: insufficient shards " +
-                    $"({GetShardCount(heroData.heroId)}/{heroData.ShardsToSummon}).");
+                    $"({GetShardCount(heroData.heroId)}/{heroData.shardsToUnlock}).");
                 return null;
             }
 
-            if (_heroRoster != null && _heroRoster.OwnsHero(heroData.heroId))
+            if (_heroRoster != null && _heroRoster.OwnedHeroes.ContainsKey(heroData.heroId))
             {
                 Debug.LogWarning($"[HeroShardSystem] Hero {heroData.heroId} already owned.");
                 return null;
@@ -176,7 +176,7 @@ namespace AshenThrone.Economy
                 int shardsRequired = GetShardsRequired(heroId);
                 if (kvp.Value >= shardsRequired)
                 {
-                    if (_heroRoster == null || !_heroRoster.OwnsHero(heroId))
+                    if (_heroRoster == null || !_heroRoster.OwnedHeroes.ContainsKey(heroId))
                         result.Add(heroId);
                 }
             }

@@ -49,7 +49,7 @@ namespace AshenThrone.UI.Combat
             _onClicked = onClick;
 
             if (_nameLabel != null)
-                _nameLabel.text = card.cardName;
+                _nameLabel.text = card.displayName;
             if (_descriptionLabel != null)
                 _descriptionLabel.text = BuildDescriptionText(card);
             if (_energyCostLabel != null)
@@ -80,8 +80,8 @@ namespace AshenThrone.UI.Combat
             if (card.cardType == CardType.Heal)
                 return $"Restore {card.baseEffectValue:F0} HP.";
             if (card.cardType == CardType.Buff || card.cardType == CardType.Debuff)
-                return $"{card.statusEffect} for {card.statusDuration} turn(s).";
-            return card.cardName;
+                return $"{card.applyStatusEffect} for {card.statusDuration} turn(s).";
+            return card.displayName;
         }
     }
 }

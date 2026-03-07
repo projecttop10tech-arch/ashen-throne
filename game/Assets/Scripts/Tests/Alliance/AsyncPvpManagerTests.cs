@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using AshenThrone.Alliance;
+using AshenThrone.Combat;
 using AshenThrone.Data;
+using Object = UnityEngine.Object;
 
 namespace AshenThrone.Tests.Alliance
 {
@@ -249,7 +251,7 @@ namespace AshenThrone.Tests.Alliance
                     Level = 10,
                     StarTier = 0,
                     DeckCardIds = new List<string> { "card_1" },
-                    PreferredRow = Combat.CombatRow.Front
+                    PreferredRow = CombatRow.Front
                 });
             }
             return list;

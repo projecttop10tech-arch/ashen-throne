@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using AshenThrone.Economy;
 
 namespace AshenThrone.Tests.Economy
@@ -167,6 +168,7 @@ namespace AshenThrone.Tests.Economy
         {
             _manager.LoadState(new BattlePassSaveData { CurrentTier = 2, IsPremiumActive = true }, _season);
             // Tier 2 premium reward is flagged as combat power in MakeSeason()
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("DESIGN VIOLATION"));
             var reward = _manager.ClaimReward(2, true);
             Assert.IsNull(reward, "Combat power rewards must be rejected by ClaimReward");
         }

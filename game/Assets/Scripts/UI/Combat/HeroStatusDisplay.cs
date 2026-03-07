@@ -51,7 +51,7 @@ namespace AshenThrone.UI.Combat
             if (_activeTurnIndicator != null) _activeTurnIndicator.SetActive(false);
 
             if (_heroNameLabel != null)
-                _heroNameLabel.text = hero.Data?.heroName ?? hero.Data?.heroId ?? "Hero";
+                _heroNameLabel.text = hero.Data?.displayName ?? hero.Data?.heroId ?? "Hero";
 
             RefreshHealth();
             RefreshStatusEffects();

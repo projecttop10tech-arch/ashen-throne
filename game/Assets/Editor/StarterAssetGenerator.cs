@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using AshenThrone.Combat;
 using AshenThrone.Data;
 
 namespace AshenThrone.Editor
@@ -513,9 +514,9 @@ namespace AshenThrone.Editor
                 "At the centre of the Ashfall stands Seraphyn Ashveil. She has been waiting.",
                 "The pyre extinguished. Chapter one of the Ashfall ends here.",
                 "The pyre grows. Seraphyn laughs as you retreat into the smoke.",
-                LevelDifficulty.Hard, xp: 200, isBoss: true,
-                enemies: new[] { ("seraphyn_ashveil", 8), ("mordoc_sundered", 7) }, heroMap,
-                required: "ch1_l4");
+                LevelDifficulty.Hard, xp: 200,
+                enemies: new[] { ("seraphyn_ashveil", 8), ("mordoc_sundered", 7) }, heroMap: heroMap,
+                required: "ch1_l4", isBoss: true);
 
             // Chapter 2: The Wild Hunt — 5 levels in the WildHunters' forest
             Level("ch2_l1", "Into the Deep Forest", 2, 1,
@@ -555,10 +556,10 @@ namespace AshenThrone.Editor
                 "Lyra takes to the High Ground. She will not abandon this forest.",
                 "Lyra's bow falls silent. She acknowledges the better shot.",
                 "Lyra holds the High Ground. The forest remains hers.",
-                LevelDifficulty.Hard, xp: 225, isBoss: true,
-                enemies: new[] { ("lyra_thornveil", 14), ("zeph_wildmane", 13) }, heroMap,
+                LevelDifficulty.Hard, xp: 225,
+                enemies: new[] { ("lyra_thornveil", 14), ("zeph_wildmane", 13) }, heroMap: heroMap,
                 required: "ch2_l4",
-                terrain: new[] { (5, 1, TileType.HighGround), (5, 3, TileType.HighGround) });
+                terrain: new[] { (5, 1, TileType.HighGround), (5, 3, TileType.HighGround) }, isBoss: true);
 
             // Chapter 3: The Stone Sanctum — 5 levels confronting the healer faction
             Level("ch3_l1", "Pale Stones", 3, 1,
@@ -598,10 +599,10 @@ namespace AshenThrone.Editor
                 "Both Mira and Aldric make their final stand. The sanctum's ley lines pulse with terrifying strength.",
                 "The Pale Stone's Heart is stilled. Chapter three ends.",
                 "The Heart pulses on. The Sanctum is unbroken.",
-                LevelDifficulty.Hard, xp: 300, isBoss: true,
-                enemies: new[] { ("aldric_stoneguard", 18), ("mira_pale_stone", 17) }, heroMap,
+                LevelDifficulty.Hard, xp: 300,
+                enemies: new[] { ("aldric_stoneguard", 18), ("mira_pale_stone", 17) }, heroMap: heroMap,
                 required: "ch3_l4",
-                terrain: new[] { (3, 1, TileType.ArcaneLayLine), (3, 3, TileType.ArcaneLayLine) });
+                terrain: new[] { (3, 1, TileType.ArcaneLayLine), (3, 3, TileType.ArcaneLayLine) }, isBoss: true);
 
             // Chapter 4: The Void — 5 levels facing the Void Reapers
             Level("ch4_l1", "Through the Rift", 4, 1,
@@ -642,10 +643,10 @@ namespace AshenThrone.Editor
                 "At the heart of the void stands the Ashen Throne itself. Both Skaros and Vex defend it. Whoever sits the Throne decides the fate of the realm.",
                 "The Throne is yours. Chapter four — and the campaign's first arc — ends. But the Throne's power has only begun to stir.",
                 "The Throne is defended. The void claims this realm.",
-                LevelDifficulty.Boss, xp: 500, isBoss: true,
-                enemies: new[] { ("vex_unbound", 25), ("skaros_nightfall", 24) }, heroMap,
+                LevelDifficulty.Boss, xp: 500,
+                enemies: new[] { ("vex_unbound", 25), ("skaros_nightfall", 24) }, heroMap: heroMap,
                 required: "ch4_l4",
-                terrain: new[] { (3, 0, TileType.ShadowVeil), (3, 4, TileType.ShadowVeil), (4, 2, TileType.Fire) });
+                terrain: new[] { (3, 0, TileType.ShadowVeil), (3, 4, TileType.ShadowVeil), (4, 2, TileType.Fire) }, isBoss: true);
         }
 
         // ─── Factory Helpers ──────────────────────────────────────────────────────

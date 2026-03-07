@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using AshenThrone.Alliance;
+using Object = UnityEngine.Object;
 
 namespace AshenThrone.Tests.Alliance
 {

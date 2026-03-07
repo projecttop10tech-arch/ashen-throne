@@ -21,7 +21,7 @@ namespace AshenThrone.Editor
             int created = 0;
             foreach (var def in definitions)
             {
-                string path = $"{OutputPath}/{def.nodeId}.asset";
+                string path = $"{OutputPath}/{def.Id}.asset";
                 ResearchNodeData existing = AssetDatabase.LoadAssetAtPath<ResearchNodeData>(path);
                 if (existing != null)
                 {

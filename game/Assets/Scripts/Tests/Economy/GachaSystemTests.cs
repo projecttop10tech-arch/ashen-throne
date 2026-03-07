@@ -173,7 +173,7 @@ namespace AshenThrone.Tests.Economy
             var odds = _gacha.GetDisplayedOdds();
             float total = 0f;
             foreach (var kvp in odds) total += kvp.Value;
-            Assert.AreApproximatelyEqual(1f, total, 0.001f);
+            Assert.That(total, Is.EqualTo(1f).Within(0.001f));
         }
 
         // --- ReceiveServerPullResult ---

@@ -2,6 +2,7 @@ using System;
 using NUnit.Framework;
 using UnityEngine;
 using AshenThrone.Economy;
+using Object = UnityEngine.Object;
 
 namespace AshenThrone.Tests.Economy
 {
