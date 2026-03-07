@@ -4,6 +4,27 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.3.0] — 2026-03-07 (Phase 2: Empire System)
+
+### ADDED
+- **ResearchNodeData**: ScriptableObject for research tree nodes. Fields: `nodeId`, `displayName`, `description`, `branch` (Military/Resource/Research/Hero), `gridPosition`, per-resource costs, `researchTimeSeconds` [60–86400], `prerequisiteNodeIds`, `effects` (list of `ResearchEffect`), `requiredAcademyTier`. `ResearchEffect` contains `effectType` (30+ `ResearchEffectType` enum values), `magnitude`, `description`.
+- **ResearchManager**: MonoBehaviour managing the 30-node research tree. `LoadAllNodes()` via `Resources.LoadAll<ResearchNodeData>`. `StartResearch` validates prerequisites, queue capacity, resources, deducts cost, enqueues. `TickResearchQueue()` in `Update` decrements timer, fires `ResearchCompletedEvent` on finish. `ApplySpeedup(int)` clamps to 0. `ResearchBonusState` inner class aggregates all cumulative % bonuses and is published as `ResearchBonusesUpdatedEvent` after each completion. `HydrateCompletedNodes(IEnumerable<string>)` restores completed state from save data.
+- **ResearchTreeGenerator**: Editor script (`AshenThrone → Generate Research Tree`) generating 30 `ResearchNodeData` assets to `Assets/Data/Research/`. 4 branches: Military (8 nodes), Resource (7 nodes), Research (7 nodes), Hero (8 nodes). Includes prerequisite chains, cost scaling, and time scaling.
+- **ResourceHUD**: Persistent empire HUD showing 4 resource stocks and production rates. Subscribes to `ResourceChangedEvent` + `ProductionRatesUpdatedEvent`. Compact K-format for large numbers.
+- **BuildingPanel**: Modal panel for placed-building info, upgrade costs, build-time, and real-time upgrade progress bar. `Show(string placedId)` drives all state. `Update()` polls active queue entry. Upgrade/Close buttons fully wired.
+- **ResearchTreePanel**: Full research tree UI with 4 branch tabs. `RefreshBranch(ResearchBranch)` rebuilds `ResearchNodeWidget` instances. Active research bar with live progress slider + countdown. Contains nested `ResearchDetailPanel` for node detail + research action.
+- **ResearchNodeWidget**: State-driven node badge (Locked = grey, Available = blue, InProgress = yellow, Completed = green + checkmark). `Bind(node, completed, available, inProgress, onClicked)`.
+- **EmpireUIController**: Root empire HUD coordinator. `ShowBuildingPanel(string placedId)`, `ShowResearchTree()`, `ShowBuildMenu()` (Phase 3 stub). Closes all panels before opening selected.
+- **BuildQueueOverlay**: Persistent 2-slot build queue bottom strip. Each slot: building name, target tier, progress bar, remaining time. Subscribes to `BuildingUpgradeStartedEvent` / `BuildingUpgradeCompletedEvent`. Contains nested `BuildQueueSlotWidget`.
+- **Unit tests — ResearchManagerTests** (19 tests): StartResearch happy path, queue add, event fires; failure cases (not found, missing prereqs, already in queue, queue full, already completed); prerequisite chain (succeeds when met, `IsAvailable`); speedup (reduces remaining, clamps 0, no-throw on empty queue); completion effects (fires event, adds to completed, applies bonuses); hydration (marks completed, restores effects, null-safe).
+- **Unit tests — ResourceManagerTests** (16 tests): init state, `CanAfford` (exact, false when insufficient, zero cost), `Spend` (deducts correctly, throws when insufficient, zero no-op, fires events per resource), `AddResource` (increases, clamps to max, ignores zero/negative), offline earnings (caps at configured max hours).
+- **Unit tests — BuildingManagerTests** (16 tests): `PlaceBuilding` (throws on null, returns id, adds to dict, deducts resources, returns null for unique already built, fires event); `StartUpgrade` (false not found, true valid, adds to queue, false already in queue, false queue full at 2, false at max tier); timer cap (non-Core clamped to `MaxBuildTimeSecondsOther`, Core/Stronghold to `MaxBuildTimeSecondsStronghold`); speedup (reduces, clamps, no-throw).
+
+### FIXED
+- `BuildingPanel.Update()`: Removed redundant `if (!gameObject.activeSelf) return;` guard — `Update()` does not run when the GameObject is inactive (QA check #20 resolved).
+
+---
+
 ## [0.2.1] — 2026-03-07 (Phase 1: Combat UI + Tests)
 
 ### ADDED
