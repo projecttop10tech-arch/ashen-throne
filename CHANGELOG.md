@@ -4,6 +4,51 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.5.0] — 2026-03-07 (Phase 4: Economy & Monetization)
+
+### ADDED
+- **QuestDefinition**: ScriptableObject for quest definitions. Fields: `QuestId`, `DisplayName`, `Description`, `Cadence` (Daily/Weekly/OneTime), `ObjectiveType` (13 types), `RequiredCount`, `BattlePassPoints`, resource rewards (stone/iron/grain/arcane), `HeroShardReward`, `ContextTag` (optional filter for objective subcategories).
+- **QuestEngine**: MonoBehaviour managing daily/weekly/one-time quest tracking.
+  - `Initialize(definitions, save)` — restores progress, handles daily/weekly UTC reset detection.
+  - `RecordProgress(objectiveType, amount, contextTag)` — single entry point for all objective tracking; routes to matching quest via EventBus handlers.
+  - Auto-wired EventBus handlers: `BattleEndedEvent` → Win/Complete battles; `BuildingUpgradeCompletedEvent` → UpgradeBuilding; `ResearchCompletedEvent` → CompleteResearch; `RallyMemberJoinedEvent` → JoinRally; `TerritoryCapturedEvent` → CaptureTerritory; `PvpReplayReceivedEvent` → WinPvpBattles.
+  - `ClaimReward(questId)` — grants resources to ResourceManager + BP points to BattlePassManager.
+  - `GetQuestsByCategory(cadence)`, `GetUnclaimedCount()`, `BuildSaveData()`.
+  - Static `GetLastMidnightUtc()` / `GetLastMondayUtc()` for reset window computation.
+  - Events: `QuestCompletedEvent`, `QuestRewardClaimedEvent`.
+- **GachaSystem**: Cosmetic-only gacha with pity counter and transparent odds.
+  - `SetPool(items)` — only `CosmeticType` items (no hero type exists — check #40 enforced by design).
+  - `SimulatePull()` — client-side weighted random for immediate visual feedback; pity at 50 pulls forces Legendary.
+  - `ReceiveServerPullResult(itemId, isDuplicate, pityCounter)` — server result is authoritative.
+  - `GetDisplayedOdds()` — returns per-rarity probability dict shown in UI (required by App Store — checks #44, #45, #41).
+  - `LoadPityCounter(int)` — restores from save; clamped [0, PityThreshold].
+  - `PityCounter` + `PullsUntilPity` properties for transparent UI display.
+  - Events: `GachaPullConfirmedEvent`.
+- **HeroShardSystem**: Hero shard collection and summoning (F2P earnable path — check #3 design rule).
+  - `AddShards(heroId, amount, source)` — adds shards; sources: PveReward, EventReward, QuestReward, AllianceMilestone, SeasonReward, ShardStore.
+  - `CanSummon(heroData)` — checks shard count vs `HeroData.ShardsToSummon`.
+  - `RequestSummon(heroData)` — validates locally, dispatches to server; client never grants hero without `ReceiveServerSummonResult`.
+  - `ReceiveServerSummonResult(heroId, success)` — deducts shards, fires `HeroSummonedEvent`.
+  - `GetSummonableHeroIds()` — returns heroes ready to summon for notification badge.
+  - Events: `HeroShardsAddedEvent`, `HeroSummonRequestedEvent`, `HeroSummonedEvent`.
+- **IAPManager**: Unity IAP wrapper with P2W enforcement and server receipt validation.
+  - `RegisterProduct(IAPProductDefinition)` — **throws `InvalidOperationException`** if `IsCombatPowerProduct = true` (design-time P2W gate — check #40).
+  - `InitiatePurchase(productId)` — validates product registered, fires event, delegates to Unity IAP SDK stub.
+  - `OnPurchaseDeferred(productId, transactionId, receiptJson, platform)` — queues receipt for server validation; NEVER grants rewards locally.
+  - `OnServerValidationSuccess/Failed` — removes from pending queue, fires events.
+  - `GetPendingPurchases()` — returns unvalidated receipts for retry on app restart.
+  - IAP products defined: BattlePassPremium ($9.99), SeasonPass ($29.99), PlayPlus ($4.99/mo), CosmeticStore ($1.99–$14.99).
+  - Events: `IAPPurchaseInitiatedEvent`, `IAPPurchaseCompletedEvent`, `IAPPurchaseFailedEvent`.
+- **Unit tests — BattlePassManagerTests** (14 tests): `LoadState` (null season throw, tier clamp, premium restore), `AddPoints` (increment, ignore zero/negative, tier advance, tier-advance event, no advance beyond max), `ActivatePremiumTrack` (sets active, idempotent), `ClaimReward` (tier not reached, free reward success, already claimed, premium without active, premium with active, **combat-power reward rejected**).
+- **Unit tests — QuestEngineTests** (22 tests): `Initialize` (null throw, null entries ignored, saved progress restored, daily reset, no-reset, one-time never resets), `RecordProgress` (increment, wrong type ignored, zero ignored, caps at required, marks completed, fires event, context tag filter, no-tag matches any), `ClaimReward` (not found, not completed, success, already claimed), `GetQuestsByCategory`, `GetUnclaimedCount`, `GetLastMidnightUtc`, `GetLastMondayUtc`, `BuildSaveData`, `QuestProgress.Reset`.
+- **Unit tests — GachaSystemTests** (16 tests): `SetPool` (null/empty no-throw, replace pool), `SimulatePull` (null when empty, non-null with pool, pity increment, pity forces Legendary at threshold, reset pity after Legendary, all-owned pool returns null), `LoadPityCounter` (clamp below zero, clamp above threshold), `PullsUntilPity`, `GetDisplayedOdds` (non-empty, empty pool, sums to ~1.0), `ReceiveServerPullResult` (marks owned, updates pity), `GachaItem` construction validation.
+- **Unit tests — IAPManagerTests** (14 tests): `RegisterProduct` (null throw, P2W throw, cosmetic ok, queryable after register), `GetProduct` (null for missing, correct return), `GetCatalog` count, `InitiatePurchase` (false unregistered, true registered), `OnPurchaseDeferred` (empty receipt ignored, valid queued), `OnServerValidationSuccess` (removes pending, fires event), `OnServerValidationFailed` (removes pending, fires event), `IAPProductDefinition` empty id throw.
+
+### FIXED
+- `QuestEngine`: Removed `Combat.` and `Alliance.` namespace qualifiers from event handler signatures — added `using AshenThrone.Combat;` and `using AshenThrone.Alliance;` to resolve namespace references correctly (QA check #3 blocker resolved).
+
+---
+
 ## [0.4.0] — 2026-03-07 (Phase 3: Alliance & Social)
 
 ### ADDED
