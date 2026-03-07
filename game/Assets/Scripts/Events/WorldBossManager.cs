@@ -123,8 +123,6 @@ namespace AshenThrone.Events
         {
             if (_definition == null) return;
             long previousHp = CurrentHp;
-            CurrentHp = Mathf.Max(0, (int)Mathf.Min(newHp, _definition.TotalHp));
-            // Note: using long clamping properly here
             CurrentHp = Math.Max(0L, Math.Min(newHp, _definition.TotalHp));
 
             if (IsAlive && CurrentHp <= 0)
