@@ -4,6 +4,42 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.7.0] — 2026-03-07 (Phase 6: Polish & Launch)
+
+### ADDED
+- **TutorialManager**: MonoBehaviour orchestrating the 8-step FTUE interactive tutorial.
+  - `Initialize(save)` — restores progress from `TutorialSaveData`; null starts fresh; empty steps list marks complete.
+  - `ReportAction(action)` — advances tutorial when player action matches current step's `RequiredAction`.
+  - `SkipCurrentStep()` — advances only if step is marked `IsSkippable`; returns false otherwise.
+  - `SkipAll()` — immediately completes entire tutorial.
+  - `SetSteps(list)` — programmatic step injection for testing or dynamic content.
+  - `BuildSaveData()` — serializes progress for PlayFab persistence.
+  - Properties: `CurrentStep`, `CurrentStepIndex`, `TotalSteps`, `IsActive`, `IsComplete`.
+  - Events: `TutorialActionEvent`, `TutorialStepStartedEvent`, `TutorialStepCompletedEvent`, `TutorialCompletedEvent`.
+- **TutorialStep**: ScriptableObject defining a single tutorial step — `StepId`, `StepIndex`, `InstructionTextKey`, `HighlightTargetTag`, `RequiredAction`, `IsSkippable`, `VoiceOverClipKey`.
+- **TutorialAction**: Enum — `None`, `TapAnywhere`, `PlayCard`, `BuildBuilding`, `CollectResource`, `UpgradeBuilding`, `RecruitHero`, `JoinAlliance`, `CompleteQuest`.
+- **AccessibilityManager**: MonoBehaviour managing runtime accessibility settings.
+  - `Initialize(save)` — restores from `AccessibilitySaveData`; null applies defaults from `AccessibilityConfig` ScriptableObject.
+  - Setters: `SetColorblindMode(mode)`, `SetTextSizeScale(scale)`, `SetHapticsEnabled(bool)`, `SetScreenReaderEnabled(bool)`, `SetReduceMotion(bool)`, `SetUiBrightness(float)`.
+  - All setters clamp to config min/max ranges and fire `AccessibilitySettingsChangedEvent` via EventBus.
+  - `BuildSaveData()` — serializes all settings for persistence.
+  - 3 colorblind modes: Protanopia, Deuteranopia, Tritanopia (check #31 WCAG AA compliance).
+- **AccessibilityConfig**: ScriptableObject — `MinTextScale`, `MaxTextScale`, `DefaultTextScale`, `DefaultHapticsEnabled`, `MinBrightness`, `MaxBrightness`.
+- **LocalizationBootstrap**: MonoBehaviour managing language selection and Unity Localization integration.
+  - `Initialize(save)` — restores language from `LocalizationSaveData`; null triggers auto-detection from device language.
+  - `SetLanguage(GameLanguage)` — changes active language; fires `LanguageChangedEvent`.
+  - `DetectDeviceLanguage()` — maps `Application.systemLanguage` to nearest supported `GameLanguage`.
+  - Static helpers: `GetLanguageCode(lang)` (ISO 639-1), `GetDisplayName(lang)` (native name), `GetSupportedLanguages()`.
+  - 8 languages at launch: English, Spanish, French, German, Portuguese, Japanese, Korean, Chinese (Simplified).
+- **Unit tests — TutorialManagerTests** (22 tests): `Initialize` (null save, no steps, resume, complete save, all-done), `ReportAction` (matching/wrong/complete/last-step/not-active), `SkipCurrentStep` (skippable/not-skippable/complete), `SkipAll` (marks complete, already complete), `BuildSaveData` (state/complete), `CurrentStep` (null when inactive, correct when active), `TotalSteps`, full 8-step walkthrough.
+- **Unit tests — AccessibilityManagerTests** (20 tests): `Initialize` (null save defaults, no-config fallback, restore from save, clamp colorblind index, clamp text scale high/low, clamp brightness), setters (colorblind mode, same value no-op, text scale clamp, haptics toggle, screen reader toggle, reduce motion toggle, brightness clamp), `BuildSaveData` (reflects state, round-trips).
+- **Unit tests — LocalizationBootstrapTests** (14 tests): `Initialize` (null auto-detect, restore from save, invalid index fallback, negative index fallback), `SetLanguage` (changes, same no-op), `GetLanguageCode` (all 8 codes), `CurrentLanguageCode`, `GetSupportedLanguages` (returns 8), `GetDisplayName` (non-empty for all), `BuildSaveData` (reflects/round-trips), `SupportedLanguageCount` constant.
+
+### FIXED
+- `Packages/manifest.json`: Removed invalid `com.artmann.unity-mcp` git URL (`?path=Packages/unity-mcp` doesn't exist in repo). Unity MCP server remains configured in Claude Code via `npx -y unity-mcp`; Unity-side package to be installed via Package Manager UI when correct path is confirmed.
+
+---
+
 ## [0.6.0] — 2026-03-07 (Phase 5: Events & Notifications)
 
 ### ADDED
