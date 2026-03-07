@@ -4,6 +4,57 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.4.0] — 2026-03-07 (Phase 3: Alliance & Social)
+
+### ADDED
+- **TerritoryConfig**: ScriptableObject for all territory war tuning. Fields: `TotalRegions` (200), `MapRadius`, `WarWindowDurationSeconds` (7200), `WarWindowsPerDay`, `WarWindowStartHourUtc`, capture power thresholds, rally min/max/duration, fortification HP + tier multiplier, supply line range, resource/military/research/stronghold territory bonuses (%), contribution point awards.
+- **TerritorySystem** (`TerritoryManager` + `HexCoord` + `TerritoryRegion` + `TerritoryBonuses`):
+  - `HexCoord` — axial hex coordinate with `Distance()`, `Neighbors()`, full equality/hashcode.
+  - `TerritoryRegion` — runtime state per hex (owner, fortification tier, HP). Pure C#.
+  - `TerritoryManager` — MonoBehaviour managing 200 regions. `InitializeMap()`, `LoadFromServerData()`, `ApplyCapture()` (server-confirmed only), `ApplyFortificationUpgrade()`, `CalculateBonuses(allianceId)` (BFS connectivity check), `IsAttackable()`, `AreAdjacent()`.
+  - `_coordToRegionId` Dictionary for O(1) BFS neighbor lookup (replaces O(n²) nested foreach).
+  - Events: `TerritoryMapLoadedEvent`, `TerritoryCapturedEvent`, `TerritoryFortifiedEvent`.
+- **WarEngine**: MonoBehaviour managing rallies and war window scheduling.
+  - `GetUpcomingWarWindows(int count)` — pure scheduling calculation, no side effects.
+  - `IsWarWindowOpen()` — returns true during scheduled 2-hour war windows.
+  - `StartRally()` / `JoinRally()` / `LaunchRally()` — full rally lifecycle.
+  - `ApplyWarResult(rallyId, WarResult)` — verifies SHA-256 hash before applying server result.
+  - `ComputeAttackerPower(participantPowerScores)` — static; includes log2 coordination bonus.
+  - `ResolveAttack(attackerPower, defenderPower, fortHP)` — static; fortification adds to defense.
+  - `ComputeResultHash(...)` — static; SHA-256 of action+region+outcome+powers (check #50).
+  - Events: `RallyStartedEvent`, `RallyMemberJoinedEvent`, `RallyLaunchedEvent`, `RallyCancelledEvent`, `WarResultAppliedEvent`.
+  - `RallyAttack` class: lifecycle (Recruiting → Launched → Completed/Cancelled), auto-join organizer, cap enforcement, `ApplyResult(WarResult)`.
+  - `WarResult` class: includes `IsHashValid()` client-side verification.
+  - `WarWindow` class: open/close UTC times, `IsOpen`, `SecondsUntilClose`.
+- **AllianceChatManager**: In-game alliance chat with sanitization and rate limiting.
+  - `IChatSanitizer` interface + `DefaultChatSanitizer` (pre-compiled Regex: strips HTML, SQL injection patterns, JS protocols, control chars; clamped to `MaxMessageLength` 200).
+  - `ValidateSend()` — validates + sanitizes before dispatch; checks officer permission, rate limit (20/min).
+  - `ReceiveMessage()` — secondary sanitization defense; ring-buffer history (max 200 per channel).
+  - 3 channels: `Alliance`, `Officer`, `System`.
+  - Events: `ChatMessageReceivedEvent`.
+- **LeaderboardManager**: PlayFab-backed leaderboard cache.
+  - 3 categories: `SoloPower`, `AllianceScore`, `TerritoryCount`.
+  - `RequestLeaderboard()` — returns cached if fresh (5 min TTL), otherwise fires PlayFab stub.
+  - `RankEntries()` — static; handles ties (same rank, next rank skipped).
+  - `InvalidateCache()` / `InvalidateCache(type)`.
+  - Events: `LeaderboardUpdatedEvent`.
+- **AsyncPvpManager**: Async PvP loadout recording + result validation.
+  - `RecordLoadout()` — records 1–3 hero loadout with SHA-256 integrity hash; fire-and-forget to server.
+  - `RequestAttack()` — submits attack request with loadout hashes; returns request ID.
+  - `ReceiveReplay()` — verifies `CombatReplayData.ValidationHash` (SHA-256 of replayId + loadout hashes + outcome + turns) before storing; ring buffer (50 replays).
+  - `ComputeLoadoutHash()` / `ComputeReplayHash()` — pure static C#, SHA-256 (check #50).
+  - Events: `PvpLoadoutRecordedEvent`, `PvpAttackRequestedEvent`, `PvpReplayReceivedEvent`.
+- **Unit tests — TerritorySystemTests** (20 tests): HexCoord math (distance, equality, neighbors), `InitializeMap` (null throw, populate, null entries), `LoadFromServerData` (ownership, neutral), `GetTerritoryCount`, `ApplyCapture` (ownership + index update), `AreAdjacent`, `IsAttackable` (own territory, no adjacent, adjacent owned), fortification damage (reduce, destroyed, no negative).
+- **Unit tests — WarEngineTests** (18 tests): `ComputeAttackerPower` (empty, null, single, grouped, negative clamp), `ResolveAttack` (win/lose/draw, fortification adds defense), `ComputeResultHash` (deterministic, different outcomes, 64-char hex), `WarResult.IsHashValid` (match, tampered), `RallyAttack` lifecycle (throw on empty id, auto-join, TryJoin/full/duplicate, TryLaunch min, Cancel, post-cancel no-join), `WarWindow` timing.
+- **Unit tests — AsyncPvpManagerTests** (18 tests): `RecordLoadout` validation, hash non-empty, loadout hash determinism + diff, `ReceiveReplay` (null, bad hash, valid, history add, ring-buffer eviction, event), `RequestAttack` (no loadout, with loadout, empty id), `GetReplay` (null id, found by id), `CombatReplayData.IsHashValid` null loadout.
+- **Unit tests — AllianceChatManagerTests** (14 tests): Sanitizer (HTML strip, SQL remove, JS protocol, length clamp, null input, violation detection), `ValidateSend` (empty, whitespace, valid, sanitization), `ReceiveMessage` (null no-throw, history add, event fire, ring-buffer eviction, officer channel), `GetHistory` empty, `ClearHistory` (target channel, other unaffected), `SetSanitizer` null throw.
+
+### FIXED
+- `TerritorySystem.GetConnectedRegions`: Replaced O(n²) nested foreach with `_coordToRegionId` Dictionary for O(1) BFS neighbor lookup (QA check #19 blocker resolved).
+- `WarEngine.Update()`: Added inline comment documenting that the active-rally scan is bounded by alliance size (≤50), within the 2ms frame budget (QA check #20 documentation resolved).
+
+---
+
 ## [0.3.0] — 2026-03-07 (Phase 2: Empire System)
 
 ### ADDED
