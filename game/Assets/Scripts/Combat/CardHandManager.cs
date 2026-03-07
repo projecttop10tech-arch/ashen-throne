@@ -117,7 +117,7 @@ namespace AshenThrone.Combat
                 SetActiveComboTag(ComboTag.None); // Combo consumed
 
             OnCardPlayed?.Invoke(card);
-            EventBus.Publish(new CardPlayedEvent(card.cardId, target, comboActivated));
+            EventBus.Publish(new CardPlayedEvent(card, target, comboActivated));
             return true;
         }
 
@@ -167,7 +167,20 @@ namespace AshenThrone.Combat
 
     // --- Events ---
     public readonly struct CardDrawnEvent { public readonly string CardId; public CardDrawnEvent(string id) { CardId = id; } }
-    public readonly struct CardPlayedEvent { public readonly string CardId; public readonly GridPosition Target; public readonly bool ComboActivated; public CardPlayedEvent(string id, GridPosition t, bool c) { CardId = id; Target = t; ComboActivated = c; } }
+    public readonly struct CardPlayedEvent
+    {
+        public readonly AbilityCardData Card;
+        public readonly string CardId;     // Convenience alias for Card.cardId
+        public readonly GridPosition Target;
+        public readonly bool ComboActivated;
+        public CardPlayedEvent(AbilityCardData card, GridPosition t, bool c)
+        {
+            Card = card;
+            CardId = card?.cardId ?? string.Empty;
+            Target = t;
+            ComboActivated = c;
+        }
+    }
     public readonly struct CardDiscardedEvent { public readonly string CardId; public CardDiscardedEvent(string id) { CardId = id; } }
     public readonly struct CardPlayFailedEvent { public readonly string CardId; public readonly string Reason; public CardPlayFailedEvent(string id, string r) { CardId = id; Reason = r; } }
     public readonly struct EnergyChangedEvent { public readonly int CurrentEnergy; public EnergyChangedEvent(int e) { CurrentEnergy = e; } }

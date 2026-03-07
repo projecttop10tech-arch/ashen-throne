@@ -35,7 +35,11 @@ namespace AshenThrone.Data
         public int ArcaneLayLineEnergyCostReduction = 1;
 
         [Header("Combat Balance")]
-        /// <summary>Defense mitigation divisor: mitigatedDmg = max(1, rawDmg - defense / MitigationDivisor).</summary>
+        /// <summary>Minimum damage dealt regardless of defense or mitigation. Prevents zero-damage attacks.</summary>
+        [Range(1, 10)] public int MinimumDamage = 1;
+        /// <summary>Minimum healing from any heal effect. Prevents zero-heal cards.</summary>
+        [Range(0, 10)] public int MinimumHeal = 1;
+        /// <summary>Defense mitigation divisor: mitigatedDmg = max(MinimumDamage, rawDmg - defense / MitigationDivisor).</summary>
         [Range(2, 8)] public int MitigationDivisor = 4;
         /// <summary>Critical hit damage multiplier (1.5 = 150% normal damage).</summary>
         [Range(1.1f, 3f)] public float CriticalHitMultiplier = 1.5f;
@@ -47,6 +51,22 @@ namespace AshenThrone.Data
         [Range(0.1f, 0.9f)] public float EnragedDefensePenalty = 0.333f;
         /// <summary>Bonus damage multiplier when attacking a Marked target (1.25 = +25%).</summary>
         [Range(1f, 2f)] public float MarkedDamageBonus = 1.25f;
+
+        [Header("AI & Timing")]
+        /// <summary>Delay in seconds between AI hero card plays. Controls visual pacing.</summary>
+        [Range(0.1f, 2f)] public float AiActionDelaySeconds = 0.6f;
+        /// <summary>Seconds before the player's action phase auto-ends (safety fallback for stalled input).</summary>
+        [Range(10f, 120f)] public float PlayerActionTimeoutSeconds = 30f;
+
+        [Header("Status Effect DOT Values")]
+        /// <summary>Fire damage dealt per turn to a hero with the Burn status.</summary>
+        [Range(1, 200)] public int BurnDamagePerTurn = 30;
+        /// <summary>Physical damage dealt per turn to a hero with the Bleed status.</summary>
+        [Range(1, 200)] public int BleedDamagePerTurn = 25;
+        /// <summary>Arcane damage dealt per turn to a hero with the Poison status.</summary>
+        [Range(1, 200)] public int PoisonDamagePerTurn = 20;
+        /// <summary>HP restored per turn to a hero with the Regenerating status.</summary>
+        [Range(1, 200)] public int RegenerationHealPerTurn = 40;
 
         [Header("Faction Synergy Bonuses")]
         /// <summary>Damage bonus for 2 heroes of the same faction in the squad (0.10 = +10%).</summary>
