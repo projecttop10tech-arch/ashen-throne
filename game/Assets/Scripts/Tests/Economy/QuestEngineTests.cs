@@ -146,7 +146,7 @@ namespace AshenThrone.Tests.Economy
             var def = MakeQuest("q1", objectiveType: QuestObjectiveType.WinCombatBattles, required: 1);
             _engine.Initialize(new List<QuestDefinition> { def }, null);
             bool fired = false;
-            var sub = Core.EventBus.Subscribe<QuestCompletedEvent>(e => fired = true);
+            var sub = AshenThrone.Core.EventBus.Subscribe<QuestCompletedEvent>(e => fired = true);
             _engine.RecordProgress(QuestObjectiveType.WinCombatBattles, 1);
             sub.Dispose();
             Assert.IsTrue(fired);

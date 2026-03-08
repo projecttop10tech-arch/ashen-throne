@@ -8,6 +8,7 @@ All game logic is covered by NUnit tests running in Unity Test Framework (UTF) E
 
 ```
 Tests/
+├── Core/         -> mirrors Scripts/Core/ (EventBus, ServiceLocator, StateMachine, ObjectPool)
 ├── Combat/       -> mirrors Scripts/Combat/
 ├── Empire/       -> mirrors Scripts/Empire/
 ├── Economy/      -> mirrors Scripts/Economy/
@@ -45,8 +46,12 @@ Tests/
 | UI | `TutorialManagerTests.cs` | 22 |
 | UI | `AccessibilityManagerTests.cs` | 20 |
 | UI | `LocalizationBootstrapTests.cs` | 14 |
+| Core | `EventBusTests.cs` | 15 |
+| Core | `ServiceLocatorTests.cs` | 16 |
+| Core | `StateMachineTests.cs` | 20 |
+| Core | `ObjectPoolTests.cs` | 14 |
 
-**Total: 485+ tests**
+**Total: 544 tests**
 
 ## Test Patterns
 
@@ -113,6 +118,6 @@ Assert.IsTrue(eventFired, "CardPlayedEvent should fire on successful play");
   -projectPath game/ -testResults test-results.xml -logFile test-run.log
 ```
 
-## Coverage Gaps (as of Phase 6)
+## Coverage Status (as of Phase 6)
 
-- `Core/` — EventBus and ServiceLocator lack unit tests
+All systems have dedicated unit test coverage. No remaining gaps.

@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.7.2] — 2026-03-07 (Coverage: Core/ unit tests)
+
+### ADDED
+- **Unit tests — EventBusTests** (15 tests): Subscribe+Publish (handler receives, multiple handlers, no subscribers, wrong type, correct routing), Unsubscribe (stops receiving, not-registered no-throw), EventSubscription Dispose (unsubscribes, double-dispose idempotent, null action throws), exception safety (other handlers still fire), Shutdown clears all, Initialize idempotent, unsubscribe during dispatch safe.
+- **Unit tests — ServiceLocatorTests** (16 tests): Register+Get (same instance, null throws, overwrite), Get not-registered throws, TryGet (registered true, not-registered false), IsRegistered (true/false), Unregister (removes, not-registered no-throw), multiple types independent, unregister one doesn't affect other, Shutdown clears, Initialize idempotent.
+- **Unit tests — StateMachineTests** (20 tests): AddState null throws, Initialize (sets state, calls Enter, unregistered throws), TransitionTo (changes state, sets previous, calls Exit/Enter, same-state no-op, before-init logs error, unregistered logs error), events (OnStateEntered/OnStateExited fire), Tick (forwards to current, before-init no-op, after transition ticks new), full lifecycle.
+- **Unit tests — ObjectPoolTests** (14 tests): constructor (null prefab throws, pre-warms), Get (returns active, sets position, decrements available, beyond pre-warm creates, at max returns null), Return (deactivates, increments available, null no-throw, not-tracked warns, reuses), ReturnAll (returns all, no-throw empty).
+
+### FIXED
+- `QuestEngineTests`: Fixed `Core.EventBus` namespace collision (now uses fully qualified `AshenThrone.Core.EventBus`) after `AshenThrone.Tests.Core` namespace was introduced.
+
+---
+
 ## [0.7.1] — 2026-03-07 (Coverage: CombatHero + CombatGrid tests)
 
 ### ADDED
