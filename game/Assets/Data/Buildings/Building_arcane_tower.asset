@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Produces arcane essence. Required for hero abilities and enchanting.
   category: 2
   district: 2
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 0b6eb0241ca1a47eea5cb125a0b5b5df, type: 3}
+  - {fileID: 21300000, guid: 6103e5437418f41af82e02748c8bd2bc, type: 3}
+  - {fileID: 21300000, guid: 450e57e28ce134a109f58fa417de103a, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

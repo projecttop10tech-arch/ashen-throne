@@ -31,7 +31,7 @@ MonoBehaviour:
   requiresComboTag: 0
   comboBonusMultiplier: 1
   comboBonusDescription: 
-  cardArtwork: {fileID: 0}
+  cardArtwork: {fileID: 21300000, guid: 4bbb3ea9f1b1b41d0844d26e25a2bc3d, type: 3}
   cardFrameColor: {r: 1, g: 1, b: 1, a: 1}
   impactParticles: []
   castSound: {fileID: 0}

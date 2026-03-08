@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Trains basic troops and unlocks military upgrades.
   category: 1
   district: 1
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: d1357141601744da09d264ec737618c7, type: 3}
+  - {fileID: 21300000, guid: f533e1a4bd832426596f81df67b5ecb6, type: 3}
+  - {fileID: 21300000, guid: 32986bc18906449a897131c7102b3025, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

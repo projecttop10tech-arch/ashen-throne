@@ -1,0 +1,824 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="125" result="Passed" total="125" passed="125" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.1211339">
+  <test-suite type="TestSuite" id="1000" name="game" fullname="game" runstate="Runnable" testcasecount="544" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.121134" total="125" passed="125" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1573" name="AshenThrone.Tests.dll" fullname="/Users/tomterhune/ashen-throne/game/Library/ScriptAssemblies/AshenThrone.Tests.dll" runstate="Runnable" testcasecount="543" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.110581" total="125" passed="125" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="90353" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1574" name="AshenThrone" fullname="AshenThrone" runstate="Runnable" testcasecount="543" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.104280" total="125" passed="125" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1575" name="Tests" fullname="AshenThrone.Tests" runstate="Runnable" testcasecount="543" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.097777" total="125" passed="125" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1579" name="Economy" fullname="AshenThrone.Tests.Economy" runstate="Runnable" testcasecount="75" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.065500" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1202" name="BattlePassManagerTests" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.035758" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1212" name="ActivatePremiumTrack_IsIdempotent" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ActivatePremiumTrack_IsIdempotent" methodname="ActivatePremiumTrack_IsIdempotent" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="2100001579" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.012918" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1211" name="ActivatePremiumTrack_SetsPremiumActiveTrue" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ActivatePremiumTrack_SetsPremiumActiveTrue" methodname="ActivatePremiumTrack_SetsPremiumActiveTrue" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="898896196" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001095" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1208" name="AddPoints_AdvancesTier_WhenThresholdMet" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.AddPoints_AdvancesTier_WhenThresholdMet" methodname="AddPoints_AdvancesTier_WhenThresholdMet" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="302244215" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001070" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1210" name="AddPoints_DoesNotAdvanceBeyondTotalTiers" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.AddPoints_DoesNotAdvanceBeyondTotalTiers" methodname="AddPoints_DoesNotAdvanceBeyondTotalTiers" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="537025492" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000599" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1209" name="AddPoints_FiresOnTierAdvancedEvent" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.AddPoints_FiresOnTierAdvancedEvent" methodname="AddPoints_FiresOnTierAdvancedEvent" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="1653069955" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000430" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1207" name="AddPoints_IgnoresZeroOrNegative" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.AddPoints_IgnoresZeroOrNegative" methodname="AddPoints_IgnoresZeroOrNegative" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="1534321896" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000426" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1206" name="AddPoints_IncreasesCurrentPoints" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.AddPoints_IncreasesCurrentPoints" methodname="AddPoints_IncreasesCurrentPoints" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="766045657" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000355" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1218" name="ClaimReward_RejectsReward_IfMarkedAsCombatPower" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_RejectsReward_IfMarkedAsCombatPower" methodname="ClaimReward_RejectsReward_IfMarkedAsCombatPower" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="916311781" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.002164" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[BattlePassManager] DESIGN VIOLATION: Tier 2 premium reward grants combat power. This is not allowed.
+]]></output>
+              </test-case>
+              <test-case id="1214" name="ClaimReward_ReturnsFreeReward_WhenTierReached" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_ReturnsFreeReward_WhenTierReached" methodname="ClaimReward_ReturnsFreeReward_WhenTierReached" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="2128801838" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001513" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1215" name="ClaimReward_ReturnsNull_WhenAlreadyClaimed" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_ReturnsNull_WhenAlreadyClaimed" methodname="ClaimReward_ReturnsNull_WhenAlreadyClaimed" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="126007057" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000528" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1216" name="ClaimReward_ReturnsNull_WhenPremiumNotActive_ForPremiumReward" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_ReturnsNull_WhenPremiumNotActive_ForPremiumReward" methodname="ClaimReward_ReturnsNull_WhenPremiumNotActive_ForPremiumReward" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="13886703" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000692" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[BattlePassManager] Cannot claim premium reward: premium not active
+]]></output>
+              </test-case>
+              <test-case id="1213" name="ClaimReward_ReturnsNull_WhenTierNotReached" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_ReturnsNull_WhenTierNotReached" methodname="ClaimReward_ReturnsNull_WhenTierNotReached" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="1678273695" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000723" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[BattlePassManager] Cannot claim tier 1 reward: current tier is 0
+]]></output>
+              </test-case>
+              <test-case id="1217" name="ClaimReward_ReturnsPremiumReward_WhenPremiumActive" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.ClaimReward_ReturnsPremiumReward_WhenPremiumActive" methodname="ClaimReward_ReturnsPremiumReward_WhenPremiumActive" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="1920781429" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000338" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1204" name="LoadState_ClampsTierToTotalTiers" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.LoadState_ClampsTierToTotalTiers" methodname="LoadState_ClampsTierToTotalTiers" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="545800067" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000279" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1205" name="LoadState_SetsPremiumActive_FromSave" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.LoadState_SetsPremiumActive_FromSave" methodname="LoadState_SetsPremiumActive_FromSave" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="336063593" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000273" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1203" name="LoadState_ThrowsArgumentNull_WhenSeasonNull" fullname="AshenThrone.Tests.Economy.BattlePassManagerTests.LoadState_ThrowsArgumentNull_WhenSeasonNull" methodname="LoadState_ThrowsArgumentNull_WhenSeasonNull" classname="AshenThrone.Tests.Economy.BattlePassManagerTests" runstate="Runnable" seed="566501722" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001896" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1219" name="GachaSystemTests" fullname="AshenThrone.Tests.Economy.GachaSystemTests" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" testcasecount="19" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.009020" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1237" name="GachaItem_ThrowsArgumentException_WhenIdEmpty" fullname="AshenThrone.Tests.Economy.GachaSystemTests.GachaItem_ThrowsArgumentException_WhenIdEmpty" methodname="GachaItem_ThrowsArgumentException_WhenIdEmpty" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1579561138" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000590" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1238" name="GachaItem_ThrowsArgumentException_WhenWeightZero" fullname="AshenThrone.Tests.Economy.GachaSystemTests.GachaItem_ThrowsArgumentException_WhenWeightZero" methodname="GachaItem_ThrowsArgumentException_WhenWeightZero" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="919820086" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000117" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1234" name="GetDisplayedOdds_OddsSumToOne_Approximately" fullname="AshenThrone.Tests.Economy.GachaSystemTests.GetDisplayedOdds_OddsSumToOne_Approximately" methodname="GetDisplayedOdds_OddsSumToOne_Approximately" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1626375629" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.002242" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1233" name="GetDisplayedOdds_ReturnEmpty_WithEmptyPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.GetDisplayedOdds_ReturnEmpty_WithEmptyPool" methodname="GetDisplayedOdds_ReturnEmpty_WithEmptyPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1130202274" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000150" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1232" name="GetDisplayedOdds_ReturnsNonEmptyDict_WithValidPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.GetDisplayedOdds_ReturnsNonEmptyDict_WithValidPool" methodname="GetDisplayedOdds_ReturnsNonEmptyDict_WithValidPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="110853453" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000572" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1230" name="LoadPityCounter_ClampsAboveThreshold" fullname="AshenThrone.Tests.Economy.GachaSystemTests.LoadPityCounter_ClampsAboveThreshold" methodname="LoadPityCounter_ClampsAboveThreshold" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1377024480" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000105" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1229" name="LoadPityCounter_ClampsBelowZero" fullname="AshenThrone.Tests.Economy.GachaSystemTests.LoadPityCounter_ClampsBelowZero" methodname="LoadPityCounter_ClampsBelowZero" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="453090525" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000078" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1231" name="PullsUntilPity_EqualsThresholdMinusCounter" fullname="AshenThrone.Tests.Economy.GachaSystemTests.PullsUntilPity_EqualsThresholdMinusCounter" methodname="PullsUntilPity_EqualsThresholdMinusCounter" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1469000395" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1235" name="ReceiveServerPullResult_MarksItemAsOwned" fullname="AshenThrone.Tests.Economy.GachaSystemTests.ReceiveServerPullResult_MarksItemAsOwned" methodname="ReceiveServerPullResult_MarksItemAsOwned" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="847840168" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000319" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1236" name="ReceiveServerPullResult_UpdatesPityCounterFromServer" fullname="AshenThrone.Tests.Economy.GachaSystemTests.ReceiveServerPullResult_UpdatesPityCounterFromServer" methodname="ReceiveServerPullResult_UpdatesPityCounterFromServer" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1848088949" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000084" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1221" name="SetPool_DoesNotThrow_ForEmptyPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SetPool_DoesNotThrow_ForEmptyPool" methodname="SetPool_DoesNotThrow_ForEmptyPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1484073110" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000351" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1220" name="SetPool_DoesNotThrow_ForNullPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SetPool_DoesNotThrow_ForNullPool" methodname="SetPool_DoesNotThrow_ForNullPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="2130799790" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000089" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1222" name="SetPool_ReplacesExistingPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SetPool_ReplacesExistingPool" methodname="SetPool_ReplacesExistingPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="456192212" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000265" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1226" name="SimulatePull_GuaranteesLegendaryAtPityThreshold" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_GuaranteesLegendaryAtPityThreshold" methodname="SimulatePull_GuaranteesLegendaryAtPityThreshold" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="190938836" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000694" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1225" name="SimulatePull_IncrementsPityCounter" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_IncrementsPityCounter" methodname="SimulatePull_IncrementsPityCounter" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="7621214" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000122" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1228" name="SimulatePull_IsDuplicateTrue_WhenItemAlreadyOwned" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_IsDuplicateTrue_WhenItemAlreadyOwned" methodname="SimulatePull_IsDuplicateTrue_WhenItemAlreadyOwned" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1860617584" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000129" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1227" name="SimulatePull_ResetsPityCounter_AfterLegendary" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_ResetsPityCounter_AfterLegendary" methodname="SimulatePull_ResetsPityCounter_AfterLegendary" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="848926179" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000129" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1224" name="SimulatePull_ReturnsNonNull_WithValidPool" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_ReturnsNonNull_WithValidPool" methodname="SimulatePull_ReturnsNonNull_WithValidPool" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="781368751" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000097" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1223" name="SimulatePull_ReturnsNull_WhenPoolEmpty" fullname="AshenThrone.Tests.Economy.GachaSystemTests.SimulatePull_ReturnsNull_WhenPoolEmpty" methodname="SimulatePull_ReturnsNull_WhenPoolEmpty" classname="AshenThrone.Tests.Economy.GachaSystemTests" runstate="Runnable" seed="1819404131" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000520" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[GachaSystem] Gacha pool is empty.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1239" name="IAPManagerTests" fullname="AshenThrone.Tests.Economy.IAPManagerTests" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.009353" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1246" name="GetCatalog_ReturnsAllRegisteredProducts" fullname="AshenThrone.Tests.Economy.IAPManagerTests.GetCatalog_ReturnsAllRegisteredProducts" methodname="GetCatalog_ReturnsAllRegisteredProducts" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1535446961" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000803" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1245" name="GetProduct_ReturnsCorrectProduct" fullname="AshenThrone.Tests.Economy.IAPManagerTests.GetProduct_ReturnsCorrectProduct" methodname="GetProduct_ReturnsCorrectProduct" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="746867340" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000128" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1244" name="GetProduct_ReturnsNull_ForUnregisteredId" fullname="AshenThrone.Tests.Economy.IAPManagerTests.GetProduct_ReturnsNull_ForUnregisteredId" methodname="GetProduct_ReturnsNull_ForUnregisteredId" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1179709211" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000078" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1255" name="IAPProductDefinition_ThrowsArgumentException_WhenIdEmpty" fullname="AshenThrone.Tests.Economy.IAPManagerTests.IAPProductDefinition_ThrowsArgumentException_WhenIdEmpty" methodname="IAPProductDefinition_ThrowsArgumentException_WhenIdEmpty" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1473509227" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000227" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1247" name="InitiatePurchase_ReturnsFalse_ForUnregisteredProduct" fullname="AshenThrone.Tests.Economy.IAPManagerTests.InitiatePurchase_ReturnsFalse_ForUnregisteredProduct" methodname="InitiatePurchase_ReturnsFalse_ForUnregisteredProduct" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="193562024" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000649" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Product 'unregistered' not found in catalog.
+]]></output>
+              </test-case>
+              <test-case id="1248" name="InitiatePurchase_ReturnsTrue_ForRegisteredProduct" fullname="AshenThrone.Tests.Economy.IAPManagerTests.InitiatePurchase_ReturnsTrue_ForRegisteredProduct" methodname="InitiatePurchase_ReturnsTrue_ForRegisteredProduct" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="983587065" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000212" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1250" name="OnPurchaseDeferred_AddsToPendingQueue_WhenReceiptValid" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnPurchaseDeferred_AddsToPendingQueue_WhenReceiptValid" methodname="OnPurchaseDeferred_AddsToPendingQueue_WhenReceiptValid" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1693611193" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000711" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Stub: Would validate receipt for 'bp' on AppleAppStore with transaction 'txn_1'.
+]]></output>
+              </test-case>
+              <test-case id="1249" name="OnPurchaseDeferred_DoesNotAddToPending_WhenReceiptEmpty" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnPurchaseDeferred_DoesNotAddToPending_WhenReceiptEmpty" methodname="OnPurchaseDeferred_DoesNotAddToPending_WhenReceiptEmpty" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="85176899" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000403" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Purchase txn_1 has empty receipt. Skipping.
+]]></output>
+              </test-case>
+              <test-case id="1254" name="OnServerValidationFailed_FiresOnPurchaseFailedEvent" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnServerValidationFailed_FiresOnPurchaseFailedEvent" methodname="OnServerValidationFailed_FiresOnPurchaseFailedEvent" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1590815991" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000603" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Receipt validation failed for bp_premium / txn_1: Invalid receipt.
+]]></output>
+              </test-case>
+              <test-case id="1253" name="OnServerValidationFailed_RemovesFromPendingQueue" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnServerValidationFailed_RemovesFromPendingQueue" methodname="OnServerValidationFailed_RemovesFromPendingQueue" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1318347916" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000698" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Stub: Would validate receipt for 'bp' on GooglePlayStore with transaction 'txn_1'.
+[IAPManager] Receipt validation failed for bp / txn_1: Receipt already consumed.
+]]></output>
+              </test-case>
+              <test-case id="1252" name="OnServerValidationSuccess_FiresOnPurchaseSuccessEvent" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnServerValidationSuccess_FiresOnPurchaseSuccessEvent" methodname="OnServerValidationSuccess_FiresOnPurchaseSuccessEvent" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="850654727" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000247" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1251" name="OnServerValidationSuccess_RemovesFromPendingQueue" fullname="AshenThrone.Tests.Economy.IAPManagerTests.OnServerValidationSuccess_RemovesFromPendingQueue" methodname="OnServerValidationSuccess_RemovesFromPendingQueue" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="2078181575" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000394" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[IAPManager] Stub: Would validate receipt for 'bp' on AppleAppStore with transaction 'txn_1'.
+]]></output>
+              </test-case>
+              <test-case id="1242" name="RegisterProduct_DoesNotThrow_ForCosmeticProduct" fullname="AshenThrone.Tests.Economy.IAPManagerTests.RegisterProduct_DoesNotThrow_ForCosmeticProduct" methodname="RegisterProduct_DoesNotThrow_ForCosmeticProduct" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1548619029" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000207" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1243" name="RegisterProduct_MakesProductQueryable" fullname="AshenThrone.Tests.Economy.IAPManagerTests.RegisterProduct_MakesProductQueryable" methodname="RegisterProduct_MakesProductQueryable" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1903401345" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000115" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1240" name="RegisterProduct_ThrowsArgumentNull_WhenProductNull" fullname="AshenThrone.Tests.Economy.IAPManagerTests.RegisterProduct_ThrowsArgumentNull_WhenProductNull" methodname="RegisterProduct_ThrowsArgumentNull_WhenProductNull" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="655682473" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000154" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1241" name="RegisterProduct_ThrowsInvalidOperation_WhenCombatPowerFlagged" fullname="AshenThrone.Tests.Economy.IAPManagerTests.RegisterProduct_ThrowsInvalidOperation_WhenCombatPowerFlagged" methodname="RegisterProduct_ThrowsInvalidOperation_WhenCombatPowerFlagged" classname="AshenThrone.Tests.Economy.IAPManagerTests" runstate="Runnable" seed="1665159146" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000173" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1256" name="QuestEngineTests" fullname="AshenThrone.Tests.Economy.QuestEngineTests" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" testcasecount="24" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.009494" total="24" passed="24" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1279" name="BuildSaveData_IncludesCurrentProgress" fullname="AshenThrone.Tests.Economy.QuestEngineTests.BuildSaveData_IncludesCurrentProgress" methodname="BuildSaveData_IncludesCurrentProgress" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="341966179" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.002079" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1274" name="ClaimReward_ReturnsFalse_WhenAlreadyClaimed" fullname="AshenThrone.Tests.Economy.QuestEngineTests.ClaimReward_ReturnsFalse_WhenAlreadyClaimed" methodname="ClaimReward_ReturnsFalse_WhenAlreadyClaimed" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="945999747" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000475" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1272" name="ClaimReward_ReturnsFalse_WhenQuestNotCompleted" fullname="AshenThrone.Tests.Economy.QuestEngineTests.ClaimReward_ReturnsFalse_WhenQuestNotCompleted" methodname="ClaimReward_ReturnsFalse_WhenQuestNotCompleted" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1531689289" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000132" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1271" name="ClaimReward_ReturnsFalse_WhenQuestNotFound" fullname="AshenThrone.Tests.Economy.QuestEngineTests.ClaimReward_ReturnsFalse_WhenQuestNotFound" methodname="ClaimReward_ReturnsFalse_WhenQuestNotFound" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="81005715" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000082" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1273" name="ClaimReward_ReturnsTrue_WhenCompleted" fullname="AshenThrone.Tests.Economy.QuestEngineTests.ClaimReward_ReturnsTrue_WhenCompleted" methodname="ClaimReward_ReturnsTrue_WhenCompleted" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="815658076" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000120" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1277" name="GetLastMidnightUtc_ReturnsToday" fullname="AshenThrone.Tests.Economy.QuestEngineTests.GetLastMidnightUtc_ReturnsToday" methodname="GetLastMidnightUtc_ReturnsToday" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1492312459" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000386" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1278" name="GetLastMondayUtc_ReturnsMonday" fullname="AshenThrone.Tests.Economy.QuestEngineTests.GetLastMondayUtc_ReturnsMonday" methodname="GetLastMondayUtc_ReturnsMonday" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="551749285" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000112" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1275" name="GetQuestsByCategory_ReturnsOnlyMatchingCadence" fullname="AshenThrone.Tests.Economy.QuestEngineTests.GetQuestsByCategory_ReturnsOnlyMatchingCadence" methodname="GetQuestsByCategory_ReturnsOnlyMatchingCadence" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1123689830" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000334" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1276" name="GetUnclaimedCount_ReturnsNumberOfCompletedUnclaimedQuests" fullname="AshenThrone.Tests.Economy.QuestEngineTests.GetUnclaimedCount_ReturnsNumberOfCompletedUnclaimedQuests" methodname="GetUnclaimedCount_ReturnsNumberOfCompletedUnclaimedQuests" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1756415519" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000209" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1262" name="Initialize_DoesNotResetOneTimeQuests_Ever" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_DoesNotResetOneTimeQuests_Ever" methodname="Initialize_DoesNotResetOneTimeQuests_Ever" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="961955568" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000361" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1261" name="Initialize_DoesNotResetProgress_WhenNoResetNeeded" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_DoesNotResetProgress_WhenNoResetNeeded" methodname="Initialize_DoesNotResetProgress_WhenNoResetNeeded" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="307118046" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000214" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1258" name="Initialize_IgnoresNullDefinitions" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_IgnoresNullDefinitions" methodname="Initialize_IgnoresNullDefinitions" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="2131984248" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000222" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1260" name="Initialize_ResetsProgress_WhenDailyResetNeeded" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_ResetsProgress_WhenDailyResetNeeded" methodname="Initialize_ResetsProgress_WhenDailyResetNeeded" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="2049648923" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000144" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1259" name="Initialize_RestoresSavedProgress" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_RestoresSavedProgress" methodname="Initialize_RestoresSavedProgress" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="917534960" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000121" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1257" name="Initialize_ThrowsArgumentNull_WhenDefinitionsNull" fullname="AshenThrone.Tests.Economy.QuestEngineTests.Initialize_ThrowsArgumentNull_WhenDefinitionsNull" methodname="Initialize_ThrowsArgumentNull_WhenDefinitionsNull" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1958696601" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000124" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1280" name="QuestProgress_Reset_ClearsCountAndClaimed" fullname="AshenThrone.Tests.Economy.QuestEngineTests.QuestProgress_Reset_ClearsCountAndClaimed" methodname="QuestProgress_Reset_ClearsCountAndClaimed" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1921989782" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000114" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1266" name="RecordProgress_CapsAtRequiredCount" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_CapsAtRequiredCount" methodname="RecordProgress_CapsAtRequiredCount" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1334315932" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000118" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1269" name="RecordProgress_ContextTag_OnlyMatchesMatchingTag" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_ContextTag_OnlyMatchesMatchingTag" methodname="RecordProgress_ContextTag_OnlyMatchesMatchingTag" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="893016006" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000156" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1264" name="RecordProgress_DoesNotIncrementWrongObjectiveType" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_DoesNotIncrementWrongObjectiveType" methodname="RecordProgress_DoesNotIncrementWrongObjectiveType" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="1898926596" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000112" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1268" name="RecordProgress_FiresQuestCompletedEvent" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_FiresQuestCompletedEvent" methodname="RecordProgress_FiresQuestCompletedEvent" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="81106279" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000538" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1265" name="RecordProgress_IgnoresZeroAmount" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_IgnoresZeroAmount" methodname="RecordProgress_IgnoresZeroAmount" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="352340062" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000184" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1263" name="RecordProgress_IncrementsMatchingQuest" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_IncrementsMatchingQuest" methodname="RecordProgress_IncrementsMatchingQuest" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="2059811834" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000144" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1267" name="RecordProgress_MarksQuestCompleted_WhenReached" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_MarksQuestCompleted_WhenReached" methodname="RecordProgress_MarksQuestCompleted_WhenReached" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="2047616701" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000114" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1270" name="RecordProgress_NoContextTag_MatchesAny" fullname="AshenThrone.Tests.Economy.QuestEngineTests.RecordProgress_NoContextTag_MatchesAny" methodname="RecordProgress_NoContextTag_MatchesAny" classname="AshenThrone.Tests.Economy.QuestEngineTests" runstate="Runnable" seed="173966837" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000137" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestSuite" id="1576" name="UI" fullname="AshenThrone.Tests.UI" runstate="Runnable" testcasecount="50" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.025285" total="50" passed="50" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="AccessibilityManagerTests" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.007704" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1016" name="BuildSaveData_ReflectsCurrentState" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.BuildSaveData_ReflectsCurrentState" methodname="BuildSaveData_ReflectsCurrentState" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1961728289" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.002091" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1017" name="BuildSaveData_RoundTrips" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.BuildSaveData_RoundTrips" methodname="BuildSaveData_RoundTrips" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1670844867" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000716" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1008" name="Initialize_ClampsBrightness" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_ClampsBrightness" methodname="Initialize_ClampsBrightness" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1143778385" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000318" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="Initialize_ClampsColorblindModeIndex" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_ClampsColorblindModeIndex" methodname="Initialize_ClampsColorblindModeIndex" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="90603664" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000288" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="Initialize_ClampsTextScale_BelowMin" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_ClampsTextScale_BelowMin" methodname="Initialize_ClampsTextScale_BelowMin" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1630291493" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000246" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1006" name="Initialize_ClampsTextScale_ToConfigRange" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_ClampsTextScale_ToConfigRange" methodname="Initialize_ClampsTextScale_ToConfigRange" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="877921535" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000243" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1003" name="Initialize_NullSave_NoConfig_SetsHardDefaults" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_NullSave_NoConfig_SetsHardDefaults" methodname="Initialize_NullSave_NoConfig_SetsHardDefaults" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1020482113" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000090" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1002" name="Initialize_NullSave_SetsDefaults" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_NullSave_SetsDefaults" methodname="Initialize_NullSave_SetsDefaults" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="424387608" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000274" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1004" name="Initialize_RestoresFromSave" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.Initialize_RestoresFromSave" methodname="Initialize_RestoresFromSave" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="431213900" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000267" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1009" name="SetColorblindMode_ChangesMode" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetColorblindMode_ChangesMode" methodname="SetColorblindMode_ChangesMode" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1217663167" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000233" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1010" name="SetColorblindMode_SameValue_IsNoOp" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetColorblindMode_SameValue_IsNoOp" methodname="SetColorblindMode_SameValue_IsNoOp" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="86186003" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000236" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1012" name="SetHapticsEnabled_TogglesValue" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetHapticsEnabled_TogglesValue" methodname="SetHapticsEnabled_TogglesValue" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1396011514" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000089" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1014" name="SetReduceMotion_TogglesValue" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetReduceMotion_TogglesValue" methodname="SetReduceMotion_TogglesValue" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1959318667" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000091" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1013" name="SetScreenReaderEnabled_TogglesValue" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetScreenReaderEnabled_TogglesValue" methodname="SetScreenReaderEnabled_TogglesValue" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1199009858" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000086" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1011" name="SetTextSizeScale_ClampsToRange" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetTextSizeScale_ClampsToRange" methodname="SetTextSizeScale_ClampsToRange" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="1493889008" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000295" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1015" name="SetUiBrightness_ClampsToRange" fullname="AshenThrone.Tests.UI.AccessibilityManagerTests.SetUiBrightness_ClampsToRange" methodname="SetUiBrightness_ClampsToRange" classname="AshenThrone.Tests.UI.AccessibilityManagerTests" runstate="Runnable" seed="2059574407" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000277" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1018" name="LocalizationBootstrapTests" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.003588" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1029" name="BuildSaveData_ReflectsCurrentLanguage" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.BuildSaveData_ReflectsCurrentLanguage" methodname="BuildSaveData_ReflectsCurrentLanguage" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="338029025" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000635" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1030" name="BuildSaveData_RoundTrips" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.BuildSaveData_RoundTrips" methodname="BuildSaveData_RoundTrips" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="689213841" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000088" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="CurrentLanguageCode_MatchesCurrentLanguage" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.CurrentLanguageCode_MatchesCurrentLanguage" methodname="CurrentLanguageCode_MatchesCurrentLanguage" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="474178083" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000092" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1028" name="GetDisplayName_ReturnsNonEmpty_ForAllLanguages" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.GetDisplayName_ReturnsNonEmpty_ForAllLanguages" methodname="GetDisplayName_ReturnsNonEmpty_ForAllLanguages" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="2124456309" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000303" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1025" name="GetLanguageCode_ReturnsCorrectCodes" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.GetLanguageCode_ReturnsCorrectCodes" methodname="GetLanguageCode_ReturnsCorrectCodes" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="98214681" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000119" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="GetSupportedLanguages_Returns8Languages" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.GetSupportedLanguages_Returns8Languages" methodname="GetSupportedLanguages_Returns8Languages" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="973510748" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000081" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1021" name="Initialize_InvalidSaveIndex_FallsBackToAutoDetect" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.Initialize_InvalidSaveIndex_FallsBackToAutoDetect" methodname="Initialize_InvalidSaveIndex_FallsBackToAutoDetect" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="954744587" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000096" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1022" name="Initialize_NegativeSaveIndex_FallsBackToAutoDetect" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.Initialize_NegativeSaveIndex_FallsBackToAutoDetect" methodname="Initialize_NegativeSaveIndex_FallsBackToAutoDetect" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="1145711818" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1019" name="Initialize_NullSave_AutoDetectsLanguage" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.Initialize_NullSave_AutoDetectsLanguage" methodname="Initialize_NullSave_AutoDetectsLanguage" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="898143123" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000087" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1020" name="Initialize_WithSave_RestoresLanguage" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.Initialize_WithSave_RestoresLanguage" methodname="Initialize_WithSave_RestoresLanguage" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="1468657990" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000084" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1023" name="SetLanguage_ChangesCurrentLanguage" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.SetLanguage_ChangesCurrentLanguage" methodname="SetLanguage_ChangesCurrentLanguage" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="660002273" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000081" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1024" name="SetLanguage_SameLanguage_IsNoOp" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.SetLanguage_SameLanguage_IsNoOp" methodname="SetLanguage_SameLanguage_IsNoOp" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="476132123" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000080" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1031" name="SupportedLanguageCount_Equals8" fullname="AshenThrone.Tests.UI.LocalizationBootstrapTests.SupportedLanguageCount_Equals8" methodname="SupportedLanguageCount_Equals8" classname="AshenThrone.Tests.UI.LocalizationBootstrapTests" runstate="Runnable" seed="1238283984" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000075" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1032" name="TutorialManagerTests" fullname="AshenThrone.Tests.UI.TutorialManagerTests" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.012595" total="21" passed="21" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1048" name="BuildSaveData_ReflectsCurrentState" fullname="AshenThrone.Tests.UI.TutorialManagerTests.BuildSaveData_ReflectsCurrentState" methodname="BuildSaveData_ReflectsCurrentState" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1983341225" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001830" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1049" name="BuildSaveData_WhenComplete_SetsIsComplete" fullname="AshenThrone.Tests.UI.TutorialManagerTests.BuildSaveData_WhenComplete_SetsIsComplete" methodname="BuildSaveData_WhenComplete_SetsIsComplete" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="2098082934" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000469" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1051" name="CurrentStep_ReturnsCorrectStep_WhenActive" fullname="AshenThrone.Tests.UI.TutorialManagerTests.CurrentStep_ReturnsCorrectStep_WhenActive" methodname="CurrentStep_ReturnsCorrectStep_WhenActive" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="624078003" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000392" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1050" name="CurrentStep_ReturnsNull_WhenNotActive" fullname="AshenThrone.Tests.UI.TutorialManagerTests.CurrentStep_ReturnsNull_WhenNotActive" methodname="CurrentStep_ReturnsNull_WhenNotActive" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1349304942" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000086" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1053" name="FullWalkthrough_8Steps_CompletesSuccessfully" fullname="AshenThrone.Tests.UI.TutorialManagerTests.FullWalkthrough_8Steps_CompletesSuccessfully" methodname="FullWalkthrough_8Steps_CompletesSuccessfully" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="326446923" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.001575" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="Initialize_AllStepsAlreadyDone_MarksComplete" fullname="AshenThrone.Tests.UI.TutorialManagerTests.Initialize_AllStepsAlreadyDone_MarksComplete" methodname="Initialize_AllStepsAlreadyDone_MarksComplete" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1166576818" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000307" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1036" name="Initialize_CompleteSave_StaysComplete" fullname="AshenThrone.Tests.UI.TutorialManagerTests.Initialize_CompleteSave_StaysComplete" methodname="Initialize_CompleteSave_StaysComplete" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="480085523" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000272" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="Initialize_NoSteps_MarksComplete" fullname="AshenThrone.Tests.UI.TutorialManagerTests.Initialize_NoSteps_MarksComplete" methodname="Initialize_NoSteps_MarksComplete" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1445855989" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000547" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[TutorialManager] No tutorial steps configured.
+]]></output>
+              </test-case>
+              <test-case id="1033" name="Initialize_NullSave_StartsAtStepZero" fullname="AshenThrone.Tests.UI.TutorialManagerTests.Initialize_NullSave_StartsAtStepZero" methodname="Initialize_NullSave_StartsAtStepZero" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="179029246" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000384" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1035" name="Initialize_ResumesFromSave" fullname="AshenThrone.Tests.UI.TutorialManagerTests.Initialize_ResumesFromSave" methodname="Initialize_ResumesFromSave" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="107559069" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000439" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1041" name="ReportAction_LastStep_CompletesTutorial" fullname="AshenThrone.Tests.UI.TutorialManagerTests.ReportAction_LastStep_CompletesTutorial" methodname="ReportAction_LastStep_CompletesTutorial" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="426559784" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000273" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1038" name="ReportAction_MatchingAction_AdvancesStep" fullname="AshenThrone.Tests.UI.TutorialManagerTests.ReportAction_MatchingAction_AdvancesStep" methodname="ReportAction_MatchingAction_AdvancesStep" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1767098927" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000424" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1040" name="ReportAction_WhenComplete_IsNoOp" fullname="AshenThrone.Tests.UI.TutorialManagerTests.ReportAction_WhenComplete_IsNoOp" methodname="ReportAction_WhenComplete_IsNoOp" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="666623204" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000276" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1042" name="ReportAction_WhenNotActive_IsNoOp" fullname="AshenThrone.Tests.UI.TutorialManagerTests.ReportAction_WhenNotActive_IsNoOp" methodname="ReportAction_WhenNotActive_IsNoOp" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1213640913" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000274" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="ReportAction_WrongAction_DoesNotAdvance" fullname="AshenThrone.Tests.UI.TutorialManagerTests.ReportAction_WrongAction_DoesNotAdvance" methodname="ReportAction_WrongAction_DoesNotAdvance" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="943725808" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000268" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1046" name="SkipAll_MarksTutorialComplete" fullname="AshenThrone.Tests.UI.TutorialManagerTests.SkipAll_MarksTutorialComplete" methodname="SkipAll_MarksTutorialComplete" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="38780577" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000458" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1047" name="SkipAll_WhenAlreadyComplete_IsNoOp" fullname="AshenThrone.Tests.UI.TutorialManagerTests.SkipAll_WhenAlreadyComplete_IsNoOp" methodname="SkipAll_WhenAlreadyComplete_IsNoOp" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="275519880" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000271" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1044" name="SkipCurrentStep_NotSkippable_ReturnsFalse" fullname="AshenThrone.Tests.UI.TutorialManagerTests.SkipCurrentStep_NotSkippable_ReturnsFalse" methodname="SkipCurrentStep_NotSkippable_ReturnsFalse" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1129911768" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000324" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1043" name="SkipCurrentStep_Skippable_Advances" fullname="AshenThrone.Tests.UI.TutorialManagerTests.SkipCurrentStep_Skippable_Advances" methodname="SkipCurrentStep_Skippable_Advances" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="41416145" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000431" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1045" name="SkipCurrentStep_WhenComplete_ReturnsFalse" fullname="AshenThrone.Tests.UI.TutorialManagerTests.SkipCurrentStep_WhenComplete_ReturnsFalse" methodname="SkipCurrentStep_WhenComplete_ReturnsFalse" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="78571409" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000270" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1052" name="TotalSteps_ReturnsCount" fullname="AshenThrone.Tests.UI.TutorialManagerTests.TotalSteps_ReturnsCount" methodname="TotalSteps_ReturnsCount" classname="AshenThrone.Tests.UI.TutorialManagerTests" runstate="Runnable" seed="1338525347" result="Passed" start-time="2026-03-08 02:56:47Z" end-time="2026-03-08 02:56:47Z" duration="0.000604" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: /Users/tomterhune/Library/Application Support/DefaultCompany/game/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

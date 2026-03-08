@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Provides early warning of incoming attacks and boosts defense.
   category: 1
   district: 1
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: cca874bc07f224ac9b88fe05ac121692, type: 3}
+  - {fileID: 21300000, guid: 562e7aba9815149f39eaafb3470ed4b6, type: 3}
+  - {fileID: 21300000, guid: e4c6c2378210247c6b12d60b1c0b4f76, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Produces iron over time. Upgrade for higher output.
   category: 2
   district: 2
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 7267abd289e84497aa02f3eb7d3cee5d, type: 3}
+  - {fileID: 21300000, guid: c1096a4f8983148f3a75a0fbf3489773, type: 3}
+  - {fileID: 21300000, guid: 9be6ccd812db74596a05f11b928812f6, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

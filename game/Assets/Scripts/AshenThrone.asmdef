@@ -1,0 +1,24 @@
+{
+    "name": "AshenThrone",
+    "rootNamespace": "AshenThrone",
+    "references": [
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.Localization",
+        "Unity.Purchasing",
+        "Unity.Services.Core",
+        "Unity.Services.Authentication",
+        "Unity.Services.Analytics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

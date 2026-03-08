@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Increases hero shard drop rates from all sources.
   category: 4
   district: 4
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 4db2dea2f8be34b71a40637fbfafd228, type: 3}
+  - {fileID: 21300000, guid: 8a66dfee35fe744999ef24d495d23c6e, type: 3}
+  - {fileID: 21300000, guid: 98436dca924e84d45949b7d5eed298cf, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

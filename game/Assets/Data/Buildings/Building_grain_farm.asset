@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Produces grain over time. Upgrade for higher output.
   category: 2
   district: 2
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 87f3a6a7ac97f4bf2a940af406cd0e77, type: 3}
+  - {fileID: 21300000, guid: 36e731f9ddc954a54942d7883602b0e2, type: 3}
+  - {fileID: 21300000, guid: cc5674de44480441596d962c58ab2100, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

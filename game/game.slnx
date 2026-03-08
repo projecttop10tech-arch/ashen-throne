@@ -1,0 +1,5 @@
+﻿<Solution>
+  <Project Path="AshenThrone.Tests.csproj" />
+  <Project Path="AshenThrone.csproj" />
+  <Project Path="AshenThrone.Editor.csproj" />
+</Solution>

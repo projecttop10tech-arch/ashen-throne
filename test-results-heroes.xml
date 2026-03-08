@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="35" result="Passed" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.0419865">
+  <test-suite type="TestSuite" id="1000" name="game" fullname="game" runstate="Runnable" testcasecount="579" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.041987" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1609" name="AshenThrone.Tests.dll" fullname="/Users/tomterhune/ashen-throne/game/Library/ScriptAssemblies/AshenThrone.Tests.dll" runstate="Runnable" testcasecount="578" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.034961" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="91523" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1610" name="AshenThrone" fullname="AshenThrone" runstate="Runnable" testcasecount="578" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.030944" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1611" name="Tests" fullname="AshenThrone.Tests" runstate="Runnable" testcasecount="578" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.027094" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1613" name="Heroes" fullname="AshenThrone.Tests.Heroes" runstate="Runnable" testcasecount="35" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.023660" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1054" name="HeroRosterTests" fullname="AshenThrone.Tests.Heroes.HeroRosterTests" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" testcasecount="35" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.022899" total="35" passed="35" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1062" name="AddShards_AccumulatesMultipleCalls" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_AccumulatesMultipleCalls" methodname="AddShards_AccumulatesMultipleCalls" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1170991643" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.007053" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1068" name="AddShards_AutoUnlocksHero_WhenThresholdExceeded" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_AutoUnlocksHero_WhenThresholdExceeded" methodname="AddShards_AutoUnlocksHero_WhenThresholdExceeded" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1149860039" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000422" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1067" name="AddShards_AutoUnlocksHero_WhenThresholdMet" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_AutoUnlocksHero_WhenThresholdMet" methodname="AddShards_AutoUnlocksHero_WhenThresholdMet" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1043999110" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000098" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1069" name="AddShards_DoesNotAutoUnlock_BelowThreshold" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_DoesNotAutoUnlock_BelowThreshold" methodname="AddShards_DoesNotAutoUnlock_BelowThreshold" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1403391155" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000127" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1070" name="AddShards_DoesNotReUnlock_IfAlreadyOwned" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_DoesNotReUnlock_IfAlreadyOwned" methodname="AddShards_DoesNotReUnlock_IfAlreadyOwned" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1927775399" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000149" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1063" name="AddShards_FiresOnShardsAddedEvent" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_FiresOnShardsAddedEvent" methodname="AddShards_FiresOnShardsAddedEvent" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1679735010" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000158" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1065" name="AddShards_IgnoresNegativeAmount" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_IgnoresNegativeAmount" methodname="AddShards_IgnoresNegativeAmount" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1257839533" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000087" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1064" name="AddShards_IgnoresZeroAmount" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_IgnoresZeroAmount" methodname="AddShards_IgnoresZeroAmount" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="934235411" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000084" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1061" name="AddShards_IncreasesShardCount" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_IncreasesShardCount" methodname="AddShards_IncreasesShardCount" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1941508587" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000087" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1066" name="AddShards_ThrowsOnNullHeroData" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddShards_ThrowsOnNullHeroData" methodname="AddShards_ThrowsOnNullHeroData" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1432334180" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.001218" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1076" name="AddXp_CarriesOverExcessXp" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_CarriesOverExcessXp" methodname="AddXp_CarriesOverExcessXp" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1727466604" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000270" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1072" name="AddXp_DoesNotLevelUp_WhenXpInsufficient" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_DoesNotLevelUp_WhenXpInsufficient" methodname="AddXp_DoesNotLevelUp_WhenXpInsufficient" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="642523356" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000099" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1075" name="AddXp_FiresOnHeroLeveledUpEvent" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_FiresOnHeroLeveledUpEvent" methodname="AddXp_FiresOnHeroLeveledUpEvent" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1244077361" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000131" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1071" name="AddXp_LevelsUpHero_WhenXpSufficient" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_LevelsUpHero_WhenXpSufficient" methodname="AddXp_LevelsUpHero_WhenXpSufficient" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1450807130" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000094" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1074" name="AddXp_ReturnsFalse_AtMaxLevel" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_ReturnsFalse_AtMaxLevel" methodname="AddXp_ReturnsFalse_AtMaxLevel" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="886500885" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000308" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="AddXp_ReturnsFalse_ForUnownedHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.AddXp_ReturnsFalse_ForUnownedHero" methodname="AddXp_ReturnsFalse_ForUnownedHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1687125397" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1087" name="GetHero_ReturnsNull_ForUnownedHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.GetHero_ReturnsNull_ForUnownedHero" methodname="GetHero_ReturnsNull_ForUnownedHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1076397805" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000142" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1088" name="GetHero_ReturnsOwnedHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.GetHero_ReturnsOwnedHero" methodname="GetHero_ReturnsOwnedHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1909249778" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000644" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1089" name="GetShardCount_ReturnsZero_ForUnknownHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.GetShardCount_ReturnsZero_ForUnknownHero" methodname="GetShardCount_ReturnsZero_ForUnknownHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="658268931" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000085" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1056" name="LoadFromSaveData_ClearsPreviousState" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.LoadFromSaveData_ClearsPreviousState" methodname="LoadFromSaveData_ClearsPreviousState" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="2103491529" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000166" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1055" name="LoadFromSaveData_PopulatesOwnedHeroes" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.LoadFromSaveData_PopulatesOwnedHeroes" methodname="LoadFromSaveData_PopulatesOwnedHeroes" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="534090012" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000195" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1078" name="PromoteStar_CostsShards" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_CostsShards" methodname="PromoteStar_CostsShards" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="992218284" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000224" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1082" name="PromoteStar_FiresOnHeroStarPromotedEvent" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_FiresOnHeroStarPromotedEvent" methodname="PromoteStar_FiresOnHeroStarPromotedEvent" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1723679809" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000134" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1077" name="PromoteStar_IncreasesStarTier" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_IncreasesStarTier" methodname="PromoteStar_IncreasesStarTier" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="2112149806" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000096" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1080" name="PromoteStar_ReturnsFalse_AtMaxStarTier" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_ReturnsFalse_AtMaxStarTier" methodname="PromoteStar_ReturnsFalse_AtMaxStarTier" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="944293535" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000113" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1081" name="PromoteStar_ReturnsFalse_ForUnownedHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_ReturnsFalse_ForUnownedHero" methodname="PromoteStar_ReturnsFalse_ForUnownedHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="250303014" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000078" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1079" name="PromoteStar_ReturnsFalse_WithInsufficientShards" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.PromoteStar_ReturnsFalse_WithInsufficientShards" methodname="PromoteStar_ReturnsFalse_WithInsufficientShards" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1140398614" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000089" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1085" name="SaveLoadout_ReturnsFalse_ForNullCardIds" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.SaveLoadout_ReturnsFalse_ForNullCardIds" methodname="SaveLoadout_ReturnsFalse_ForNullCardIds" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="2107496287" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000871" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[HeroRoster] Loadout for test_hero_01 must have exactly 15 cards.
+]]></output>
+              </test-case>
+              <test-case id="1086" name="SaveLoadout_ReturnsFalse_ForUnownedHero" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.SaveLoadout_ReturnsFalse_ForUnownedHero" methodname="SaveLoadout_ReturnsFalse_ForUnownedHero" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="228617430" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000148" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1084" name="SaveLoadout_ReturnsFalse_ForWrongDeckSize" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.SaveLoadout_ReturnsFalse_ForWrongDeckSize" methodname="SaveLoadout_ReturnsFalse_ForWrongDeckSize" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="973435446" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000374" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[HeroRoster] Loadout for test_hero_01 must have exactly 15 cards.
+]]></output>
+              </test-case>
+              <test-case id="1083" name="SaveLoadout_StoresCardIds" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.SaveLoadout_StoresCardIds" methodname="SaveLoadout_StoresCardIds" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="927969805" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000185" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1057" name="UnlockHero_AddsToOwnedHeroes" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.UnlockHero_AddsToOwnedHeroes" methodname="UnlockHero_AddsToOwnedHeroes" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="659510125" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000103" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1060" name="UnlockHero_DoesNotDuplicate_IfAlreadyOwned" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.UnlockHero_DoesNotDuplicate_IfAlreadyOwned" methodname="UnlockHero_DoesNotDuplicate_IfAlreadyOwned" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1286654936" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000363" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[HeroRoster] Hero test_hero_01 already unlocked.
+]]></output>
+              </test-case>
+              <test-case id="1059" name="UnlockHero_FiresEventBusEvent" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.UnlockHero_FiresEventBusEvent" methodname="UnlockHero_FiresEventBusEvent" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1088387540" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000326" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1058" name="UnlockHero_FiresOnHeroUnlockedEvent" fullname="AshenThrone.Tests.Heroes.HeroRosterTests.UnlockHero_FiresOnHeroUnlockedEvent" methodname="UnlockHero_FiresOnHeroUnlockedEvent" classname="AshenThrone.Tests.Heroes.HeroRosterTests" runstate="Runnable" seed="1313602991" result="Passed" start-time="2026-03-08 03:04:16Z" end-time="2026-03-08 03:04:16Z" duration="0.000101" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: /Users/tomterhune/Library/Application Support/DefaultCompany/game/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

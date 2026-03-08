@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Enchants equipment with magical bonuses.
   category: 4
   district: 4
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 128f0b7c9bb2942e196f3b644e6ea536, type: 3}
+  - {fileID: 21300000, guid: 0742a1ff5842c4e34bf01a60ded08d5a, type: 3}
+  - {fileID: 21300000, guid: d83180b2db63f4c28bf2260e162ff91b, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

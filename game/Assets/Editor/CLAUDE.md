@@ -16,6 +16,7 @@ Editor scripts run only in the Unity Editor (never in builds). They generate Scr
 | `TutorialStepGenerator.cs` | Ashen Throne → Generate Tutorial Steps | 8 TutorialStep assets for the FTUE tutorial |
 | `SceneGenerator.cs` | AshenThrone → Generate Scenes | Populates all 6 scenes with Camera, Canvas, UI hierarchies |
 | `ConfigGenerator.cs` | AshenThrone → Generate Configs | CombatConfig, EmpireConfig, ProgressionConfig, TerritoryConfig, AccessibilityConfig, QuestDefinitions |
+| `Phase8Generator.cs` | AshenThrone → Phase 8/* | 132 placeholder art PNGs, 21 UI prefabs, 3 particle prefabs, 18 audio WAVs, colorblind shader + 3 materials |
 
 **Assembly:** `AshenThrone.Editor.asmdef` — references `AshenThrone` + `UnityEditor`
 

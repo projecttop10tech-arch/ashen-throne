@@ -18,7 +18,10 @@ MonoBehaviour:
     and features.
   category: 0
   district: 0
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 78a54b99b2b3b40d58b11d98e2650886, type: 3}
+  - {fileID: 21300000, guid: 65fab9248a3964fc3a6b60ada734025f, type: 3}
+  - {fileID: 21300000, guid: 103de552331554dd0a5a0a58c60701ac, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 3, y: 3}

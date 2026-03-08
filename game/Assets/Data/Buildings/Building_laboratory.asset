@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Enables advanced research and arcane experiments.
   category: 3
   district: 3
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 1fae7dc6ad95640669f569e265780db6, type: 3}
+  - {fileID: 21300000, guid: 80df7650226304e5faee498f1e926d2d, type: 3}
+  - {fileID: 21300000, guid: bc21a5d9486ec4a8eba2003ce6a9f81e, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

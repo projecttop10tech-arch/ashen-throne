@@ -4,6 +4,27 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.9.0] — 2026-03-07 (Phase 8: Placeholder Art & UI Prefabs)
+
+### ADDED
+- **Phase8Generator.cs**: Comprehensive editor tool with 8 menu items under `AshenThrone/Phase 8/`.
+- **Hero sprites**: 10 portraits (256x256) + 10 full-body (512x1024) faction-colored PNGs, wired to HeroData SOs.
+- **Card sprites**: 8 element-colored card frames (200x300), wired to 50 AbilityCardData SOs.
+- **Building sprites**: 63 PNGs (21 buildings × 3 tiers at 128x128), wired to BuildingData SOs.
+- **UI sprite atlas**: 28 sprites — resource icons, currency, buttons, panels, bars, navigation, status effects.
+- **Environment textures**: 7 combat tiles (256x256), 5 world map (512x512), 1 empire background (1024x1024).
+- **Placeholder audio**: 3 music loops (WAV) + 15 SFX clips with sine-wave generation.
+- **21 UI prefabs**: VictoryPanel, DefeatPanel, TutorialOverlay, EventBanner, QuestRow, LeaderboardRow, BattlePassTierRow, ChatBubble, BuildingSlot, WorldMapTile, StoreProductCard, HeroCard, EnergyBar, HealthBar, XPBar, SettingsToggle, SettingsSlider, HeroStatusDisplay.
+- **3 particle effect prefabs**: VFX_Construction, VFX_LevelUp, VFX_CardPlay.
+- **ColorblindFilter.shader**: URP fullscreen Daltonization shader with Protanopia, Deuteranopia, Tritanopia modes.
+- **3 colorblind materials**: Colorblind_Protanopia.mat, Colorblind_Deuteranopia.mat, Colorblind_Tritanopia.mat.
+
+### CHANGED
+- Total assets: 132 PNGs, 51 prefabs, 18 WAVs, 1 shader, 3 materials.
+- All 544 existing tests continue to pass.
+
+---
+
 ## [0.8.1] — 2026-03-07 (Phase 7 Complete: All Generators Run, Scenes Populated)
 
 ### ADDED

@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Unlocks research nodes and boosts research speed.
   category: 3
   district: 3
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 8004f0ed98dba433e8897f3849d92ca9, type: 3}
+  - {fileID: 21300000, guid: 4d91fb391ee11479b814198cd6401c74, type: 3}
+  - {fileID: 21300000, guid: 1c4684aa2cc234d6f81bbd729822d68e, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

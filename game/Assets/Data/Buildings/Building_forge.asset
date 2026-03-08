@@ -17,7 +17,10 @@ MonoBehaviour:
   description: Crafts and upgrades hero equipment.
   category: 4
   district: 4
-  tierSprites: []
+  tierSprites:
+  - {fileID: 21300000, guid: 13f380804c35342bc8ab0b34e65c68ef, type: 3}
+  - {fileID: 21300000, guid: 52a40269b9187441da9f6f8a9c383033, type: 3}
+  - {fileID: 21300000, guid: 6cd2d82cfd7ed42ac98233ddd828b078, type: 3}
   constructionParticlePrefab: {fileID: 0}
   constructionCompleteSound: {fileID: 0}
   footprintSize: {x: 2, y: 2}

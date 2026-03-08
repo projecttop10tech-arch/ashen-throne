@@ -69,7 +69,8 @@ Instructions for Claude agents working on this project. Read this file at the st
 | Phase 5: Events | COMPLETE (QA passed, committed) |
 | Phase 6: Polish & Launch | COMPLETE (QA passed, committed) |
 | Phase 7: Infrastructure & Tooling | COMPLETE (all generators run, scenes populated, 544 tests pass) |
-| Phase 8: Placeholder Art & UI Prefabs | IN PROGRESS |
+| Phase 8: Placeholder Art & UI Prefabs | COMPLETE (132 PNGs, 51 prefabs, 18 WAVs, shader + 3 materials, 544 tests pass) |
+| Phase 9: SDK Integration | NOT STARTED |
 
 ## Phase 1 Remaining Work
 - [x] TurnManager phase state full implementations (DrawPhaseState, ActionPhaseState, ResolvePhaseState, EndPhaseState, BattleOverPhaseState)
