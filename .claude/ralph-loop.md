@@ -23,9 +23,9 @@ Follow the phase plan below. Apply the 62-check QA protocol to every system.
 | 7 | COMPLETE | All generators run, scenes populated, 544 tests pass |
 | 8 | COMPLETE | 132 PNGs, 51 prefabs, 18 WAVs, colorblind shader, 544 tests pass |
 | 9 | COMPLETE | 5 SDK services, 6 IAP SKUs, boot sequence, ~40 new tests |
-| 10 | NOT STARTED | Content Population & Balancing |
-| 11 | NOT STARTED | Real Art Production |
-| 12 | NOT STARTED | Audio Production |
+| 10 | COMPLETE | BP Season 1, 40 gacha items, 219 locale keys, balance sheets |
+| 11 | PLACEHOLDER | Real art requires external artists — placeholders in place |
+| 12 | PLACEHOLDER | Real audio requires composers — placeholders in place |
 | 13 | NOT STARTED | Integration Testing & Performance |
 | 14 | NOT STARTED | Polish, UX, Accessibility |
 | 15 | NOT STARTED | Platform Compliance & Store Prep |

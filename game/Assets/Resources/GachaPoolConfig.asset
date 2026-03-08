@@ -1,0 +1,175 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: GachaPoolConfig
+  m_EditorClassIdentifier: AshenThrone.Editor:AshenThrone.Editor:GachaPoolConfig
+  items:
+  - itemId: emote_wave
+    displayName: Wave Emote
+    rarity: 0
+    weight: 400
+  - itemId: emote_cheer
+    displayName: Cheer Emote
+    rarity: 0
+    weight: 400
+  - itemId: emote_taunt
+    displayName: Taunt Emote
+    rarity: 0
+    weight: 400
+  - itemId: emote_dance
+    displayName: Dance Emote
+    rarity: 0
+    weight: 400
+  - itemId: emote_salute
+    displayName: Salute Emote
+    rarity: 0
+    weight: 400
+  - itemId: frame_bronze_1
+    displayName: Bronze Frame I
+    rarity: 0
+    weight: 400
+  - itemId: frame_bronze_2
+    displayName: Bronze Frame II
+    rarity: 0
+    weight: 400
+  - itemId: frame_bronze_3
+    displayName: Bronze Frame III
+    rarity: 0
+    weight: 400
+  - itemId: bubble_plain
+    displayName: Plain Chat Bubble
+    rarity: 0
+    weight: 400
+  - itemId: bubble_dark
+    displayName: Dark Chat Bubble
+    rarity: 0
+    weight: 400
+  - itemId: banner_basic_1
+    displayName: Basic Banner I
+    rarity: 0
+    weight: 400
+  - itemId: banner_basic_2
+    displayName: Basic Banner II
+    rarity: 0
+    weight: 400
+  - itemId: banner_basic_3
+    displayName: Basic Banner III
+    rarity: 0
+    weight: 400
+  - itemId: city_flag_1
+    displayName: City Flag I
+    rarity: 0
+    weight: 400
+  - itemId: city_flag_2
+    displayName: City Flag II
+    rarity: 0
+    weight: 400
+  - itemId: emote_fire_breath
+    displayName: Fire Breath Emote
+    rarity: 1
+    weight: 250
+  - itemId: emote_shadow_cloak
+    displayName: Shadow Cloak Emote
+    rarity: 1
+    weight: 250
+  - itemId: frame_silver_1
+    displayName: Silver Frame I
+    rarity: 1
+    weight: 250
+  - itemId: frame_silver_2
+    displayName: Silver Frame II
+    rarity: 1
+    weight: 250
+  - itemId: bubble_ornate
+    displayName: Ornate Chat Bubble
+    rarity: 1
+    weight: 250
+  - itemId: bubble_flame
+    displayName: Flame Chat Bubble
+    rarity: 1
+    weight: 250
+  - itemId: banner_faction_iron
+    displayName: Iron Legion Banner
+    rarity: 1
+    weight: 250
+  - itemId: banner_faction_ash
+    displayName: Ash Cult Banner
+    rarity: 1
+    weight: 250
+  - itemId: city_torch_1
+    displayName: City Torches
+    rarity: 1
+    weight: 250
+  - itemId: city_garden_1
+    displayName: Dark Garden
+    rarity: 1
+    weight: 250
+  - itemId: skin_kaelen_iron
+    displayName: 'Kaelen: Iron Guard'
+    rarity: 1
+    weight: 250
+  - itemId: skin_lyra_forest
+    displayName: 'Lyra: Forest Shade'
+    rarity: 1
+    weight: 250
+  - itemId: frame_gold_1
+    displayName: Gold Frame
+    rarity: 2
+    weight: 94
+  - itemId: frame_gold_2
+    displayName: Platinum Frame
+    rarity: 2
+    weight: 94
+  - itemId: emote_void_rift
+    displayName: Void Rift Emote
+    rarity: 2
+    weight: 94
+  - itemId: emote_thunder_call
+    displayName: Thunder Call Emote
+    rarity: 2
+    weight: 94
+  - itemId: skin_mira_ice
+    displayName: 'Mira: Frostfire'
+    rarity: 2
+    weight: 94
+  - itemId: skin_vex_night
+    displayName: 'Vex: Nightblade'
+    rarity: 2
+    weight: 94
+  - itemId: city_statue_hero
+    displayName: Hero Statue
+    rarity: 2
+    weight: 94
+  - itemId: banner_legendary_fire
+    displayName: Legendary Fire Banner
+    rarity: 2
+    weight: 94
+  - itemId: skin_sera_divine
+    displayName: 'Sera: Divine Radiance'
+    rarity: 3
+    weight: 50
+  - itemId: skin_grim_reaper
+    displayName: 'Grim: Death Walker'
+    rarity: 3
+    weight: 50
+  - itemId: frame_mythic
+    displayName: Mythic Frame
+    rarity: 3
+    weight: 50
+  - itemId: city_throne_room
+    displayName: Ashen Throne Room
+    rarity: 3
+    weight: 50
+  - itemId: emote_ascension
+    displayName: Ascension Emote
+    rarity: 3
+    weight: 50

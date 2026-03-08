@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.11.0] — 2026-03-07 (Phase 10: Content Population & Balancing)
+
+### ADDED
+- **BattlePassSeason_1.asset**: 50-tier Season 1 ("Ashes of Dawn") with free + premium reward tracks. All premium rewards cosmetic only (zero P2W).
+- **GachaPoolConfig.asset**: 40 cosmetic gacha items (15 common, 12 rare, 8 epic, 5 legendary). Zero heroes in pool.
+- **Phase10ContentGenerator.cs**: Editor generator for Battle Pass, gacha pool, localization, balance sheets, quest reward tuning.
+- **Expanded localization**: 219 keys across 8 languages (up from ~40). Hero lore, building descriptions, quest text, status effects, error messages, notifications.
+- **Balance sheets**: 3 CSVs in `tools/BalanceSheets/` — building_balance, hero_balance, economy_flow (30-day F2P model).
+
+### CHANGED
+- Quest rewards tuned: daily=100 BP/50 gold, weekly=250 BP/200 gold, one-time=500 BP/500 gold.
+
+---
+
 ## [0.10.0] — 2026-03-07 (Phase 9: SDK Integration)
 
 ### ADDED

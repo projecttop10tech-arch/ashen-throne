@@ -1,51 +1,211 @@
-building_id,display_name,district,tier,stone_cost,iron_cost,grain_cost,arcane_cost,build_time_sec,stone_prod_hr,iron_prod_hr,grain_prod_hr,arcane_prod_hr,bonus_type,bonus_pct
-stronghold,Stronghold,Core,1,80,56,30,0,300,0,0,0,0,BuildSpeedBonus,2
-stronghold,Stronghold,Core,2,320,224,120,0,3500,0,0,0,0,BuildSpeedBonus,4
-stronghold,Stronghold,Core,3,720,504,270,0,6700,0,0,0,0,BuildSpeedBonus,6
-stronghold,Stronghold,Core,4,1280,896,480,0,9900,0,0,0,0,BuildSpeedBonus,8
-stronghold,Stronghold,Core,5,2000,1400,750,0,13100,0,0,0,0,BuildSpeedBonus,10
-stronghold,Stronghold,Core,6,2880,2016,1080,0,16300,0,0,0,0,BuildSpeedBonus,12
-stronghold,Stronghold,Core,7,3920,2744,1470,0,19500,0,0,0,0,BuildSpeedBonus,14
-stronghold,Stronghold,Core,8,5120,3584,1920,0,22700,0,0,0,0,BuildSpeedBonus,16
-stronghold,Stronghold,Core,9,6480,4536,2430,0,25900,0,0,0,0,BuildSpeedBonus,18
-stronghold,Stronghold,Core,10,8000,5600,3000,0,28800,0,0,0,0,BuildSpeedBonus,20
-stone_quarry,Stone Quarry,Resource,1,80,56,30,0,300,80,0,0,0,StoneProductionBonus,2
-stone_quarry,Stone Quarry,Resource,2,320,224,120,0,1868,110,0,0,0,StoneProductionBonus,4
-stone_quarry,Stone Quarry,Resource,3,720,504,270,0,3436,140,0,0,0,StoneProductionBonus,6
-stone_quarry,Stone Quarry,Resource,4,1280,896,480,0,5004,170,0,0,0,StoneProductionBonus,8
-stone_quarry,Stone Quarry,Resource,5,2000,1400,750,0,6572,200,0,0,0,StoneProductionBonus,10
-stone_quarry,Stone Quarry,Resource,6,2880,2016,1080,0,8140,230,0,0,0,StoneProductionBonus,12
-stone_quarry,Stone Quarry,Resource,7,3920,2744,1470,0,9708,260,0,0,0,StoneProductionBonus,14
-stone_quarry,Stone Quarry,Resource,8,5120,3584,1920,0,11276,290,0,0,0,StoneProductionBonus,16
-stone_quarry,Stone Quarry,Resource,9,6480,4536,2430,0,12844,320,0,0,0,StoneProductionBonus,18
-stone_quarry,Stone Quarry,Resource,10,8000,5600,3000,0,14400,350,0,0,0,StoneProductionBonus,20
-iron_mine,Iron Mine,Resource,1,80,56,30,0,300,0,65,0,0,IronProductionBonus,2
-iron_mine,Iron Mine,Resource,2,320,224,120,0,1868,0,90,0,0,IronProductionBonus,4
-iron_mine,Iron Mine,Resource,3,720,504,270,0,3436,0,115,0,0,IronProductionBonus,6
-iron_mine,Iron Mine,Resource,4,1280,896,480,0,5004,0,140,0,0,IronProductionBonus,8
-iron_mine,Iron Mine,Resource,5,2000,1400,750,0,6572,0,165,0,0,IronProductionBonus,10
-iron_mine,Iron Mine,Resource,6,2880,2016,1080,0,8140,0,190,0,0,IronProductionBonus,12
-iron_mine,Iron Mine,Resource,7,3920,2744,1470,0,9708,0,215,0,0,IronProductionBonus,14
-iron_mine,Iron Mine,Resource,8,5120,3584,1920,0,11276,0,240,0,0,IronProductionBonus,16
-iron_mine,Iron Mine,Resource,9,6480,4536,2430,0,12844,0,265,0,0,IronProductionBonus,18
-iron_mine,Iron Mine,Resource,10,8000,5600,3000,0,14400,0,290,0,0,IronProductionBonus,20
-grain_farm,Grain Farm,Resource,1,80,56,30,0,300,0,0,95,0,GrainProductionBonus,2
-grain_farm,Grain Farm,Resource,2,320,224,120,0,1868,0,0,130,0,GrainProductionBonus,4
-grain_farm,Grain Farm,Resource,3,720,504,270,0,3436,0,0,165,0,GrainProductionBonus,6
-grain_farm,Grain Farm,Resource,4,1280,896,480,0,5004,0,0,200,0,GrainProductionBonus,8
-grain_farm,Grain Farm,Resource,5,2000,1400,750,0,6572,0,0,235,0,GrainProductionBonus,10
-grain_farm,Grain Farm,Resource,6,2880,2016,1080,0,8140,0,0,270,0,GrainProductionBonus,12
-grain_farm,Grain Farm,Resource,7,3920,2744,1470,0,9708,0,0,305,0,GrainProductionBonus,14
-grain_farm,Grain Farm,Resource,8,5120,3584,1920,0,11276,0,0,340,0,GrainProductionBonus,16
-grain_farm,Grain Farm,Resource,9,6480,4536,2430,0,12844,0,0,375,0,GrainProductionBonus,18
-grain_farm,Grain Farm,Resource,10,8000,5600,3000,0,14400,0,0,410,0,GrainProductionBonus,20
-arcane_tower,Arcane Tower,Resource,1,80,56,30,0,300,0,0,0,35,ArcaneProductionBonus,2
-arcane_tower,Arcane Tower,Resource,2,320,224,120,0,1868,0,0,0,50,ArcaneProductionBonus,4
-arcane_tower,Arcane Tower,Resource,3,720,504,270,0,3436,0,0,0,65,ArcaneProductionBonus,6
-arcane_tower,Arcane Tower,Resource,4,1280,896,480,48,5004,0,0,0,80,ArcaneProductionBonus,8
-arcane_tower,Arcane Tower,Resource,5,2000,1400,750,120,6572,0,0,0,95,ArcaneProductionBonus,10
-arcane_tower,Arcane Tower,Resource,6,2880,2016,1080,216,8140,0,0,0,110,ArcaneProductionBonus,12
-arcane_tower,Arcane Tower,Resource,7,3920,2744,1470,336,9708,0,0,0,125,ArcaneProductionBonus,14
-arcane_tower,Arcane Tower,Resource,8,5120,3584,1920,480,11276,0,0,0,140,ArcaneProductionBonus,16
-arcane_tower,Arcane Tower,Resource,9,6480,4536,2430,648,12844,0,0,0,155,ArcaneProductionBonus,18
-arcane_tower,Arcane Tower,Resource,10,8000,5600,3000,840,14400,0,0,0,170,ArcaneProductionBonus,20
+Building,Tier,StoneCost,IronCost,GrainCost,ArcaneCost,BuildTimeSec,ProductionPerHr,Bonus%
+academy,1,80,56,30,0,300,0,0.0
+academy,2,320,224,120,0,1867,0,0.0
+academy,3,720,504,270,0,3433,0,0.0
+academy,4,1280,896,480,0,5000,0,0.0
+academy,5,2000,1400,750,0,6567,0,0.0
+academy,6,2880,2016,1080,0,8133,0,0.0
+academy,7,3920,2744,1470,0,9700,0,0.0
+academy,8,5120,3584,1920,0,11267,0,0.0
+academy,9,6480,4536,2430,0,12833,0,0.0
+academy,10,8000,5600,3000,0,14400,0,0.0
+arcane_tower,1,80,56,30,0,300,0,0.0
+arcane_tower,2,320,224,120,0,1867,0,0.0
+arcane_tower,3,720,504,270,0,3433,0,0.0
+arcane_tower,4,1280,896,480,0,5000,0,0.0
+arcane_tower,5,2000,1400,750,0,6567,0,0.0
+arcane_tower,6,2880,2016,1080,0,8133,0,0.0
+arcane_tower,7,3920,2744,1470,0,9700,0,0.0
+arcane_tower,8,5120,3584,1920,0,11267,0,0.0
+arcane_tower,9,6480,4536,2430,0,12833,0,0.0
+arcane_tower,10,8000,5600,3000,0,14400,0,0.0
+archive,1,80,56,30,0,300,0,0.0
+archive,2,320,224,120,0,1867,0,0.0
+archive,3,720,504,270,0,3433,0,0.0
+archive,4,1280,896,480,0,5000,0,0.0
+archive,5,2000,1400,750,0,6567,0,0.0
+archive,6,2880,2016,1080,0,8133,0,0.0
+archive,7,3920,2744,1470,0,9700,0,0.0
+archive,8,5120,3584,1920,0,11267,0,0.0
+archive,9,6480,4536,2430,0,12833,0,0.0
+archive,10,8000,5600,3000,0,14400,0,0.0
+barracks,1,80,56,30,0,300,0,0.0
+barracks,2,320,224,120,0,1867,0,0.0
+barracks,3,720,504,270,0,3433,0,0.0
+barracks,4,1280,896,480,0,5000,0,0.0
+barracks,5,2000,1400,750,0,6567,0,0.0
+barracks,6,2880,2016,1080,0,8133,0,0.0
+barracks,7,3920,2744,1470,0,9700,0,0.0
+barracks,8,5120,3584,1920,0,11267,0,0.0
+barracks,9,6480,4536,2430,0,12833,0,0.0
+barracks,10,8000,5600,3000,0,14400,0,0.0
+enchanting_tower,1,80,56,30,0,300,0,0.0
+enchanting_tower,2,320,224,120,0,1867,0,0.0
+enchanting_tower,3,720,504,270,0,3433,0,0.0
+enchanting_tower,4,1280,896,480,0,5000,0,0.0
+enchanting_tower,5,2000,1400,750,0,6567,0,0.0
+enchanting_tower,6,2880,2016,1080,0,8133,0,0.0
+enchanting_tower,7,3920,2744,1470,0,9700,0,0.0
+enchanting_tower,8,5120,3584,1920,0,11267,0,0.0
+enchanting_tower,9,6480,4536,2430,0,12833,0,0.0
+enchanting_tower,10,8000,5600,3000,0,14400,0,0.0
+forge,1,80,56,30,0,300,0,0.0
+forge,2,320,224,120,0,1867,0,0.0
+forge,3,720,504,270,0,3433,0,0.0
+forge,4,1280,896,480,0,5000,0,0.0
+forge,5,2000,1400,750,0,6567,0,0.0
+forge,6,2880,2016,1080,0,8133,0,0.0
+forge,7,3920,2744,1470,0,9700,0,0.0
+forge,8,5120,3584,1920,0,11267,0,0.0
+forge,9,6480,4536,2430,0,12833,0,0.0
+forge,10,8000,5600,3000,0,14400,0,0.0
+grain_farm,1,80,56,30,0,300,0,0.0
+grain_farm,2,320,224,120,0,1867,0,0.0
+grain_farm,3,720,504,270,0,3433,0,0.0
+grain_farm,4,1280,896,480,0,5000,0,0.0
+grain_farm,5,2000,1400,750,0,6567,0,0.0
+grain_farm,6,2880,2016,1080,0,8133,0,0.0
+grain_farm,7,3920,2744,1470,0,9700,0,0.0
+grain_farm,8,5120,3584,1920,0,11267,0,0.0
+grain_farm,9,6480,4536,2430,0,12833,0,0.0
+grain_farm,10,8000,5600,3000,0,14400,0,0.0
+guild_hall,1,80,56,30,0,300,0,0.0
+guild_hall,2,320,224,120,0,1867,0,0.0
+guild_hall,3,720,504,270,0,3433,0,0.0
+guild_hall,4,1280,896,480,0,5000,0,0.0
+guild_hall,5,2000,1400,750,0,6567,0,0.0
+guild_hall,6,2880,2016,1080,0,8133,0,0.0
+guild_hall,7,3920,2744,1470,0,9700,0,0.0
+guild_hall,8,5120,3584,1920,0,11267,0,0.0
+guild_hall,9,6480,4536,2430,0,12833,0,0.0
+guild_hall,10,8000,5600,3000,0,14400,0,0.0
+hero_shrine,1,80,56,30,0,300,0,0.0
+hero_shrine,2,320,224,120,0,1867,0,0.0
+hero_shrine,3,720,504,270,0,3433,0,0.0
+hero_shrine,4,1280,896,480,0,5000,0,0.0
+hero_shrine,5,2000,1400,750,0,6567,0,0.0
+hero_shrine,6,2880,2016,1080,0,8133,0,0.0
+hero_shrine,7,3920,2744,1470,0,9700,0,0.0
+hero_shrine,8,5120,3584,1920,0,11267,0,0.0
+hero_shrine,9,6480,4536,2430,0,12833,0,0.0
+hero_shrine,10,8000,5600,3000,0,14400,0,0.0
+iron_mine,1,80,56,30,0,300,0,0.0
+iron_mine,2,320,224,120,0,1867,0,0.0
+iron_mine,3,720,504,270,0,3433,0,0.0
+iron_mine,4,1280,896,480,0,5000,0,0.0
+iron_mine,5,2000,1400,750,0,6567,0,0.0
+iron_mine,6,2880,2016,1080,0,8133,0,0.0
+iron_mine,7,3920,2744,1470,0,9700,0,0.0
+iron_mine,8,5120,3584,1920,0,11267,0,0.0
+iron_mine,9,6480,4536,2430,0,12833,0,0.0
+iron_mine,10,8000,5600,3000,0,14400,0,0.0
+laboratory,1,80,56,30,0,300,0,0.0
+laboratory,2,320,224,120,0,1867,0,0.0
+laboratory,3,720,504,270,0,3433,0,0.0
+laboratory,4,1280,896,480,0,5000,0,0.0
+laboratory,5,2000,1400,750,0,6567,0,0.0
+laboratory,6,2880,2016,1080,0,8133,0,0.0
+laboratory,7,3920,2744,1470,0,9700,0,0.0
+laboratory,8,5120,3584,1920,0,11267,0,0.0
+laboratory,9,6480,4536,2430,0,12833,0,0.0
+laboratory,10,8000,5600,3000,0,14400,0,0.0
+library,1,80,56,30,0,300,0,0.0
+library,2,320,224,120,0,1867,0,0.0
+library,3,720,504,270,0,3433,0,0.0
+library,4,1280,896,480,0,5000,0,0.0
+library,5,2000,1400,750,0,6567,0,0.0
+library,6,2880,2016,1080,0,8133,0,0.0
+library,7,3920,2744,1470,0,9700,0,0.0
+library,8,5120,3584,1920,0,11267,0,0.0
+library,9,6480,4536,2430,0,12833,0,0.0
+library,10,8000,5600,3000,0,14400,0,0.0
+observatory,1,80,56,30,0,300,0,0.0
+observatory,2,320,224,120,0,1867,0,0.0
+observatory,3,720,504,270,0,3433,0,0.0
+observatory,4,1280,896,480,0,5000,0,0.0
+observatory,5,2000,1400,750,0,6567,0,0.0
+observatory,6,2880,2016,1080,0,8133,0,0.0
+observatory,7,3920,2744,1470,0,9700,0,0.0
+observatory,8,5120,3584,1920,0,11267,0,0.0
+observatory,9,6480,4536,2430,0,12833,0,0.0
+observatory,10,8000,5600,3000,0,14400,0,0.0
+siege_workshop,1,80,56,30,0,300,0,0.0
+siege_workshop,2,320,224,120,0,1867,0,0.0
+siege_workshop,3,720,504,270,0,3433,0,0.0
+siege_workshop,4,1280,896,480,0,5000,0,0.0
+siege_workshop,5,2000,1400,750,0,6567,0,0.0
+siege_workshop,6,2880,2016,1080,0,8133,0,0.0
+siege_workshop,7,3920,2744,1470,0,9700,0,0.0
+siege_workshop,8,5120,3584,1920,0,11267,0,0.0
+siege_workshop,9,6480,4536,2430,0,12833,0,0.0
+siege_workshop,10,8000,5600,3000,0,14400,0,0.0
+stone_quarry,1,80,56,30,0,300,0,0.0
+stone_quarry,2,320,224,120,0,1867,0,0.0
+stone_quarry,3,720,504,270,0,3433,0,0.0
+stone_quarry,4,1280,896,480,0,5000,0,0.0
+stone_quarry,5,2000,1400,750,0,6567,0,0.0
+stone_quarry,6,2880,2016,1080,0,8133,0,0.0
+stone_quarry,7,3920,2744,1470,0,9700,0,0.0
+stone_quarry,8,5120,3584,1920,0,11267,0,0.0
+stone_quarry,9,6480,4536,2430,0,12833,0,0.0
+stone_quarry,10,8000,5600,3000,0,14400,0,0.0
+stronghold,1,80,56,30,0,300,0,0.0
+stronghold,2,320,224,120,0,3467,0,0.0
+stronghold,3,720,504,270,0,6633,0,0.0
+stronghold,4,1280,896,480,0,9800,0,0.0
+stronghold,5,2000,1400,750,0,12967,0,0.0
+stronghold,6,2880,2016,1080,0,16133,0,0.0
+stronghold,7,3920,2744,1470,0,19300,0,0.0
+stronghold,8,5120,3584,1920,0,22467,0,0.0
+stronghold,9,6480,4536,2430,0,25633,0,0.0
+stronghold,10,8000,5600,3000,0,28800,0,0.0
+training_arena,1,80,56,30,0,300,0,0.0
+training_arena,2,320,224,120,0,1867,0,0.0
+training_arena,3,720,504,270,0,3433,0,0.0
+training_arena,4,1280,896,480,0,5000,0,0.0
+training_arena,5,2000,1400,750,0,6567,0,0.0
+training_arena,6,2880,2016,1080,0,8133,0,0.0
+training_arena,7,3920,2744,1470,0,9700,0,0.0
+training_arena,8,5120,3584,1920,0,11267,0,0.0
+training_arena,9,6480,4536,2430,0,12833,0,0.0
+training_arena,10,8000,5600,3000,0,14400,0,0.0
+training_grounds,1,80,56,30,0,300,0,0.0
+training_grounds,2,320,224,120,0,1867,0,0.0
+training_grounds,3,720,504,270,0,3433,0,0.0
+training_grounds,4,1280,896,480,0,5000,0,0.0
+training_grounds,5,2000,1400,750,0,6567,0,0.0
+training_grounds,6,2880,2016,1080,0,8133,0,0.0
+training_grounds,7,3920,2744,1470,0,9700,0,0.0
+training_grounds,8,5120,3584,1920,0,11267,0,0.0
+training_grounds,9,6480,4536,2430,0,12833,0,0.0
+training_grounds,10,8000,5600,3000,0,14400,0,0.0
+vault,1,80,56,30,0,300,0,0.0
+vault,2,320,224,120,0,1867,0,0.0
+vault,3,720,504,270,0,3433,0,0.0
+vault,4,1280,896,480,0,5000,0,0.0
+vault,5,2000,1400,750,0,6567,0,0.0
+vault,6,2880,2016,1080,0,8133,0,0.0
+vault,7,3920,2744,1470,0,9700,0,0.0
+vault,8,5120,3584,1920,0,11267,0,0.0
+vault,9,6480,4536,2430,0,12833,0,0.0
+vault,10,8000,5600,3000,0,14400,0,0.0
+war_hall,1,80,56,30,0,300,0,0.0
+war_hall,2,320,224,120,0,1867,0,0.0
+war_hall,3,720,504,270,0,3433,0,0.0
+war_hall,4,1280,896,480,0,5000,0,0.0
+war_hall,5,2000,1400,750,0,6567,0,0.0
+war_hall,6,2880,2016,1080,0,8133,0,0.0
+war_hall,7,3920,2744,1470,0,9700,0,0.0
+war_hall,8,5120,3584,1920,0,11267,0,0.0
+war_hall,9,6480,4536,2430,0,12833,0,0.0
+war_hall,10,8000,5600,3000,0,14400,0,0.0
+watch_tower,1,80,56,30,0,300,0,0.0
+watch_tower,2,320,224,120,0,1867,0,0.0
+watch_tower,3,720,504,270,0,3433,0,0.0
+watch_tower,4,1280,896,480,0,5000,0,0.0
+watch_tower,5,2000,1400,750,0,6567,0,0.0
+watch_tower,6,2880,2016,1080,0,8133,0,0.0
+watch_tower,7,3920,2744,1470,0,9700,0,0.0
+watch_tower,8,5120,3584,1920,0,11267,0,0.0
+watch_tower,9,6480,4536,2430,0,12833,0,0.0
+watch_tower,10,8000,5600,3000,0,14400,0,0.0

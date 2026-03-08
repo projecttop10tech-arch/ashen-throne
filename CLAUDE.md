@@ -71,7 +71,9 @@ Instructions for Claude agents working on this project. Read this file at the st
 | Phase 7: Infrastructure & Tooling | COMPLETE (all generators run, scenes populated, 544 tests pass) |
 | Phase 8: Placeholder Art & UI Prefabs | COMPLETE (132 PNGs, 51 prefabs, 18 WAVs, shader + 3 materials, 544 tests pass) |
 | Phase 9: SDK Integration | COMPLETE (5 SDK services, 6 IAP SKUs, boot sequence wired, ~40 new tests) |
-| Phase 10: Content Population & Balancing | NOT STARTED |
+| Phase 10: Content Population & Balancing | COMPLETE (BP Season 1, 40 gacha items, 219 locale keys, balance sheets) |
+| Phase 11-12: Art & Audio Production | PLACEHOLDER (external art needed) |
+| Phase 13: Integration Testing | NOT STARTED |
 
 ## Phase 1 Remaining Work
 - [x] TurnManager phase state full implementations (DrawPhaseState, ActionPhaseState, ResolvePhaseState, EndPhaseState, BattleOverPhaseState)

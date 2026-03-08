@@ -18,7 +18,7 @@ MonoBehaviour:
   <Cadence>k__BackingField: 1
   <ObjectiveType>k__BackingField: 3
   <RequiredCount>k__BackingField: 3
-  <BattlePassPoints>k__BackingField: 300
+  <BattlePassPoints>k__BackingField: 250
   <StoneReward>k__BackingField: 1000
   <IronReward>k__BackingField: 1000
   <GrainReward>k__BackingField: 500

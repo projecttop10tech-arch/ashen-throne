@@ -1,0 +1,719 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: BattlePassSeason_1
+  m_EditorClassIdentifier: AshenThrone:AshenThrone.Economy:BattlePassSeason
+  SeasonId: season_1
+  SeasonName: Ashes of Dawn
+  PointsPerTier: 64000000780000008c000000a0000000b4000000c8000000dc000000f000000004010000180100002c0100004001000054010000680100007c01000090010000a4010000b8010000cc010000e0010000f4010000080200001c0200003002000044020000580200006c0200008002000094020000a8020000bc020000d0020000e4020000f80200000c0300002003000034030000480300005c030000700300008403000098030000ac030000c0030000d4030000e8030000fc030000100400002404000038040000
+  FreeRewards:
+  - RewardId: bp_free_1_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 250
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 250 Resources
+  - RewardId: bp_free_2_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 300
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 300 Resources
+  - RewardId: bp_free_3_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 5
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 5min Speedup
+  - RewardId: bp_free_4_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 400
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 400 Resources
+  - RewardId: bp_free_5_xp
+    RewardType: 8
+    ItemId: 
+    Quantity: 2
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2 XP Potions
+  - RewardId: bp_free_6_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 6
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 6min Speedup
+  - RewardId: bp_free_7_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 550
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 550 Resources
+  - RewardId: bp_free_8_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 600
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 600 Resources
+  - RewardId: bp_free_9_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 6
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 6min Speedup
+  - RewardId: bp_free_10_shards
+    RewardType: 0
+    ItemId: random_hero
+    Quantity: 6
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 6 Hero Shards
+  - RewardId: bp_free_11_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 750
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 750 Resources
+  - RewardId: bp_free_12_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 7
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 7min Speedup
+  - RewardId: bp_free_13_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 850
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 850 Resources
+  - RewardId: bp_free_14_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 900
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 900 Resources
+  - RewardId: bp_free_15_xp
+    RewardType: 8
+    ItemId: 
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 3 XP Potions
+  - RewardId: bp_free_16_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1000
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1000 Resources
+  - RewardId: bp_free_17_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1050
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1050 Resources
+  - RewardId: bp_free_18_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 8
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 8min Speedup
+  - RewardId: bp_free_19_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1150
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1150 Resources
+  - RewardId: bp_free_20_shards
+    RewardType: 0
+    ItemId: random_hero
+    Quantity: 7
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 7 Hero Shards
+  - RewardId: bp_free_21_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 9
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 9min Speedup
+  - RewardId: bp_free_22_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1300
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1300 Resources
+  - RewardId: bp_free_23_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1350
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1350 Resources
+  - RewardId: bp_free_24_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 9
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 9min Speedup
+  - RewardId: bp_free_25_xp
+    RewardType: 8
+    ItemId: 
+    Quantity: 4
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 4 XP Potions
+  - RewardId: bp_free_26_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1500
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1500 Resources
+  - RewardId: bp_free_27_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 10
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 10min Speedup
+  - RewardId: bp_free_28_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1600
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1600 Resources
+  - RewardId: bp_free_29_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1650
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1650 Resources
+  - RewardId: bp_free_30_shards
+    RewardType: 0
+    ItemId: random_hero
+    Quantity: 8
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 8 Hero Shards
+  - RewardId: bp_free_31_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1750
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1750 Resources
+  - RewardId: bp_free_32_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1800
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1800 Resources
+  - RewardId: bp_free_33_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 11
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 11min Speedup
+  - RewardId: bp_free_34_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 1900
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 1900 Resources
+  - RewardId: bp_free_35_xp
+    RewardType: 8
+    ItemId: 
+    Quantity: 5
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 5 XP Potions
+  - RewardId: bp_free_36_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 12
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 12min Speedup
+  - RewardId: bp_free_37_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2050
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2050 Resources
+  - RewardId: bp_free_38_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2100
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2100 Resources
+  - RewardId: bp_free_39_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 12
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 12min Speedup
+  - RewardId: bp_free_40_shards
+    RewardType: 0
+    ItemId: random_hero
+    Quantity: 9
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 9 Hero Shards
+  - RewardId: bp_free_41_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2250
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2250 Resources
+  - RewardId: bp_free_42_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 13
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 13min Speedup
+  - RewardId: bp_free_43_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2350
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2350 Resources
+  - RewardId: bp_free_44_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2400
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2400 Resources
+  - RewardId: bp_free_45_xp
+    RewardType: 8
+    ItemId: 
+    Quantity: 6
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 6 XP Potions
+  - RewardId: bp_free_46_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2500
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2500 Resources
+  - RewardId: bp_free_47_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2550
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2550 Resources
+  - RewardId: bp_free_48_speedup
+    RewardType: 2
+    ItemId: 
+    Quantity: 14
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 14min Speedup
+  - RewardId: bp_free_49_resources
+    RewardType: 1
+    ItemId: 
+    Quantity: 2650
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 2650 Resources
+  - RewardId: bp_free_50_shards
+    RewardType: 0
+    ItemId: random_hero
+    Quantity: 10
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 10 Hero Shards
+  PremiumRewards:
+  - RewardId: bp_prem_1
+    RewardType: 3
+    ItemId: cosmetic_1
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_2
+    RewardType: 4
+    ItemId: cosmetic_2
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_3
+    RewardType: 5
+    ItemId: cosmetic_3
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_4
+    RewardType: 6
+    ItemId: cosmetic_4
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_5
+    RewardType: 7
+    ItemId: cosmetic_5
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Gacha Ticket
+  - RewardId: bp_prem_6
+    RewardType: 3
+    ItemId: cosmetic_6
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_7
+    RewardType: 4
+    ItemId: cosmetic_7
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_8
+    RewardType: 5
+    ItemId: cosmetic_8
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_9
+    RewardType: 6
+    ItemId: cosmetic_9
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_10_epic
+    RewardType: 3
+    ItemId: skin_epic_1
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Epic Skin #1
+  - RewardId: bp_prem_11
+    RewardType: 3
+    ItemId: cosmetic_11
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_12
+    RewardType: 4
+    ItemId: cosmetic_12
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_13
+    RewardType: 5
+    ItemId: cosmetic_13
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_14
+    RewardType: 6
+    ItemId: cosmetic_14
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_15
+    RewardType: 7
+    ItemId: cosmetic_15
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Gacha Ticket
+  - RewardId: bp_prem_16
+    RewardType: 3
+    ItemId: cosmetic_16
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_17
+    RewardType: 4
+    ItemId: cosmetic_17
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_18
+    RewardType: 5
+    ItemId: cosmetic_18
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_19
+    RewardType: 6
+    ItemId: cosmetic_19
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_20_epic
+    RewardType: 3
+    ItemId: skin_epic_2
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Epic Skin #2
+  - RewardId: bp_prem_21
+    RewardType: 3
+    ItemId: cosmetic_21
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_22
+    RewardType: 4
+    ItemId: cosmetic_22
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_23
+    RewardType: 5
+    ItemId: cosmetic_23
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_24
+    RewardType: 6
+    ItemId: cosmetic_24
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_25
+    RewardType: 7
+    ItemId: cosmetic_25
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Gacha Ticket
+  - RewardId: bp_prem_26
+    RewardType: 3
+    ItemId: cosmetic_26
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_27
+    RewardType: 4
+    ItemId: cosmetic_27
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_28
+    RewardType: 5
+    ItemId: cosmetic_28
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_29
+    RewardType: 6
+    ItemId: cosmetic_29
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_30_epic
+    RewardType: 3
+    ItemId: skin_epic_3
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Epic Skin #3
+  - RewardId: bp_prem_31
+    RewardType: 3
+    ItemId: cosmetic_31
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_32
+    RewardType: 4
+    ItemId: cosmetic_32
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_33
+    RewardType: 5
+    ItemId: cosmetic_33
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_34
+    RewardType: 6
+    ItemId: cosmetic_34
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_35
+    RewardType: 7
+    ItemId: cosmetic_35
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Gacha Ticket
+  - RewardId: bp_prem_36
+    RewardType: 3
+    ItemId: cosmetic_36
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_37
+    RewardType: 4
+    ItemId: cosmetic_37
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_38
+    RewardType: 5
+    ItemId: cosmetic_38
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_39
+    RewardType: 6
+    ItemId: cosmetic_39
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_40_epic
+    RewardType: 3
+    ItemId: skin_epic_4
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Epic Skin #4
+  - RewardId: bp_prem_41
+    RewardType: 3
+    ItemId: cosmetic_41
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_42
+    RewardType: 4
+    ItemId: cosmetic_42
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_43
+    RewardType: 5
+    ItemId: cosmetic_43
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_44
+    RewardType: 6
+    ItemId: cosmetic_44
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_45
+    RewardType: 7
+    ItemId: cosmetic_45
+    Quantity: 3
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Gacha Ticket
+  - RewardId: bp_prem_46
+    RewardType: 3
+    ItemId: cosmetic_46
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Hero Skin
+  - RewardId: bp_prem_47
+    RewardType: 4
+    ItemId: cosmetic_47
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: City Decoration
+  - RewardId: bp_prem_48
+    RewardType: 5
+    ItemId: cosmetic_48
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Emote
+  - RewardId: bp_prem_49
+    RewardType: 6
+    ItemId: cosmetic_49
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: Banner
+  - RewardId: bp_prem_50_legendary_skin
+    RewardType: 3
+    ItemId: skin_ashwalker_phoenix
+    Quantity: 1
+    IsCombatPowerReward: 0
+    RewardIcon: {fileID: 0}
+    DisplayName: 'Legendary: Phoenix Ashwalker Skin'
