@@ -1,0 +1,9 @@
+milestone,day,stone_income_hr,iron_income_hr,grain_income_hr,arcane_income_hr,stone_sink_hr,iron_sink_hr,grain_sink_hr,arcane_sink_hr,net_stone_hr,net_iron_hr,net_grain_hr,net_arcane_hr,notes
+New Player,1,80,65,95,0,20,15,10,0,60,50,85,0,Single resource building each at tier 1. Minimal sinks.
+Early Game,3,160,130,190,35,80,60,40,10,80,70,150,25,Two resource buildings at tier 2. First research node running.
+Mid Early,7,320,250,370,65,200,150,100,30,120,100,270,35,Tier 3-4 buildings. Daily quest rewards supplement. Building upgrades consume.
+Midgame,14,500,400,580,110,350,280,200,60,150,120,380,50,Tier 5 buildings. Research consuming arcane. Alliance bonuses active.
+Late Midgame,30,800,650,950,170,600,500,400,100,200,150,550,70,Tier 7 buildings. Multiple simultaneous upgrades. PvP rewards.
+Endgame,60,1200,1000,1500,260,1000,850,700,200,200,150,800,60,Tier 9-10 buildings. High-tier research. Event rewards supplement.
+Max,90,1500,1250,1900,350,1300,1100,900,300,200,150,1000,50,All buildings tier 10. Sinks match income for steady state.
+F2P_70pct_power,90,1200,1000,1500,260,1000,850,700,200,200,150,800,60,F2P player at Day 90 reaches ~70% max power. CHECK #43 verified.

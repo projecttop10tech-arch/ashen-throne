@@ -1,0 +1,103 @@
+# ============================================================================
+# Ashen Throne — .gitignore
+# Unity 6 LTS project with PlayFab backend
+# ============================================================================
+
+# --- Unity generated ---
+game/Library/
+game/Temp/
+game/Obj/
+game/Build/
+game/Builds/
+game/Logs/
+game/UserSettings/
+game/MemoryCaptures/
+game/Recording/
+
+# --- IDE / Editor ---
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS generated ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# --- Build artifacts ---
+*.apk
+*.aab
+*.ipa
+*.dSYM/
+*.dSYM.zip
+*.unitypackage
+
+# --- Crashlytics ---
+crashlytics-build.properties
+game/Assets/StreamingAssets/google-services-desktop.json
+
+# --- Secrets (NEVER commit) ---
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+game/Assets/Plugins/Android/google-services.json
+game/Assets/Plugins/iOS/GoogleService-Info.plist
+
+# --- Node.js (backend) ---
+node_modules/
+backend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Test results ---
+game/test-results*.xml
+game/game/test-results*.xml
+*.ncrunchsolution
+*.ncrunchproject
+TestResults/
+
+# --- Misc ---
+*.log
+*.tmp
+*.bak
+*.orig
+sysinfo.txt
+
+# ============================================================================
+# Force-tracked (override ignores above for critical Unity files)
+# These patterns ensure essential Unity metadata is ALWAYS committed.
+# ============================================================================
+!*.meta
+!*.asset
+!*.prefab
+!*.unity
+!*.mat
+!*.shader
+!*.cginc
+!*.hlsl
+!*.asmdef
+!game/Assets/StreamingAssets/**/*.json
+!game/Packages/manifest.json
+!game/Packages/packages-lock.json
+!game/ProjectSettings/*.asset

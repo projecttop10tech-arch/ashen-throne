@@ -1,0 +1,51 @@
+building_id,display_name,district,tier,stone_cost,iron_cost,grain_cost,arcane_cost,build_time_sec,stone_prod_hr,iron_prod_hr,grain_prod_hr,arcane_prod_hr,bonus_type,bonus_pct
+stronghold,Stronghold,Core,1,80,56,30,0,300,0,0,0,0,BuildSpeedBonus,2
+stronghold,Stronghold,Core,2,320,224,120,0,3500,0,0,0,0,BuildSpeedBonus,4
+stronghold,Stronghold,Core,3,720,504,270,0,6700,0,0,0,0,BuildSpeedBonus,6
+stronghold,Stronghold,Core,4,1280,896,480,0,9900,0,0,0,0,BuildSpeedBonus,8
+stronghold,Stronghold,Core,5,2000,1400,750,0,13100,0,0,0,0,BuildSpeedBonus,10
+stronghold,Stronghold,Core,6,2880,2016,1080,0,16300,0,0,0,0,BuildSpeedBonus,12
+stronghold,Stronghold,Core,7,3920,2744,1470,0,19500,0,0,0,0,BuildSpeedBonus,14
+stronghold,Stronghold,Core,8,5120,3584,1920,0,22700,0,0,0,0,BuildSpeedBonus,16
+stronghold,Stronghold,Core,9,6480,4536,2430,0,25900,0,0,0,0,BuildSpeedBonus,18
+stronghold,Stronghold,Core,10,8000,5600,3000,0,28800,0,0,0,0,BuildSpeedBonus,20
+stone_quarry,Stone Quarry,Resource,1,80,56,30,0,300,80,0,0,0,StoneProductionBonus,2
+stone_quarry,Stone Quarry,Resource,2,320,224,120,0,1868,110,0,0,0,StoneProductionBonus,4
+stone_quarry,Stone Quarry,Resource,3,720,504,270,0,3436,140,0,0,0,StoneProductionBonus,6
+stone_quarry,Stone Quarry,Resource,4,1280,896,480,0,5004,170,0,0,0,StoneProductionBonus,8
+stone_quarry,Stone Quarry,Resource,5,2000,1400,750,0,6572,200,0,0,0,StoneProductionBonus,10
+stone_quarry,Stone Quarry,Resource,6,2880,2016,1080,0,8140,230,0,0,0,StoneProductionBonus,12
+stone_quarry,Stone Quarry,Resource,7,3920,2744,1470,0,9708,260,0,0,0,StoneProductionBonus,14
+stone_quarry,Stone Quarry,Resource,8,5120,3584,1920,0,11276,290,0,0,0,StoneProductionBonus,16
+stone_quarry,Stone Quarry,Resource,9,6480,4536,2430,0,12844,320,0,0,0,StoneProductionBonus,18
+stone_quarry,Stone Quarry,Resource,10,8000,5600,3000,0,14400,350,0,0,0,StoneProductionBonus,20
+iron_mine,Iron Mine,Resource,1,80,56,30,0,300,0,65,0,0,IronProductionBonus,2
+iron_mine,Iron Mine,Resource,2,320,224,120,0,1868,0,90,0,0,IronProductionBonus,4
+iron_mine,Iron Mine,Resource,3,720,504,270,0,3436,0,115,0,0,IronProductionBonus,6
+iron_mine,Iron Mine,Resource,4,1280,896,480,0,5004,0,140,0,0,IronProductionBonus,8
+iron_mine,Iron Mine,Resource,5,2000,1400,750,0,6572,0,165,0,0,IronProductionBonus,10
+iron_mine,Iron Mine,Resource,6,2880,2016,1080,0,8140,0,190,0,0,IronProductionBonus,12
+iron_mine,Iron Mine,Resource,7,3920,2744,1470,0,9708,0,215,0,0,IronProductionBonus,14
+iron_mine,Iron Mine,Resource,8,5120,3584,1920,0,11276,0,240,0,0,IronProductionBonus,16
+iron_mine,Iron Mine,Resource,9,6480,4536,2430,0,12844,0,265,0,0,IronProductionBonus,18
+iron_mine,Iron Mine,Resource,10,8000,5600,3000,0,14400,0,290,0,0,IronProductionBonus,20
+grain_farm,Grain Farm,Resource,1,80,56,30,0,300,0,0,95,0,GrainProductionBonus,2
+grain_farm,Grain Farm,Resource,2,320,224,120,0,1868,0,0,130,0,GrainProductionBonus,4
+grain_farm,Grain Farm,Resource,3,720,504,270,0,3436,0,0,165,0,GrainProductionBonus,6
+grain_farm,Grain Farm,Resource,4,1280,896,480,0,5004,0,0,200,0,GrainProductionBonus,8
+grain_farm,Grain Farm,Resource,5,2000,1400,750,0,6572,0,0,235,0,GrainProductionBonus,10
+grain_farm,Grain Farm,Resource,6,2880,2016,1080,0,8140,0,0,270,0,GrainProductionBonus,12
+grain_farm,Grain Farm,Resource,7,3920,2744,1470,0,9708,0,0,305,0,GrainProductionBonus,14
+grain_farm,Grain Farm,Resource,8,5120,3584,1920,0,11276,0,0,340,0,GrainProductionBonus,16
+grain_farm,Grain Farm,Resource,9,6480,4536,2430,0,12844,0,0,375,0,GrainProductionBonus,18
+grain_farm,Grain Farm,Resource,10,8000,5600,3000,0,14400,0,0,410,0,GrainProductionBonus,20
+arcane_tower,Arcane Tower,Resource,1,80,56,30,0,300,0,0,0,35,ArcaneProductionBonus,2
+arcane_tower,Arcane Tower,Resource,2,320,224,120,0,1868,0,0,0,50,ArcaneProductionBonus,4
+arcane_tower,Arcane Tower,Resource,3,720,504,270,0,3436,0,0,0,65,ArcaneProductionBonus,6
+arcane_tower,Arcane Tower,Resource,4,1280,896,480,48,5004,0,0,0,80,ArcaneProductionBonus,8
+arcane_tower,Arcane Tower,Resource,5,2000,1400,750,120,6572,0,0,0,95,ArcaneProductionBonus,10
+arcane_tower,Arcane Tower,Resource,6,2880,2016,1080,216,8140,0,0,0,110,ArcaneProductionBonus,12
+arcane_tower,Arcane Tower,Resource,7,3920,2744,1470,336,9708,0,0,0,125,ArcaneProductionBonus,14
+arcane_tower,Arcane Tower,Resource,8,5120,3584,1920,480,11276,0,0,0,140,ArcaneProductionBonus,16
+arcane_tower,Arcane Tower,Resource,9,6480,4536,2430,648,12844,0,0,0,155,ArcaneProductionBonus,18
+arcane_tower,Arcane Tower,Resource,10,8000,5600,3000,840,14400,0,0,0,170,ArcaneProductionBonus,20

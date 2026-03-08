@@ -4,6 +4,24 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.8.0] — 2026-03-07 (Phase 7: Infrastructure, Tooling, Project Hygiene)
+
+### ADDED
+- **.gitignore**: Created comprehensive Unity .gitignore excluding Library/, Temp/, Logs/, *.csproj, *.sln, .DS_Store, secrets, build artifacts. Force-includes *.meta, *.asset, *.prefab, *.unity.
+- **LobbyUIController.cs**: Scene navigation controller for Lobby — buttons route to Combat, Empire, WorldMap, Alliance via GameManager.LoadSceneAsync.
+- **WorldMapUIController.cs**: World map controller with territory info sidebar, mini-map, back navigation. Subscribes to TerritoryCapturedEvent.
+- **AllianceUIController.cs**: Alliance screen controller with tab switching (Members, Chat, Wars, Leaderboard panels).
+- **BuildingDataGenerator.cs**: Editor tool generating 21 BuildingData SOs (Stronghold + 5 per district × 4 districts) with 10 tiers each. Respects 4h/8h timer caps. Quadratic cost scaling.
+- **QuestDefinitionGenerator.cs**: Editor tool generating 30 QuestDefinition SOs (10 daily, 10 weekly, 10 one-time). Balanced BP points and resource rewards.
+- **TutorialStepGenerator.cs**: Editor tool generating 8 TutorialStep SOs for FTUE sequence (welcome through complete_quest).
+- **AccessibilityConfig generation**: Added to ConfigGenerator.cs — generates AccessibilityConfig.asset in Resources/.
+- **Balance sheets**: Created building_balance.csv (resource buildings with tier-by-tier costs/production), hero_balance.csv (10 heroes with stats/abilities/factions), economy_flow.csv (resource income/sink at Day 1/3/7/14/30/60/90 milestones, F2P 70% power target verified).
+
+### CHANGED
+- Updated Editor/CLAUDE.md with all new generator entries (BuildingDataGenerator, QuestDefinitionGenerator, TutorialStepGenerator, SceneGenerator, ConfigGenerator).
+
+---
+
 ## [0.7.3] — 2026-03-07 (QA: Backend fixes, null guards, GC optimization)
 
 ### FIXED
