@@ -1,9 +1,4 @@
 #if UNITY_EDITOR
-// Run from Unity Editor menu: AshenThrone → Generate Scene UI
-// Populates each of the 6 scenes with proper UI panel hierarchies,
-// HUD elements, backgrounds, and interactive buttons.
-// Safe to re-run — clears existing UI before rebuilding.
-
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -13,8 +8,80 @@ using UnityEngine.UI;
 
 namespace AshenThrone.Editor
 {
+    /// <summary>
+    /// Generates polished dark fantasy UI for all 6 game scenes.
+    /// Safe to re-run — clears existing UI before rebuilding.
+    /// Menu: AshenThrone → Generate Scene UI
+    /// </summary>
     public static class SceneUIGenerator
     {
+        // ===================================================================
+        // COLOR PALETTE — Dark Fantasy
+        // ===================================================================
+        static readonly Color BgDeep       = new Color(0.04f, 0.02f, 0.08f, 1f);     // #0A0514
+        static readonly Color BgDark       = new Color(0.08f, 0.05f, 0.14f, 1f);     // #140D24
+        static readonly Color BgMid        = new Color(0.12f, 0.08f, 0.20f, 1f);     // #1F1433
+        static readonly Color BgPanel      = new Color(0.10f, 0.07f, 0.18f, 0.95f);  // Panel overlay
+        static readonly Color BgPanelLight = new Color(0.14f, 0.10f, 0.22f, 0.9f);   // Lighter panel
+        static readonly Color BgCard       = new Color(0.12f, 0.08f, 0.16f, 1f);     // Card background
+        static readonly Color BgInput      = new Color(0.06f, 0.04f, 0.10f, 1f);     // Input field bg
+
+        static readonly Color Gold         = new Color(0.83f, 0.66f, 0.26f, 1f);     // #D4A843
+        static readonly Color GoldDim      = new Color(0.55f, 0.43f, 0.18f, 1f);     // Muted gold
+        static readonly Color GoldBright   = new Color(0.94f, 0.78f, 0.31f, 1f);     // Bright gold
+        static readonly Color Ember        = new Color(0.91f, 0.45f, 0.16f, 1f);     // #E8732A
+        static readonly Color EmberDim     = new Color(0.65f, 0.32f, 0.12f, 1f);
+        static readonly Color Blood        = new Color(0.75f, 0.15f, 0.20f, 1f);     // #C02633
+        static readonly Color BloodDark    = new Color(0.45f, 0.08f, 0.12f, 1f);
+        static readonly Color Teal         = new Color(0.18f, 0.78f, 0.65f, 1f);     // #2EC7A6
+        static readonly Color TealDim      = new Color(0.12f, 0.50f, 0.42f, 1f);
+        static readonly Color Purple       = new Color(0.55f, 0.22f, 0.72f, 1f);     // #8C38B8
+        static readonly Color PurpleDim    = new Color(0.35f, 0.14f, 0.48f, 1f);
+        static readonly Color Sky          = new Color(0.30f, 0.55f, 0.90f, 1f);     // #4D8CE6
+        static readonly Color SkyDim       = new Color(0.20f, 0.35f, 0.60f, 1f);
+
+        static readonly Color TextLight    = new Color(0.91f, 0.87f, 0.78f, 1f);     // #E8DEC8
+        static readonly Color TextMid      = new Color(0.65f, 0.60f, 0.52f, 1f);     // Muted
+        static readonly Color TextDim      = new Color(0.40f, 0.37f, 0.33f, 1f);     // Very dim
+        static readonly Color TextWhite    = new Color(0.95f, 0.93f, 0.90f, 1f);
+
+        static readonly Color Border       = new Color(0.42f, 0.34f, 0.18f, 0.8f);   // Gold border
+        static readonly Color BorderDim    = new Color(0.25f, 0.20f, 0.12f, 0.6f);
+
+        static readonly Color BarHpGreen   = new Color(0.20f, 0.70f, 0.30f, 1f);
+        static readonly Color BarHpRed     = new Color(0.75f, 0.15f, 0.15f, 1f);
+        static readonly Color BarHpBg      = new Color(0.15f, 0.10f, 0.10f, 1f);
+        static readonly Color BarEnergy    = new Color(0.25f, 0.55f, 0.95f, 1f);
+        static readonly Color BarEnergyDim = new Color(0.12f, 0.15f, 0.25f, 1f);
+        static readonly Color BarXp        = new Color(0.60f, 0.45f, 0.90f, 1f);
+
+        // Resource colors
+        static readonly Color StoneColor   = new Color(0.55f, 0.50f, 0.45f, 1f);
+        static readonly Color IronColor    = new Color(0.50f, 0.55f, 0.65f, 1f);
+        static readonly Color GrainColor   = new Color(0.80f, 0.72f, 0.25f, 1f);
+        static readonly Color ArcaneColor  = new Color(0.55f, 0.25f, 0.85f, 1f);
+        static readonly Color GemsColor    = new Color(0.30f, 0.75f, 0.95f, 1f);     // Cyan gems
+        static readonly Color ResBarBg     = new Color(0.06f, 0.07f, 0.14f, 0.95f);  // Dark navy
+
+        // ===================================================================
+        // ENTRY POINT
+        // ===================================================================
+
+        [MenuItem("AshenThrone/Play Empire Scene")]
+        public static void PlayEmpireScene()
+        {
+            if (EditorApplication.isPlaying)
+            {
+                EditorApplication.isPlaying = false;
+                return;
+            }
+            EditorSceneManager.OpenScene("Assets/Scenes/Empire/Empire.unity", OpenSceneMode.Single);
+            var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Empire/Empire.unity");
+            EditorSceneManager.playModeStartScene = sceneAsset;
+            EditorApplication.isPlaying = true;
+        }
+
+
         [MenuItem("AshenThrone/Generate Scene UI")]
         public static void GenerateAll()
         {
@@ -24,614 +91,1552 @@ namespace AshenThrone.Editor
             SetupEmpireScene();
             SetupWorldMapScene();
             SetupAllianceScene();
-            Debug.Log("[SceneUIGenerator] All 6 scenes populated with UI.");
+            Debug.Log("[SceneUIGenerator] All 6 scenes populated with polished UI.");
         }
 
-        // ---------------------------------------------------------------
-        // Boot Scene — loading screen
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // BOOT SCENE — Epic loading screen
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/Boot")]
         public static void SetupBootScene()
         {
             var scene = OpenScene("Boot");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            // Dark background
-            var bg = AddPanel(canvas, "Background", new Color(0.05f, 0.05f, 0.08f, 1f));
+            // Backgrounds (full screen, behind safe area)
+            var bg = AddPanel(canvasGo, "Background", BgDeep);
             StretchToParent(bg);
+            var vignette = AddPanel(canvasGo, "Vignette", new Color(0, 0, 0, 0.3f));
+            StretchToParent(vignette);
+
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
+
+            // Decorative top accent line
+            var topAccent = AddPanel(canvas, "TopAccent", GoldDim);
+            SetAnchors(topAccent, 0.15f, 0.78f, 0.85f, 0.785f);
 
             // Title
-            var title = AddText(canvas, "Title", "ASHEN THRONE", 48, TextAnchor.MiddleCenter);
-            var titleRect = title.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0.1f, 0.55f);
-            titleRect.anchorMax = new Vector2(0.9f, 0.75f);
-            titleRect.offsetMin = Vector2.zero;
-            titleRect.offsetMax = Vector2.zero;
-            title.GetComponent<Text>().color = new Color(0.85f, 0.75f, 0.3f);
+            var title = AddText(canvas, "Title", "ASHEN THRONE", 52, TextAnchor.MiddleCenter);
+            SetAnchors(title, 0.05f, 0.65f, 0.95f, 0.78f);
+            title.GetComponent<Text>().color = Gold;
+            AddOutline(title, new Color(0.3f, 0.2f, 0.05f), 2f);
 
             // Subtitle
-            var sub = AddText(canvas, "Subtitle", "A Dark Fantasy Strategy RPG", 18, TextAnchor.MiddleCenter);
-            var subRect = sub.GetComponent<RectTransform>();
-            subRect.anchorMin = new Vector2(0.2f, 0.48f);
-            subRect.anchorMax = new Vector2(0.8f, 0.55f);
-            subRect.offsetMin = Vector2.zero;
-            subRect.offsetMax = Vector2.zero;
-            sub.GetComponent<Text>().color = new Color(0.7f, 0.65f, 0.55f);
+            var sub = AddText(canvas, "Subtitle", "A Dark Fantasy Strategy RPG", 16, TextAnchor.MiddleCenter);
+            SetAnchors(sub, 0.15f, 0.58f, 0.85f, 0.64f);
+            sub.GetComponent<Text>().color = TextMid;
 
-            // Loading bar background
-            var barBg = AddPanel(canvas, "LoadingBarBg", new Color(0.2f, 0.2f, 0.25f, 1f));
-            var barBgRect = barBg.GetComponent<RectTransform>();
-            barBgRect.anchorMin = new Vector2(0.2f, 0.3f);
-            barBgRect.anchorMax = new Vector2(0.8f, 0.34f);
-            barBgRect.offsetMin = Vector2.zero;
-            barBgRect.offsetMax = Vector2.zero;
+            // Decorative bottom accent line
+            var botAccent = AddPanel(canvas, "BottomAccent", GoldDim);
+            SetAnchors(botAccent, 0.15f, 0.575f, 0.85f, 0.58f);
+
+            // Loading area frame
+            var loadFrame = AddPanel(canvas, "LoadingFrame", new Color(0.08f, 0.06f, 0.12f, 0.8f));
+            SetAnchors(loadFrame, 0.15f, 0.32f, 0.85f, 0.50f);
+            AddOutlinePanel(loadFrame, BorderDim);
+
+            // Loading status text
+            var statusText = AddText(loadFrame, "StatusText", "Initializing Services...", 13, TextAnchor.MiddleCenter);
+            SetAnchors(statusText, 0.05f, 0.55f, 0.95f, 0.85f);
+            statusText.GetComponent<Text>().color = TextMid;
+
+            // Loading bar track
+            var barTrack = AddPanel(loadFrame, "BarTrack", new Color(0.06f, 0.04f, 0.08f, 1f));
+            SetAnchors(barTrack, 0.08f, 0.2f, 0.92f, 0.42f);
+            AddOutlinePanel(barTrack, BorderDim);
 
             // Loading bar fill
-            var barFill = AddPanel(barBg, "LoadingBarFill", new Color(0.85f, 0.75f, 0.3f, 1f));
+            var barFill = AddPanel(barTrack, "BarFill", Gold);
             var fillRect = barFill.GetComponent<RectTransform>();
-            fillRect.anchorMin = Vector2.zero;
-            fillRect.anchorMax = new Vector2(0.65f, 1f);
+            fillRect.anchorMin = new Vector2(0.01f, 0.1f);
+            fillRect.anchorMax = new Vector2(0.70f, 0.9f);
             fillRect.offsetMin = Vector2.zero;
             fillRect.offsetMax = Vector2.zero;
 
-            // Loading text
-            var loadText = AddText(canvas, "LoadingText", "Loading...", 14, TextAnchor.MiddleCenter);
-            var loadRect = loadText.GetComponent<RectTransform>();
-            loadRect.anchorMin = new Vector2(0.3f, 0.22f);
-            loadRect.anchorMax = new Vector2(0.7f, 0.3f);
-            loadRect.offsetMin = Vector2.zero;
-            loadRect.offsetMax = Vector2.zero;
+            // Loading percentage
+            var pctText = AddText(loadFrame, "Percentage", "70%", 12, TextAnchor.MiddleCenter);
+            SetAnchors(pctText, 0.4f, 0.2f, 0.6f, 0.42f);
+            pctText.GetComponent<Text>().color = TextWhite;
 
-            // Version
-            var ver = AddText(canvas, "VersionLabel", "v0.1.0-alpha", 12, TextAnchor.LowerRight);
-            var verRect = ver.GetComponent<RectTransform>();
-            verRect.anchorMin = new Vector2(0.7f, 0);
-            verRect.anchorMax = new Vector2(1, 0.05f);
-            verRect.offsetMin = new Vector2(0, 4);
-            verRect.offsetMax = new Vector2(-8, 0);
-            ver.GetComponent<Text>().color = new Color(0.4f, 0.4f, 0.45f);
+            // Tip text at bottom
+            var tip = AddText(canvas, "TipText", "TIP: Upgrade your Stronghold to unlock new building types", 11, TextAnchor.MiddleCenter);
+            SetAnchors(tip, 0.1f, 0.18f, 0.9f, 0.26f);
+            tip.GetComponent<Text>().color = TextDim;
+            tip.GetComponent<Text>().fontStyle = FontStyle.Italic;
+
+            // Version + copyright
+            var ver = AddText(canvas, "VersionLabel", "v0.1.0-alpha  |  Ashen Throne Studios", 10, TextAnchor.LowerCenter);
+            SetAnchors(ver, 0.1f, 0.02f, 0.9f, 0.06f);
+            ver.GetComponent<Text>().color = TextDim;
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Boot scene UI populated");
+            Debug.Log("[SceneUIGenerator] Boot scene: polished loading screen");
         }
 
-        // ---------------------------------------------------------------
-        // Lobby Scene — main menu
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // LOBBY SCENE — Main menu hub
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/Lobby")]
         public static void SetupLobbyScene()
         {
             var scene = OpenScene("Lobby");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            // Background
-            var bg = AddPanel(canvas, "Background", new Color(0.08f, 0.06f, 0.1f, 1f));
+            // Background (full screen, behind safe area)
+            var bg = AddPanel(canvasGo, "Background", BgDeep);
             StretchToParent(bg);
 
-            // Title
-            var title = AddText(canvas, "GameTitle", "ASHEN THRONE", 56, TextAnchor.MiddleCenter);
-            var titleRect = title.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0.1f, 0.7f);
-            titleRect.anchorMax = new Vector2(0.9f, 0.9f);
-            titleRect.offsetMin = Vector2.zero;
-            titleRect.offsetMax = Vector2.zero;
-            title.GetComponent<Text>().color = new Color(0.85f, 0.75f, 0.3f);
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
 
-            // Button panel
-            var btnPanel = AddPanel(canvas, "ButtonPanel", new Color(0, 0, 0, 0));
-            var btnRect = btnPanel.GetComponent<RectTransform>();
-            btnRect.anchorMin = new Vector2(0.3f, 0.2f);
-            btnRect.anchorMax = new Vector2(0.7f, 0.65f);
-            btnRect.offsetMin = Vector2.zero;
-            btnRect.offsetMax = Vector2.zero;
-            var layout = btnPanel.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 16;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
+            // --- TOP HEADER BAR ---
+            var header = AddPanel(canvas, "HeaderBar", BgPanel);
+            SetAnchors(header, 0f, 0.93f, 1f, 1f);
+            AddOutlinePanel(header, BorderDim);
 
-            AddMenuButton(btnPanel, "PlayButton", "PLAY", new Color(0.2f, 0.5f, 0.85f));
-            AddMenuButton(btnPanel, "HeroesButton", "HEROES", new Color(0.45f, 0.15f, 0.55f));
-            AddMenuButton(btnPanel, "AllianceButton", "ALLIANCE", new Color(0.2f, 0.65f, 0.3f));
-            AddMenuButton(btnPanel, "ShopButton", "SHOP", new Color(0.85f, 0.75f, 0.3f));
-            AddMenuButton(btnPanel, "SettingsButton", "SETTINGS", new Color(0.4f, 0.4f, 0.45f));
+            // Player avatar frame
+            var avatarFrame = AddPanel(header, "AvatarFrame", BgMid);
+            SetAnchors(avatarFrame, 0.01f, 0.1f, 0.06f, 0.9f);
+            AddOutlinePanel(avatarFrame, Gold);
+            var avatarIcon = AddPanel(avatarFrame, "AvatarIcon", Purple);
+            SetAnchors(avatarIcon, 0.1f, 0.1f, 0.9f, 0.9f);
 
-            // Player info bar
-            var infoBar = AddPanel(canvas, "PlayerInfoBar", new Color(0.1f, 0.1f, 0.15f, 0.9f));
-            var infoRect = infoBar.GetComponent<RectTransform>();
-            infoRect.anchorMin = new Vector2(0, 0.93f);
-            infoRect.anchorMax = new Vector2(1, 1);
-            infoRect.offsetMin = Vector2.zero;
-            infoRect.offsetMax = Vector2.zero;
+            // Player name + level
+            var playerName = AddText(header, "PlayerName", "Commander", 15, TextAnchor.MiddleLeft);
+            SetAnchors(playerName, 0.07f, 0.5f, 0.22f, 0.95f);
+            playerName.GetComponent<Text>().color = Gold;
 
-            var playerName = AddText(infoBar, "PlayerName", "Commander", 16, TextAnchor.MiddleLeft);
-            var pnRect = playerName.GetComponent<RectTransform>();
-            pnRect.anchorMin = new Vector2(0.02f, 0);
-            pnRect.anchorMax = new Vector2(0.3f, 1);
-            pnRect.offsetMin = Vector2.zero;
-            pnRect.offsetMax = Vector2.zero;
+            var playerLvl = AddText(header, "PlayerLevel", "Level 1  •  Stronghold Lv.1", 10, TextAnchor.MiddleLeft);
+            SetAnchors(playerLvl, 0.07f, 0.08f, 0.25f, 0.48f);
+            playerLvl.GetComponent<Text>().color = TextMid;
 
-            var levelLabel = AddText(infoBar, "LevelLabel", "Lv. 1", 14, TextAnchor.MiddleRight);
-            var lvRect = levelLabel.GetComponent<RectTransform>();
-            lvRect.anchorMin = new Vector2(0.85f, 0);
-            lvRect.anchorMax = new Vector2(0.98f, 1);
-            lvRect.offsetMin = Vector2.zero;
-            lvRect.offsetMax = Vector2.zero;
+            // XP bar
+            var xpTrack = AddPanel(header, "XPBarTrack", new Color(0.06f, 0.04f, 0.10f));
+            SetAnchors(xpTrack, 0.07f, 0.02f, 0.22f, 0.12f);
+            var xpFill = AddPanel(xpTrack, "XPBarFill", BarXp);
+            SetAnchors(xpFill, 0f, 0f, 0.35f, 1f);
+
+            // Currency displays (right side)
+            AddCurrencyDisplay(header, "GoldDisplay", "12,450", Gold, 0.60f);
+            AddCurrencyDisplay(header, "GemDisplay", "385", Purple, 0.75f);
+            AddCurrencyDisplay(header, "EnergyDisplay", "120/120", Teal, 0.88f);
+
+            // --- RESOURCE BAR (below header) ---
+            var resBar = AddPanel(canvas, "ResourceBar", new Color(0.06f, 0.04f, 0.10f, 0.9f));
+            SetAnchors(resBar, 0f, 0.895f, 1f, 0.93f);
+
+            AddResourceDisplay(resBar, "Stone", "12,500", StoneColor, 0.02f);
+            AddResourceDisplay(resBar, "Iron", "8,200", IronColor, 0.26f);
+            AddResourceDisplay(resBar, "Grain", "15,000", GrainColor, 0.50f);
+            AddResourceDisplay(resBar, "Arcane", "3,400", ArcaneColor, 0.74f);
+
+            // --- CENTER CONTENT ---
+            // Game logo / title
+            var logoText = AddText(canvas, "LogoText", "ASHEN THRONE", 42, TextAnchor.MiddleCenter);
+            SetAnchors(logoText, 0.1f, 0.72f, 0.9f, 0.85f);
+            logoText.GetComponent<Text>().color = Gold;
+            AddOutline(logoText, new Color(0.2f, 0.12f, 0.03f), 2f);
+
+            // Featured event banner
+            var eventBanner = AddPanel(canvas, "EventBanner", new Color(0.18f, 0.10f, 0.28f, 0.9f));
+            SetAnchors(eventBanner, 0.08f, 0.55f, 0.92f, 0.70f);
+            AddOutlinePanel(eventBanner, Ember);
+
+            var eventTag = AddPanel(eventBanner, "EventTag", Ember);
+            SetAnchors(eventTag, 0.0f, 0.75f, 0.22f, 1.0f);
+            var eventTagText = AddText(eventTag, "TagText", "  EVENT", 10, TextAnchor.MiddleLeft);
+            StretchToParent(eventTagText);
+            eventTagText.GetComponent<Text>().color = TextWhite;
+            eventTagText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var eventTitle = AddText(eventBanner, "EventTitle", "Dragon Siege — World Boss Raid", 18, TextAnchor.MiddleLeft);
+            SetAnchors(eventTitle, 0.04f, 0.35f, 0.70f, 0.72f);
+            eventTitle.GetComponent<Text>().color = TextWhite;
+
+            var eventDesc = AddText(eventBanner, "EventDesc", "Alliance-wide battle • 2d 14h remaining", 11, TextAnchor.MiddleLeft);
+            SetAnchors(eventDesc, 0.04f, 0.08f, 0.70f, 0.35f);
+            eventDesc.GetComponent<Text>().color = TextMid;
+
+            var eventBtn = AddStyledButton(eventBanner, "JoinBtn", "JOIN NOW", Ember, EmberDim);
+            SetAnchors(eventBtn, 0.72f, 0.15f, 0.96f, 0.70f);
+
+            // --- MAIN PLAY BUTTON ---
+            var playBtn = AddStyledButton(canvas, "PlayButton", "CAMPAIGN", Blood, BloodDark);
+            SetAnchors(playBtn, 0.25f, 0.42f, 0.75f, 0.52f);
+            playBtn.transform.Find("Label").GetComponent<Text>().fontSize = 22;
+
+            // Quick action row
+            var quickRow = AddPanel(canvas, "QuickActions", new Color(0, 0, 0, 0));
+            SetAnchors(quickRow, 0.08f, 0.30f, 0.92f, 0.40f);
+            var qrLayout = quickRow.AddComponent<HorizontalLayoutGroup>();
+            qrLayout.spacing = 12;
+            qrLayout.childForceExpandWidth = true;
+
+            AddQuickActionButton(quickRow, "PvPBtn", "PVP ARENA", Blood);
+            AddQuickActionButton(quickRow, "VoidRiftBtn", "VOID RIFT", Purple);
+            AddQuickActionButton(quickRow, "DailyBtn", "DAILY QUESTS", Teal);
+
+            // --- BOTTOM NAVIGATION BAR ---
+            var navBar = AddPanel(canvas, "BottomNavBar", BgPanel);
+            SetAnchors(navBar, 0f, 0f, 1f, 0.08f);
+            AddOutlinePanel(navBar, BorderDim);
+
+            var navLayout = navBar.AddComponent<HorizontalLayoutGroup>();
+            navLayout.spacing = 2;
+            navLayout.padding = new RectOffset(4, 4, 2, 2);
+            navLayout.childForceExpandWidth = true;
+            navLayout.childForceExpandHeight = true;
+
+            AddNavButton(navBar, "NavEmpire", "EMPIRE", EmberDim, true);
+            AddNavButton(navBar, "NavHeroes", "HEROES", PurpleDim, false);
+            AddNavButton(navBar, "NavBattle", "BATTLE", Blood, false);
+            AddNavButton(navBar, "NavAlliance", "ALLIANCE", TealDim, false);
+            AddNavButton(navBar, "NavShop", "SHOP", GoldDim, false);
+
+            // Battle Pass progress bar
+            var bpBar = AddPanel(canvas, "BattlePassBar", new Color(0.06f, 0.04f, 0.10f, 0.9f));
+            SetAnchors(bpBar, 0.08f, 0.20f, 0.92f, 0.27f);
+            AddOutlinePanel(bpBar, GoldDim);
+
+            var bpLabel = AddText(bpBar, "BPLabel", "BATTLE PASS", 9, TextAnchor.MiddleLeft);
+            SetAnchors(bpLabel, 0.03f, 0.55f, 0.25f, 0.95f);
+            bpLabel.GetComponent<Text>().color = Gold;
+            bpLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var bpTier = AddText(bpBar, "BPTier", "Tier 12 / 50", 10, TextAnchor.MiddleLeft);
+            SetAnchors(bpTier, 0.03f, 0.08f, 0.30f, 0.50f);
+            bpTier.GetComponent<Text>().color = TextMid;
+
+            var bpTrack = AddPanel(bpBar, "BPTrack", new Color(0.06f, 0.04f, 0.08f));
+            SetAnchors(bpTrack, 0.30f, 0.25f, 0.85f, 0.75f);
+            var bpFill = AddPanel(bpTrack, "BPFill", Gold);
+            SetAnchors(bpFill, 0f, 0f, 0.24f, 1f);
+
+            var bpClaimBtn = AddStyledButton(bpBar, "BPClaimBtn", "CLAIM", Gold, GoldDim);
+            SetAnchors(bpClaimBtn, 0.87f, 0.15f, 0.98f, 0.85f);
+            bpClaimBtn.transform.Find("Label").GetComponent<Text>().fontSize = 10;
+
+            // Daily quest summary
+            var questSummary = AddPanel(canvas, "QuestSummary", new Color(0.06f, 0.04f, 0.10f, 0.9f));
+            SetAnchors(questSummary, 0.08f, 0.09f, 0.92f, 0.18f);
+            AddOutlinePanel(questSummary, TealDim);
+
+            var questLabel = AddText(questSummary, "QLabel", "DAILY QUESTS", 9, TextAnchor.MiddleLeft);
+            SetAnchors(questLabel, 0.03f, 0.55f, 0.25f, 0.95f);
+            questLabel.GetComponent<Text>().color = Teal;
+            questLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var questProgress = AddText(questSummary, "QProgress", "3/5 Complete  •  Next: Win 2 PvP battles", 10, TextAnchor.MiddleLeft);
+            SetAnchors(questProgress, 0.03f, 0.08f, 0.80f, 0.50f);
+            questProgress.GetComponent<Text>().color = TextMid;
+
+            var questDotsRow = AddPanel(questSummary, "QDots", new Color(0, 0, 0, 0));
+            SetAnchors(questDotsRow, 0.30f, 0.55f, 0.70f, 0.90f);
+            var dotsLayout = questDotsRow.AddComponent<HorizontalLayoutGroup>();
+            dotsLayout.spacing = 8;
+            for (int i = 0; i < 5; i++)
+            {
+                var dot = AddPanel(questDotsRow, $"Dot_{i}", i < 3 ? Teal : new Color(0.15f, 0.12f, 0.20f));
+                dot.AddComponent<LayoutElement>().preferredWidth = 12;
+            }
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Lobby scene UI populated");
+            Debug.Log("[SceneUIGenerator] Lobby scene: polished main menu hub");
         }
 
-        // ---------------------------------------------------------------
-        // Combat Scene — full battle HUD
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // COMBAT SCENE — Tactical battle HUD
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/Combat")]
         public static void SetupCombatScene()
         {
             var scene = OpenScene("Combat");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            // --- Top Bar ---
-            var topBar = AddPanel(canvas, "TopBar", new Color(0.1f, 0.1f, 0.15f, 0.85f));
-            var topRect = topBar.GetComponent<RectTransform>();
-            topRect.anchorMin = new Vector2(0, 0.92f);
-            topRect.anchorMax = new Vector2(1, 1);
-            topRect.offsetMin = Vector2.zero;
-            topRect.offsetMax = Vector2.zero;
+            // Semi-transparent combat overlay bg (full screen)
+            var bg = AddPanel(canvasGo, "CombatOverlay", new Color(0, 0, 0, 0));
+            StretchToParent(bg);
 
-            var phaseLabel = AddText(topBar, "PhaseLabel", "ACTION PHASE", 20, TextAnchor.MiddleCenter);
-            StretchToParent(phaseLabel);
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
 
-            // --- Turn Order (right side) ---
-            var turnOrder = AddPanel(canvas, "TurnOrderPanel", new Color(0.1f, 0.1f, 0.15f, 0.7f));
-            var toRect = turnOrder.GetComponent<RectTransform>();
-            toRect.anchorMin = new Vector2(0.88f, 0.3f);
-            toRect.anchorMax = new Vector2(0.98f, 0.9f);
-            toRect.offsetMin = Vector2.zero;
-            toRect.offsetMax = Vector2.zero;
+            // === TOP BAR ===
+            var topBar = AddPanel(canvas, "TopBar", BgPanel);
+            SetAnchors(topBar, 0f, 0.93f, 1f, 1f);
+            AddOutlinePanel(topBar, BorderDim);
 
-            var toTitle = AddText(turnOrder, "TurnOrderTitle", "TURN", 10, TextAnchor.MiddleCenter);
-            var toTitleRect = toTitle.GetComponent<RectTransform>();
-            toTitleRect.anchorMin = new Vector2(0, 0.9f);
-            toTitleRect.anchorMax = new Vector2(1, 1);
-            toTitleRect.offsetMin = Vector2.zero;
-            toTitleRect.offsetMax = Vector2.zero;
+            var phaseLabel = AddText(topBar, "PhaseLabel", "ACTION PHASE", 16, TextAnchor.MiddleCenter);
+            SetAnchors(phaseLabel, 0.3f, 0.1f, 0.7f, 0.9f);
+            phaseLabel.GetComponent<Text>().color = Gold;
+            phaseLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
-            var tokenContainer = AddPanel(turnOrder, "TokenContainer", new Color(0, 0, 0, 0));
-            var tcRect = tokenContainer.GetComponent<RectTransform>();
-            tcRect.anchorMin = new Vector2(0.05f, 0.05f);
-            tcRect.anchorMax = new Vector2(0.95f, 0.88f);
-            tcRect.offsetMin = Vector2.zero;
-            tcRect.offsetMax = Vector2.zero;
-            var vlg = tokenContainer.AddComponent<VerticalLayoutGroup>();
-            vlg.spacing = 4;
-            vlg.childAlignment = TextAnchor.UpperCenter;
+            var turnCounter = AddText(topBar, "TurnCounter", "Turn 3", 12, TextAnchor.MiddleLeft);
+            SetAnchors(turnCounter, 0.02f, 0.1f, 0.15f, 0.9f);
+            turnCounter.GetComponent<Text>().color = TextMid;
 
-            // --- Player hero status (left side) ---
+            var retreatBtn = AddStyledButton(topBar, "RetreatBtn", "RETREAT", BloodDark, new Color(0.3f, 0.05f, 0.08f));
+            SetAnchors(retreatBtn, 0.85f, 0.15f, 0.98f, 0.85f);
+            retreatBtn.transform.Find("Label").GetComponent<Text>().fontSize = 10;
+
+            // === TURN ORDER (right side) ===
+            var turnPanel = AddPanel(canvas, "TurnOrderPanel", BgPanel);
+            SetAnchors(turnPanel, 0.90f, 0.35f, 0.99f, 0.92f);
+            AddOutlinePanel(turnPanel, BorderDim);
+
+            var toTitle = AddText(turnPanel, "TOTitle", "TURN ORDER", 8, TextAnchor.MiddleCenter);
+            SetAnchors(toTitle, 0f, 0.92f, 1f, 1f);
+            toTitle.GetComponent<Text>().color = GoldDim;
+
+            var tokenArea = AddPanel(turnPanel, "TokenArea", new Color(0, 0, 0, 0));
+            SetAnchors(tokenArea, 0.05f, 0.02f, 0.95f, 0.90f);
+            var taLayout = tokenArea.AddComponent<VerticalLayoutGroup>();
+            taLayout.spacing = 4;
+            taLayout.padding = new RectOffset(2, 2, 2, 2);
+
+            string[] heroNames = { "Kaelen", "Vorra", "Seraphyn", "Mordoc", "Lyra", "Skaros" };
+            Color[] heroColors = { Blood, Ember, Purple, IronColor, Teal, BloodDark };
+            for (int i = 0; i < 6; i++)
+            {
+                var token = AddPanel(tokenArea, $"Token_{i}", i < 3 ? new Color(0.12f, 0.15f, 0.25f) : new Color(0.25f, 0.10f, 0.10f));
+                token.AddComponent<LayoutElement>().preferredHeight = 28;
+                AddOutlinePanel(token, i == 0 ? Gold : BorderDim);
+                var tIcon = AddPanel(token, "Icon", heroColors[i]);
+                SetAnchors(tIcon, 0.05f, 0.1f, 0.35f, 0.9f);
+                var tName = AddText(token, "Name", heroNames[i], 7, TextAnchor.MiddleLeft);
+                SetAnchors(tName, 0.40f, 0f, 0.95f, 1f);
+                tName.GetComponent<Text>().color = i == 0 ? Gold : TextMid;
+            }
+
+            // === PLAYER HERO STATUS (left side) ===
             var playerStatus = AddPanel(canvas, "PlayerHeroStatus", new Color(0, 0, 0, 0));
-            var psRect = playerStatus.GetComponent<RectTransform>();
-            psRect.anchorMin = new Vector2(0.01f, 0.55f);
-            psRect.anchorMax = new Vector2(0.12f, 0.9f);
-            psRect.offsetMin = Vector2.zero;
-            psRect.offsetMax = Vector2.zero;
+            SetAnchors(playerStatus, 0.01f, 0.55f, 0.14f, 0.92f);
             var psLayout = playerStatus.AddComponent<VerticalLayoutGroup>();
-            psLayout.spacing = 6;
+            psLayout.spacing = 4;
 
+            string[] pHeroes = { "Kaelen", "Vorra", "Seraphyn" };
+            float[] pHp = { 0.85f, 0.55f, 1.0f };
             for (int i = 0; i < 3; i++)
-            {
-                var heroPanel = AddPanel(playerStatus, $"PlayerHero_{i}", new Color(0.15f, 0.15f, 0.2f, 0.8f));
-                var hpLayout = heroPanel.AddComponent<LayoutElement>();
-                hpLayout.preferredHeight = 32;
+                AddHeroStatusPanel(playerStatus, pHeroes[i], pHp[i], heroColors[i], true);
 
-                var portrait = AddPanel(heroPanel, "Portrait", new Color(0.3f + i * 0.1f, 0.3f, 0.4f));
-                var porRect = portrait.GetComponent<RectTransform>();
-                porRect.anchorMin = new Vector2(0, 0);
-                porRect.anchorMax = new Vector2(0.35f, 1);
-                porRect.offsetMin = Vector2.zero;
-                porRect.offsetMax = Vector2.zero;
-
-                var hpBar = AddPanel(heroPanel, "HealthBar", new Color(0.3f, 0.05f, 0.05f));
-                var hpBarRect = hpBar.GetComponent<RectTransform>();
-                hpBarRect.anchorMin = new Vector2(0.38f, 0.2f);
-                hpBarRect.anchorMax = new Vector2(0.98f, 0.5f);
-                hpBarRect.offsetMin = Vector2.zero;
-                hpBarRect.offsetMax = Vector2.zero;
-
-                var hpFill = AddPanel(hpBar, "Fill", new Color(0.2f, 0.8f, 0.2f));
-                var hpFillRect = hpFill.GetComponent<RectTransform>();
-                hpFillRect.anchorMin = Vector2.zero;
-                hpFillRect.anchorMax = new Vector2(0.8f - i * 0.15f, 1f);
-                hpFillRect.offsetMin = Vector2.zero;
-                hpFillRect.offsetMax = Vector2.zero;
-
-                var hpText = AddText(heroPanel, "HPText", $"{800 - i * 200}/1000", 8, TextAnchor.MiddleRight);
-                var hpTextRect = hpText.GetComponent<RectTransform>();
-                hpTextRect.anchorMin = new Vector2(0.38f, 0.55f);
-                hpTextRect.anchorMax = new Vector2(0.98f, 0.95f);
-                hpTextRect.offsetMin = Vector2.zero;
-                hpTextRect.offsetMax = Vector2.zero;
-            }
-
-            // --- Enemy hero status ---
+            // === ENEMY HERO STATUS (right-center) ===
             var enemyStatus = AddPanel(canvas, "EnemyHeroStatus", new Color(0, 0, 0, 0));
-            var esRect = enemyStatus.GetComponent<RectTransform>();
-            esRect.anchorMin = new Vector2(0.76f, 0.55f);
-            esRect.anchorMax = new Vector2(0.87f, 0.9f);
-            esRect.offsetMin = Vector2.zero;
-            esRect.offsetMax = Vector2.zero;
+            SetAnchors(enemyStatus, 0.76f, 0.55f, 0.89f, 0.92f);
             var esLayout = enemyStatus.AddComponent<VerticalLayoutGroup>();
-            esLayout.spacing = 6;
+            esLayout.spacing = 4;
 
+            string[] eHeroes = { "Mordoc", "Lyra", "Skaros" };
+            float[] eHp = { 0.70f, 0.40f, 0.90f };
             for (int i = 0; i < 3; i++)
-            {
-                var ePanel = AddPanel(enemyStatus, $"EnemyHero_{i}", new Color(0.2f, 0.12f, 0.12f, 0.8f));
-                ePanel.AddComponent<LayoutElement>().preferredHeight = 32;
+                AddHeroStatusPanel(enemyStatus, eHeroes[i], eHp[i], heroColors[i + 3], false);
 
-                var ePor = AddPanel(ePanel, "Portrait", new Color(0.5f, 0.2f + i * 0.05f, 0.2f));
-                var ePorRect = ePor.GetComponent<RectTransform>();
-                ePorRect.anchorMin = new Vector2(0, 0);
-                ePorRect.anchorMax = new Vector2(0.35f, 1);
-                ePorRect.offsetMin = Vector2.zero;
-                ePorRect.offsetMax = Vector2.zero;
+            // === ENERGY DISPLAY ===
+            var energyPanel = AddPanel(canvas, "EnergyPanel", BgPanel);
+            SetAnchors(energyPanel, 0.01f, 0.19f, 0.14f, 0.30f);
+            AddOutlinePanel(energyPanel, SkyDim);
 
-                var eBar = AddPanel(ePanel, "HealthBar", new Color(0.3f, 0.05f, 0.05f));
-                var eBarRect = eBar.GetComponent<RectTransform>();
-                eBarRect.anchorMin = new Vector2(0.38f, 0.2f);
-                eBarRect.anchorMax = new Vector2(0.98f, 0.5f);
-                eBarRect.offsetMin = Vector2.zero;
-                eBarRect.offsetMax = Vector2.zero;
+            var enLabel = AddText(energyPanel, "EnergyLabel", "ENERGY", 9, TextAnchor.MiddleCenter);
+            SetAnchors(enLabel, 0f, 0.65f, 1f, 0.95f);
+            enLabel.GetComponent<Text>().color = Sky;
+            enLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
-                var eFill = AddPanel(eBar, "Fill", new Color(0.8f, 0.2f, 0.2f));
-                StretchToParent(eFill);
-            }
-
-            // --- Energy Display ---
-            var energyPanel = AddPanel(canvas, "EnergyPanel", new Color(0.1f, 0.1f, 0.15f, 0.8f));
-            var enRect = energyPanel.GetComponent<RectTransform>();
-            enRect.anchorMin = new Vector2(0.01f, 0.15f);
-            enRect.anchorMax = new Vector2(0.12f, 0.22f);
-            enRect.offsetMin = Vector2.zero;
-            enRect.offsetMax = Vector2.zero;
-
-            var enLabel = AddText(energyPanel, "EnergyLabel", "ENERGY", 9, TextAnchor.MiddleLeft);
-            var enLabelRect = enLabel.GetComponent<RectTransform>();
-            enLabelRect.anchorMin = new Vector2(0.05f, 0.5f);
-            enLabelRect.anchorMax = new Vector2(0.45f, 1);
-            enLabelRect.offsetMin = Vector2.zero;
-            enLabelRect.offsetMax = Vector2.zero;
-
-            var orbContainer = AddPanel(energyPanel, "OrbContainer", new Color(0, 0, 0, 0));
-            var orbRect = orbContainer.GetComponent<RectTransform>();
-            orbRect.anchorMin = new Vector2(0.05f, 0.05f);
-            orbRect.anchorMax = new Vector2(0.95f, 0.5f);
-            orbRect.offsetMin = Vector2.zero;
-            orbRect.offsetMax = Vector2.zero;
-            var orbLayout = orbContainer.AddComponent<HorizontalLayoutGroup>();
-            orbLayout.spacing = 4;
+            var orbRow = AddPanel(energyPanel, "OrbRow", new Color(0, 0, 0, 0));
+            SetAnchors(orbRow, 0.05f, 0.1f, 0.95f, 0.60f);
+            var orbLayout = orbRow.AddComponent<HorizontalLayoutGroup>();
+            orbLayout.spacing = 6;
+            orbLayout.childAlignment = TextAnchor.MiddleCenter;
 
             for (int i = 0; i < 4; i++)
             {
-                var orb = AddPanel(orbContainer, $"Orb_{i}", i < 3
-                    ? new Color(0.3f, 0.6f, 1f)
-                    : new Color(0.15f, 0.15f, 0.2f));
-                orb.AddComponent<LayoutElement>().preferredWidth = 16;
+                var orb = AddPanel(orbRow, $"Orb_{i}", i < 3 ? BarEnergy : BarEnergyDim);
+                orb.AddComponent<LayoutElement>().preferredWidth = 18;
+                AddOutlinePanel(orb, i < 3 ? Sky : new Color(0.15f, 0.15f, 0.25f));
             }
 
-            // --- Card Hand ---
-            var cardHand = AddPanel(canvas, "CardHandPanel", new Color(0.08f, 0.08f, 0.12f, 0.85f));
-            var chRect = cardHand.GetComponent<RectTransform>();
-            chRect.anchorMin = new Vector2(0.15f, 0);
-            chRect.anchorMax = new Vector2(0.85f, 0.18f);
-            chRect.offsetMin = Vector2.zero;
-            chRect.offsetMax = Vector2.zero;
+            var enText = AddText(energyPanel, "EnergyCount", "3 / 4", 11, TextAnchor.MiddleCenter);
+            SetAnchors(enText, 0f, 0.0f, 1f, 0.15f);
+            enText.GetComponent<Text>().color = TextMid;
 
-            var cardContainer = AddPanel(cardHand, "CardContainer", new Color(0, 0, 0, 0));
-            var ccRect = cardContainer.GetComponent<RectTransform>();
-            ccRect.anchorMin = new Vector2(0.02f, 0.08f);
-            ccRect.anchorMax = new Vector2(0.98f, 0.92f);
-            ccRect.offsetMin = Vector2.zero;
-            ccRect.offsetMax = Vector2.zero;
-            var hlg = cardContainer.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 8;
-            hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.childForceExpandWidth = false;
+            // === CARD HAND (bottom) ===
+            var cardTray = AddPanel(canvas, "CardTray", BgPanel);
+            SetAnchors(cardTray, 0.10f, 0f, 0.88f, 0.19f);
+            AddOutlinePanel(cardTray, BorderDim);
+
+            var cardContainer = AddPanel(cardTray, "CardContainer", new Color(0, 0, 0, 0));
+            SetAnchors(cardContainer, 0.01f, 0.03f, 0.99f, 0.97f);
+            var ccLayout = cardContainer.AddComponent<HorizontalLayoutGroup>();
+            ccLayout.spacing = 6;
+            ccLayout.padding = new RectOffset(4, 4, 4, 4);
+            ccLayout.childAlignment = TextAnchor.MiddleCenter;
+
+            string[] cardNames = { "Fire Bolt", "Shield Wall", "Shadow Strike", "Heal Wave", "Ice Shard" };
+            int[] cardCosts = { 1, 2, 3, 2, 1 };
+            Color[] cardColors = { Ember, IronColor, Purple, Teal, Sky };
+            string[] cardTypes = { "ATK", "DEF", "ATK", "HEAL", "ATK" };
+            int[] cardDmg = { 45, 0, 72, 35, 38 };
 
             for (int i = 0; i < 5; i++)
-            {
-                var slot = AddPanel(cardContainer, $"CardSlot_{i}", new Color(0.15f, 0.12f, 0.1f));
-                var le = slot.AddComponent<LayoutElement>();
-                le.preferredWidth = 100;
-                le.preferredHeight = 140;
+                AddCardWidget(cardContainer, cardNames[i], cardCosts[i], cardColors[i], cardTypes[i], cardDmg[i]);
 
-                var slotCost = AddText(slot, "Cost", $"{i + 1}", 16, TextAnchor.MiddleCenter);
-                var scRect = slotCost.GetComponent<RectTransform>();
-                scRect.anchorMin = new Vector2(0, 0.75f);
-                scRect.anchorMax = new Vector2(0.3f, 1);
-                scRect.offsetMin = Vector2.zero;
-                scRect.offsetMax = Vector2.zero;
-                slotCost.GetComponent<Text>().color = new Color(0.3f, 0.6f, 1f);
+            // === END TURN BUTTON ===
+            var endTurnBtn = AddStyledButton(canvas, "EndTurnButton", "END TURN", Blood, BloodDark);
+            SetAnchors(endTurnBtn, 0.88f, 0.02f, 0.99f, 0.10f);
+            endTurnBtn.transform.Find("Label").GetComponent<Text>().fontSize = 12;
 
-                var slotName = AddText(slot, "Name", $"Card {i + 1}", 10, TextAnchor.MiddleCenter);
-                var snRect = slotName.GetComponent<RectTransform>();
-                snRect.anchorMin = new Vector2(0, 0);
-                snRect.anchorMax = new Vector2(1, 0.2f);
-                snRect.offsetMin = Vector2.zero;
-                snRect.offsetMax = Vector2.zero;
-            }
-
-            // --- End Turn button ---
-            var endTurn = AddPanel(canvas, "EndTurnButton", new Color(0.7f, 0.25f, 0.15f));
-            var etRect = endTurn.GetComponent<RectTransform>();
-            etRect.anchorMin = new Vector2(0.87f, 0.01f);
-            etRect.anchorMax = new Vector2(0.99f, 0.08f);
-            etRect.offsetMin = Vector2.zero;
-            etRect.offsetMax = Vector2.zero;
-            endTurn.AddComponent<Button>();
-
-            var etLabel = AddText(endTurn, "Label", "END TURN", 12, TextAnchor.MiddleCenter);
-            StretchToParent(etLabel);
-
-            // --- Victory/Defeat panels (hidden) ---
-            var victoryPanel = AddPanel(canvas, "VictoryPanel", new Color(0.1f, 0.15f, 0.1f, 0.95f));
+            // === VICTORY PANEL (hidden, full screen overlay) ===
+            var victoryPanel = AddPanel(canvasGo, "VictoryPanel", new Color(0.02f, 0.06f, 0.02f, 0.95f));
             StretchToParent(victoryPanel);
-            var vicTitle = AddText(victoryPanel, "VictoryTitle", "VICTORY!", 64, TextAnchor.MiddleCenter);
-            var vtRect = vicTitle.GetComponent<RectTransform>();
-            vtRect.anchorMin = new Vector2(0.1f, 0.5f);
-            vtRect.anchorMax = new Vector2(0.9f, 0.75f);
-            vtRect.offsetMin = Vector2.zero;
-            vtRect.offsetMax = Vector2.zero;
-            vicTitle.GetComponent<Text>().color = new Color(0.85f, 0.75f, 0.3f);
+            var vicFrame = AddPanel(victoryPanel, "Frame", BgPanel);
+            SetAnchors(vicFrame, 0.15f, 0.25f, 0.85f, 0.75f);
+            AddOutlinePanel(vicFrame, Gold);
+            var vicTitle = AddText(vicFrame, "Title", "VICTORY", 48, TextAnchor.MiddleCenter);
+            SetAnchors(vicTitle, 0.1f, 0.6f, 0.9f, 0.9f);
+            vicTitle.GetComponent<Text>().color = Gold;
+            AddOutline(vicTitle, new Color(0.3f, 0.2f, 0.05f), 2f);
+            var vicRewards = AddText(vicFrame, "Rewards", "+250 XP   +500 Gold   +3 Hero Shards", 14, TextAnchor.MiddleCenter);
+            SetAnchors(vicRewards, 0.1f, 0.35f, 0.9f, 0.55f);
+            vicRewards.GetComponent<Text>().color = TextLight;
+            var vicContinue = AddStyledButton(vicFrame, "ContinueBtn", "CONTINUE", Gold, GoldDim);
+            SetAnchors(vicContinue, 0.3f, 0.08f, 0.7f, 0.25f);
             victoryPanel.SetActive(false);
 
-            var defeatPanel = AddPanel(canvas, "DefeatPanel", new Color(0.15f, 0.05f, 0.05f, 0.95f));
+            // === DEFEAT PANEL (hidden, full screen overlay) ===
+            var defeatPanel = AddPanel(canvasGo, "DefeatPanel", new Color(0.08f, 0.02f, 0.02f, 0.95f));
             StretchToParent(defeatPanel);
-            var defTitle = AddText(defeatPanel, "DefeatTitle", "DEFEAT", 64, TextAnchor.MiddleCenter);
-            var dtRect = defTitle.GetComponent<RectTransform>();
-            dtRect.anchorMin = new Vector2(0.1f, 0.5f);
-            dtRect.anchorMax = new Vector2(0.9f, 0.75f);
-            dtRect.offsetMin = Vector2.zero;
-            dtRect.offsetMax = Vector2.zero;
-            defTitle.GetComponent<Text>().color = new Color(0.8f, 0.2f, 0.2f);
+            var defFrame = AddPanel(defeatPanel, "Frame", BgPanel);
+            SetAnchors(defFrame, 0.15f, 0.25f, 0.85f, 0.75f);
+            AddOutlinePanel(defFrame, Blood);
+            var defTitle = AddText(defFrame, "Title", "DEFEAT", 48, TextAnchor.MiddleCenter);
+            SetAnchors(defTitle, 0.1f, 0.6f, 0.9f, 0.9f);
+            defTitle.GetComponent<Text>().color = Blood;
+            AddOutline(defTitle, new Color(0.3f, 0.05f, 0.05f), 2f);
+            var defMsg = AddText(defFrame, "Message", "Your heroes have fallen. Regroup and try again.", 14, TextAnchor.MiddleCenter);
+            SetAnchors(defMsg, 0.1f, 0.35f, 0.9f, 0.55f);
+            defMsg.GetComponent<Text>().color = TextMid;
+            var defRetry = AddStyledButton(defFrame, "RetryBtn", "RETRY", Blood, BloodDark);
+            SetAnchors(defRetry, 0.1f, 0.08f, 0.48f, 0.25f);
+            var defQuit = AddStyledButton(defFrame, "QuitBtn", "RETREAT", new Color(0.3f, 0.25f, 0.2f), BgMid);
+            SetAnchors(defQuit, 0.52f, 0.08f, 0.9f, 0.25f);
             defeatPanel.SetActive(false);
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Combat scene UI populated (HUD + card hand + hero status)");
+            Debug.Log("[SceneUIGenerator] Combat scene: full battle HUD with cards, heroes, energy");
         }
 
-        // ---------------------------------------------------------------
-        // Empire Scene — city builder HUD
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // EMPIRE SCENE — City builder HUD
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/Empire")]
         public static void SetupEmpireScene()
         {
             var scene = OpenScene("Empire");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            // --- Resource HUD ---
-            var resBar = AddPanel(canvas, "ResourceHUD", new Color(0.1f, 0.1f, 0.15f, 0.9f));
-            var rbRect = resBar.GetComponent<RectTransform>();
-            rbRect.anchorMin = new Vector2(0, 0.93f);
-            rbRect.anchorMax = new Vector2(1, 1);
-            rbRect.offsetMin = Vector2.zero;
-            rbRect.offsetMax = Vector2.zero;
+            // Background — dark fantasy base with layered gradients for depth
+            var bg = AddPanel(canvasGo, "Background", new Color(0.03f, 0.02f, 0.06f, 0.94f));
+            StretchToParent(bg);
+            // Sky gradient at top — subtle purple/blue atmospheric effect
+            var skyGrad = AddPanel(bg, "SkyGradient", new Color(0.08f, 0.05f, 0.16f, 0.45f));
+            SetAnchors(skyGrad, 0f, 0.75f, 1f, 1f);
+            // Ground gradient at bottom — darker for depth
+            var groundGrad = AddPanel(bg, "GroundGradient", new Color(0.02f, 0.01f, 0.03f, 0.5f));
+            SetAnchors(groundGrad, 0f, 0f, 1f, 0.25f);
+            // Vignette left edge
+            var vigLeft = AddPanel(bg, "VignetteL", new Color(0.01f, 0.01f, 0.02f, 0.3f));
+            SetAnchors(vigLeft, 0f, 0f, 0.08f, 1f);
+            // Vignette right edge
+            var vigRight = AddPanel(bg, "VignetteR", new Color(0.01f, 0.01f, 0.02f, 0.3f));
+            SetAnchors(vigRight, 0.92f, 0f, 1f, 1f);
+
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
+
+            // === RESOURCE BAR (top 4.5%) ===
+            // Use a background panel for the bar strip, and a separate child for the HLG content
+            var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.03f, 0.02f, 0.06f, 0.96f));
+            SetAnchors(resBarBg, 0f, 0.955f, 1f, 1f);
+            // Gold bottom border
+            var resBarBorder = AddPanel(resBarBg, "BottomBorder", new Color(0.72f, 0.56f, 0.22f, 0.70f));
+            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.05f);
+
+            // Layout container — sits on top of the bar background
+            var resBar = AddPanel(canvas, "ResourceBar", new Color(0, 0, 0, 0));
+            SetAnchors(resBar, 0f, 0.955f, 1f, 1f);
 
             var resLayout = resBar.AddComponent<HorizontalLayoutGroup>();
-            resLayout.spacing = 20;
-            resLayout.padding = new RectOffset(16, 16, 4, 4);
-            resLayout.childAlignment = TextAnchor.MiddleLeft;
+            resLayout.spacing = 2;
+            resLayout.padding = new RectOffset(6, 4, 3, 3);
+            resLayout.childAlignment = TextAnchor.MiddleCenter;
+            resLayout.childForceExpandWidth = false;
+            resLayout.childForceExpandHeight = true;
 
-            var resData = new (string name, string icon, Color color, string amount)[]
-            {
-                ("Stone", "S", new Color(0.6f, 0.55f, 0.5f), "12,500"),
-                ("Iron", "I", new Color(0.45f, 0.45f, 0.5f), "8,200"),
-                ("Grain", "G", new Color(0.85f, 0.75f, 0.2f), "15,000"),
-                ("Arcane", "A", new Color(0.5f, 0.2f, 0.8f), "3,400"),
-            };
+            // Flat layout: icon, amount, icon, amount, ... "+" — compact with even flex
+            AddResIconFlat(resBar, "Grain", GrainColor);
+            AddResAmountFlat(resBar, "Grain", "8.37M");
+            AddResIconFlat(resBar, "Iron", IronColor);
+            AddResAmountFlat(resBar, "Iron", "365K");
+            AddResIconFlat(resBar, "Stone", StoneColor);
+            AddResAmountFlat(resBar, "Stone", "4.73M");
+            AddResIconFlat(resBar, "Arcane", ArcaneColor);
+            AddResAmountFlat(resBar, "Arcane", "3.69M");
+            AddResIconFlat(resBar, "Gems", GemsColor);
+            AddResAmountFlat(resBar, "Gems", "8.38K");
 
-            foreach (var (rName, icon, color, amount) in resData)
-            {
-                var resGroup = AddPanel(resBar, $"Res_{rName}", new Color(0, 0, 0, 0));
-                var rgLayout = resGroup.AddComponent<HorizontalLayoutGroup>();
-                rgLayout.spacing = 4;
-                rgLayout.childAlignment = TextAnchor.MiddleLeft;
-                resGroup.AddComponent<LayoutElement>().preferredWidth = 140;
+            // "+" button — compact golden cross like P&C, transparent bg so it doesn't stretch
+            var plusBtn = AddPanel(resBar, "AddBtn", new Color(0, 0, 0, 0));
+            var plusLE = plusBtn.AddComponent<LayoutElement>();
+            plusLE.preferredWidth = 28;
+            plusLE.minWidth = 26;
+            plusLE.flexibleWidth = 0;
+            plusBtn.AddComponent<Button>();
+            var plusText = AddText(plusBtn, "Label", "+", 20, TextAnchor.MiddleCenter);
+            StretchToParent(plusText);
+            plusText.GetComponent<Text>().color = new Color(0.22f, 0.75f, 0.40f, 0.95f);
+            plusText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var plusShadow = plusText.AddComponent<Shadow>();
+            plusShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            plusShadow.effectDistance = new Vector2(1f, -1f);
 
-                var resIcon = AddPanel(resGroup, "Icon", color);
-                resIcon.AddComponent<LayoutElement>().preferredWidth = 24;
+            // === INFO ROW (VIP + Power + Coords) — slim row with gradient like P&C ===
+            var infoRow = AddPanel(canvas, "InfoRow", new Color(0.03f, 0.02f, 0.06f, 0.82f));
+            SetAnchors(infoRow, 0f, 0.925f, 1f, 0.955f);
+            // Bottom separator — very subtle
+            var infoRowSep = AddPanel(infoRow, "BottomSep", new Color(0.45f, 0.35f, 0.15f, 0.25f));
+            SetAnchors(infoRowSep, 0f, 0f, 1f, 0.04f);
 
-                var resLabel = AddText(resGroup, "Amount", amount, 14, TextAnchor.MiddleLeft);
-                resLabel.AddComponent<LayoutElement>().flexibleWidth = 1;
+            // VIP badge — purple with THICK gold outline like P&C (compact, rounded look)
+            var vipBadge = AddPanel(infoRow, "VipBadge", new Color(0.42f, 0.12f, 0.55f, 0.95f));
+            SetAnchors(vipBadge, 0.02f, 0.08f, 0.12f, 0.92f);
+            // Inner glow for premium feel
+            var vipGlow = AddPanel(vipBadge, "Glow", new Color(0.60f, 0.30f, 0.80f, 0.25f));
+            SetAnchors(vipGlow, 0f, 0.5f, 1f, 1f);
+            AddOutlinePanel(vipBadge, new Color(0.82f, 0.65f, 0.28f, 0.9f));
+            var vipText = AddText(vipBadge, "Label", "VIP 11", 10, TextAnchor.MiddleCenter);
+            StretchToParent(vipText);
+            vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.70f, 1f);
+            vipText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var vipShadow = vipText.AddComponent<Shadow>();
+            vipShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            vipShadow.effectDistance = new Vector2(1f, -1f);
+
+            // Power icon — golden crossed swords
+            var powerIconText = AddText(infoRow, "PowerIcon", "\u2694", 14, TextAnchor.MiddleCenter);
+            SetAnchors(powerIconText, 0.13f, 0f, 0.18f, 1f);
+            powerIconText.GetComponent<Text>().color = new Color(0.92f, 0.75f, 0.32f, 1f);
+            var piShadow = powerIconText.AddComponent<Shadow>();
+            piShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            piShadow.effectDistance = new Vector2(1f, -1f);
+
+            // Power value — prominent white with glow
+            var powerVal = AddText(infoRow, "PowerValue", "355,582,021", 14, TextAnchor.MiddleLeft);
+            SetAnchors(powerVal, 0.18f, 0f, 0.50f, 1f);
+            powerVal.GetComponent<Text>().color = TextWhite;
+            powerVal.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var pvShadow = powerVal.AddComponent<Shadow>();
+            pvShadow.effectColor = new Color(0, 0, 0, 0.85f);
+            pvShadow.effectDistance = new Vector2(1f, -1f);
+
+            // Coordinates — right-aligned, slightly brighter
+            var coordText = AddText(infoRow, "Coords", "UTC 14:32  K:12 X:482 Y:317", 9, TextAnchor.MiddleRight);
+            SetAnchors(coordText, 0.50f, 0f, 0.98f, 1f);
+            coordText.GetComponent<Text>().color = new Color(0.45f, 0.42f, 0.38f, 0.8f);
+
+            // === LEFT SIDEBAR — Build/Research queue (P&C: simple dark strips, 17% wide) ===
+            var leftSidebar = AddPanel(canvas, "LeftSidebar", new Color(0, 0, 0, 0));
+            SetAnchors(leftSidebar, 0.01f, 0.64f, 0.18f, 0.92f);
+
+            // 4 compact queue strips with tight spacing
+            AddQueueSlot(leftSidebar, "BuildSlot1", "Build", "2:34:15", Ember, true, 0.77f, 0.99f);
+            AddQueueSlot(leftSidebar, "BuildSlot2", "Build", "IDLE", EmberDim, false, 0.53f, 0.75f);
+            AddQueueSlot(leftSidebar, "ResearchSlot", "Research", "IDLE", Sky, false, 0.29f, 0.51f);
+            AddQueueSlot(leftSidebar, "TrainingSlot", "Training", "IDLE", Purple, false, 0.05f, 0.27f);
+
+            // === RIGHT SIDEBAR — Event buttons (P&C: compact, nearly square, tight stacking) ===
+            float rbX0 = 0.86f, rbX1 = 0.99f; // 13% wide
+            float rbH = 0.068f; // ~7% tall each
+            float rbGap = 0.005f;
+            float rbTop = 0.915f;
+            AddEventButton(canvas, "EventBtn1", "Events", Ember,   rbX0, rbTop - rbH, rbX1, rbTop, "10:04:49");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn2", "VS", new Color(0.4f, 0.3f, 0.8f, 1f), rbX0, rbTop - rbH, rbX1, rbTop, "");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn3", "Rewards", Gold,   rbX0, rbTop - rbH, rbX1, rbTop, "");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn4", "Offer", Blood,    rbX0, rbTop - rbH, rbX1, rbTop, "");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn5", "Gifts", Purple,   rbX0, rbTop - rbH, rbX1, rbTop, "23:59:52");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn6", "Shop", Teal,      rbX0, rbTop - rbH, rbX1, rbTop, "");
+            rbTop -= rbH + rbGap;
+            AddEventButton(canvas, "EventBtn7", "Arena", new Color(0.6f, 0.25f, 0.15f, 1f), rbX0, rbTop - rbH, rbX1, rbTop, "");
+
+            // === CHAT TICKER — Alliance messages (semi-transparent bar with gold trim like P&C) ===
+            var chatTicker = AddPanel(canvas, "ChatTicker", new Color(0.03f, 0.02f, 0.06f, 0.82f));
+            SetAnchors(chatTicker, 0f, 0.14f, 1f, 0.185f);
+            // Top gold trim — brighter
+            var chatTopBorder = AddPanel(chatTicker, "TopBorder", new Color(0.68f, 0.52f, 0.20f, 0.55f));
+            SetAnchors(chatTopBorder, 0f, 0.95f, 1f, 1f);
+            // Top glow
+            var chatTopGlow = AddPanel(chatTicker, "TopGlow", new Color(0.50f, 0.38f, 0.12f, 0.12f));
+            SetAnchors(chatTopGlow, 0f, 0.82f, 1f, 0.95f);
+            // Bottom gold trim
+            var chatBotBorder = AddPanel(chatTicker, "BottomBorder", new Color(0.55f, 0.42f, 0.15f, 0.35f));
+            SetAnchors(chatBotBorder, 0f, 0f, 1f, 0.05f);
+            // Chat horn/megaphone icon (teal like P&C)
+            var chatIcon = AddPanel(chatTicker, "ChatIcon", new Color(0.2f, 0.70f, 0.55f, 0.95f));
+            SetAnchors(chatIcon, 0.02f, 0.18f, 0.055f, 0.82f);
+            // Line 1 — top half
+            var chatLine1 = AddText(chatTicker, "ChatLine1", "NBAHeartless: launched a rally at Lv. 17 Monster De...", 10, TextAnchor.MiddleLeft);
+            SetAnchors(chatLine1, 0.07f, 0.50f, 0.98f, 1f);
+            chatLine1.GetComponent<Text>().color = TextLight;
+            var chat1Shadow = chatLine1.AddComponent<Shadow>();
+            chat1Shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            chat1Shadow.effectDistance = new Vector2(1f, -1f);
+            // Line 2 — bottom half (P&C shows 2 lines)
+            var chatLine2 = AddText(chatTicker, "ChatLine2", "TrueDictator237: launched a rally at Lv. 39 Monster...", 10, TextAnchor.MiddleLeft);
+            SetAnchors(chatLine2, 0.07f, 0f, 0.98f, 0.50f);
+            chatLine2.GetComponent<Text>().color = new Color(0.3f, 0.85f, 0.55f, 0.85f);
+            var chat2Shadow = chatLine2.AddComponent<Shadow>();
+            chat2Shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            chat2Shadow.effectDistance = new Vector2(1f, -1f);
+
+            // === UPGRADE BANNER (above nav) — gradient button with gold accents like P&C ===
+            var upgradeBanner = AddPanel(canvas, "UpgradeBanner", Color.white);
+            SetAnchors(upgradeBanner, 0.03f, 0.092f, 0.97f, 0.14f);
+            var btnOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/btn_ornate.png");
+            if (btnOrnateSpr != null) { upgradeBanner.GetComponent<Image>().sprite = btnOrnateSpr; upgradeBanner.GetComponent<Image>().type = Image.Type.Sliced; }
+            else {
+                upgradeBanner.GetComponent<Image>().color = new Color(0.05f, 0.04f, 0.10f, 0.94f);
+                AddOutlinePanel(upgradeBanner, new Color(0.55f, 0.42f, 0.18f, 0.7f));
             }
+            // Top gradient highlight for depth
+            var upgGrad = AddPanel(upgradeBanner, "Gradient", new Color(0.20f, 0.15f, 0.08f, 0.25f));
+            SetAnchors(upgGrad, 0.02f, 0.50f, 0.98f, 1f);
+            // Left gold chevron accent
+            var upgLeftArrow = AddPanel(upgradeBanner, "LeftArrow", new Color(0.80f, 0.64f, 0.24f, 0.90f));
+            SetAnchors(upgLeftArrow, 0.01f, 0.18f, 0.04f, 0.82f);
+            var upgLeftInner = AddPanel(upgradeBanner, "LeftArrowInner", new Color(0.65f, 0.50f, 0.18f, 0.6f));
+            SetAnchors(upgLeftInner, 0.045f, 0.25f, 0.06f, 0.75f);
+            // Center text with stronger styling
+            var upgradeText = AddText(upgradeBanner, "Text", "Upgrade Stronghold to Lv.6", 14, TextAnchor.MiddleCenter);
+            SetAnchors(upgradeText, 0.07f, 0f, 0.93f, 1f);
+            upgradeText.GetComponent<Text>().color = new Color(1f, 0.96f, 0.78f, 1f);
+            upgradeText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var upgShadow = upgradeText.AddComponent<Shadow>();
+            upgShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            upgShadow.effectDistance = new Vector2(2f, -2f);
+            var upgOutline = upgradeText.AddComponent<Outline>();
+            upgOutline.effectColor = new Color(0, 0, 0, 0.4f);
+            upgOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            // Right gold chevron accent
+            var upgRightArrow = AddPanel(upgradeBanner, "RightArrow", new Color(0.80f, 0.64f, 0.24f, 0.90f));
+            SetAnchors(upgRightArrow, 0.96f, 0.18f, 0.99f, 0.82f);
+            var upgRightInner = AddPanel(upgradeBanner, "RightArrowInner", new Color(0.65f, 0.50f, 0.18f, 0.6f));
+            SetAnchors(upgRightInner, 0.94f, 0.25f, 0.955f, 0.75f);
+            upgradeBanner.AddComponent<Button>();
 
-            // --- Toolbar ---
-            var toolbar = AddPanel(canvas, "Toolbar", new Color(0.1f, 0.1f, 0.15f, 0.9f));
-            var tbRect = toolbar.GetComponent<RectTransform>();
-            tbRect.anchorMin = new Vector2(0.15f, 0);
-            tbRect.anchorMax = new Vector2(0.85f, 0.08f);
-            tbRect.offsetMin = Vector2.zero;
-            tbRect.offsetMax = Vector2.zero;
-            var tbLayout = toolbar.AddComponent<HorizontalLayoutGroup>();
-            tbLayout.spacing = 12;
-            tbLayout.childAlignment = TextAnchor.MiddleCenter;
-            tbLayout.padding = new RectOffset(8, 8, 4, 4);
+            // === BOTTOM NAV BAR — 9% tall, ornate fantasy bar (prominent like P&C) ===
+            var navBar = AddPanel(canvas, "BottomNavBar", Color.white);
+            SetAnchors(navBar, 0f, 0f, 1f, 0.09f);
+            var navBarSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/nav_bar.png");
+            if (navBarSprite != null) { navBar.GetComponent<Image>().sprite = navBarSprite; navBar.GetComponent<Image>().type = Image.Type.Sliced; }
+            else { navBar.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.10f, 0.98f); }
+            // Gold ornate top border — thicker, brighter like P&C
+            var navBorderTop = AddPanel(navBar, "TopBorder", new Color(0.78f, 0.62f, 0.25f, 0.92f));
+            SetAnchors(navBorderTop, 0f, 0.96f, 1f, 1f);
+            // Inner glow below gold border (premium effect)
+            var navBorderGlow = AddPanel(navBar, "TopGlow", new Color(0.70f, 0.55f, 0.20f, 0.20f));
+            SetAnchors(navBorderGlow, 0f, 0.88f, 1f, 0.96f);
+            // Second glow layer — softer, wider
+            var navBorderGlow2 = AddPanel(navBar, "TopGlow2", new Color(0.50f, 0.38f, 0.12f, 0.10f));
+            SetAnchors(navBorderGlow2, 0f, 0.78f, 1f, 0.88f);
+            // Dark gradient at bottom to blend with home indicator area
+            var navBotGrad = AddPanel(navBar, "BotGrad", new Color(0.02f, 0.02f, 0.04f, 0.5f));
+            SetAnchors(navBotGrad, 0f, 0f, 1f, 0.15f);
 
-            AddToolbarButton(toolbar, "BuildBtn", "BUILD", new Color(0.55f, 0.4f, 0.3f));
-            AddToolbarButton(toolbar, "ResearchBtn", "RESEARCH", new Color(0.3f, 0.4f, 0.6f));
-            AddToolbarButton(toolbar, "HeroesBtn", "HEROES", new Color(0.45f, 0.15f, 0.55f));
-            AddToolbarButton(toolbar, "QuestsBtn", "QUESTS", new Color(0.2f, 0.65f, 0.3f));
-            AddToolbarButton(toolbar, "BattleBtn", "BATTLE", new Color(0.7f, 0.25f, 0.15f));
+            var navLayout = navBar.AddComponent<HorizontalLayoutGroup>();
+            navLayout.spacing = 0;
+            navLayout.padding = new RectOffset(4, 4, 4, 10);
+            navLayout.childForceExpandWidth = true;
+            navLayout.childForceExpandHeight = true;
 
-            // --- Build Queue Overlay ---
-            var buildQueue = AddPanel(canvas, "BuildQueueOverlay", new Color(0.12f, 0.12f, 0.16f, 0.9f));
-            var bqRect = buildQueue.GetComponent<RectTransform>();
-            bqRect.anchorMin = new Vector2(0.78f, 0.1f);
-            bqRect.anchorMax = new Vector2(0.99f, 0.55f);
-            bqRect.offsetMin = Vector2.zero;
-            bqRect.offsetMax = Vector2.zero;
+            AddNavItem(navBar, "NavWorld", "WORLD", Ember, true, 0);
+            AddNavItem(navBar, "NavHero", "HERO", Purple, false, 0);
+            AddNavItem(navBar, "NavQuest", "QUEST", Teal, false, 17);
+            AddNavItem(navBar, "NavBag", "BAG", GoldDim, false, 3);
+            AddNavItem(navBar, "NavMail", "MAIL", Sky, false, 5);
+            AddNavItem(navBar, "NavAlliance", "ALLIANCE", TealDim, false, 0);
+            AddNavItem(navBar, "NavRank", "RANK", Gold, false, 38);
 
-            var bqTitle = AddText(buildQueue, "Title", "BUILD QUEUE", 14, TextAnchor.MiddleCenter);
-            var bqtRect = bqTitle.GetComponent<RectTransform>();
-            bqtRect.anchorMin = new Vector2(0, 0.88f);
-            bqtRect.anchorMax = new Vector2(1, 1);
-            bqtRect.offsetMin = Vector2.zero;
-            bqtRect.offsetMax = Vector2.zero;
+            // === RESOURCE DETAIL POPUP (hidden, full screen overlay) ===
+            var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.6f));
+            StretchToParent(resPopup);
 
-            for (int i = 0; i < 2; i++)
-            {
-                var slot = AddPanel(buildQueue, $"QueueSlot_{i}", new Color(0.18f, 0.18f, 0.22f));
-                var slotRect = slot.GetComponent<RectTransform>();
-                slotRect.anchorMin = new Vector2(0.05f, 0.55f - i * 0.38f);
-                slotRect.anchorMax = new Vector2(0.95f, 0.85f - i * 0.38f);
-                slotRect.offsetMin = Vector2.zero;
-                slotRect.offsetMax = Vector2.zero;
+            var resFrame = AddPanel(resPopup, "Frame", ResBarBg);
+            SetAnchors(resFrame, 0.08f, 0.30f, 0.92f, 0.80f);
+            AddOutlinePanel(resFrame, GoldDim);
 
-                AddText(slot, "BuildingName", i == 0 ? "Barracks Lv.3" : "Empty", 11, TextAnchor.MiddleLeft);
-                var timerLabel = AddText(slot, "Timer", i == 0 ? "2:34:15" : "--:--", 10, TextAnchor.LowerRight);
-                var timerRect = timerLabel.GetComponent<RectTransform>();
-                timerRect.anchorMin = new Vector2(0.5f, 0);
-                timerRect.anchorMax = Vector2.one;
-                timerRect.offsetMin = Vector2.zero;
-                timerRect.offsetMax = Vector2.zero;
-            }
+            // Header
+            var resHeader = AddPanel(resFrame, "Header", new Color(0.08f, 0.10f, 0.18f, 1f));
+            SetAnchors(resHeader, 0f, 0.88f, 1f, 1f);
+            var resTitle = AddText(resHeader, "Title", "STONE", 18, TextAnchor.MiddleCenter);
+            StretchToParent(resTitle);
+            resTitle.GetComponent<Text>().color = Gold;
+            resTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            // Header bottom border
+            var resHeaderBorder = AddPanel(resFrame, "HeaderBorder", GoldDim);
+            SetAnchors(resHeaderBorder, 0.03f, 0.875f, 0.97f, 0.88f);
+
+            // Current amount row
+            var resCurrentLabel = AddText(resFrame, "CurrentLabel", "Current:", 12, TextAnchor.MiddleLeft);
+            SetAnchors(resCurrentLabel, 0.05f, 0.74f, 0.40f, 0.85f);
+            resCurrentLabel.GetComponent<Text>().color = TextMid;
+            var resCurrentVal = AddText(resFrame, "CurrentValue", "4,730,000", 16, TextAnchor.MiddleRight);
+            SetAnchors(resCurrentVal, 0.50f, 0.74f, 0.95f, 0.85f);
+            resCurrentVal.GetComponent<Text>().color = TextWhite;
+            resCurrentVal.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // Capacity row
+            var resCapLabel = AddText(resFrame, "CapacityLabel", "Capacity:", 12, TextAnchor.MiddleLeft);
+            SetAnchors(resCapLabel, 0.05f, 0.63f, 0.40f, 0.74f);
+            resCapLabel.GetComponent<Text>().color = TextMid;
+            var resCapVal = AddText(resFrame, "CapacityValue", "10,000,000", 14, TextAnchor.MiddleRight);
+            SetAnchors(resCapVal, 0.50f, 0.63f, 0.95f, 0.74f);
+            resCapVal.GetComponent<Text>().color = TextLight;
+
+            // Capacity bar
+            var resCapBarBg = AddPanel(resFrame, "CapBarBg", new Color(0.10f, 0.08f, 0.16f, 1f));
+            SetAnchors(resCapBarBg, 0.05f, 0.57f, 0.95f, 0.62f);
+            var resCapBarFill = AddPanel(resCapBarBg, "Fill", StoneColor);
+            SetAnchors(resCapBarFill, 0f, 0f, 0.47f, 1f); // 47% full
+
+            // Production rate
+            var resProdLabel = AddText(resFrame, "ProductionLabel", "Production:", 12, TextAnchor.MiddleLeft);
+            SetAnchors(resProdLabel, 0.05f, 0.45f, 0.40f, 0.55f);
+            resProdLabel.GetComponent<Text>().color = TextMid;
+            var resProdVal = AddText(resFrame, "ProductionValue", "+12,500/hr", 14, TextAnchor.MiddleRight);
+            SetAnchors(resProdVal, 0.50f, 0.45f, 0.95f, 0.55f);
+            resProdVal.GetComponent<Text>().color = Teal;
+
+            // Protected amount
+            var resProtLabel = AddText(resFrame, "ProtectedLabel", "Protected:", 12, TextAnchor.MiddleLeft);
+            SetAnchors(resProtLabel, 0.05f, 0.34f, 0.40f, 0.44f);
+            resProtLabel.GetComponent<Text>().color = TextMid;
+            var resProtVal = AddText(resFrame, "ProtectedValue", "2,000,000", 14, TextAnchor.MiddleRight);
+            SetAnchors(resProtVal, 0.50f, 0.34f, 0.95f, 0.44f);
+            resProtVal.GetComponent<Text>().color = Sky;
+
+            // Separator
+            var resDetailSep = AddPanel(resFrame, "DetailSep", new Color(0.20f, 0.18f, 0.30f, 0.5f));
+            SetAnchors(resDetailSep, 0.05f, 0.28f, 0.95f, 0.285f);
+
+            // Sources section
+            var resSrcTitle = AddText(resFrame, "SourcesTitle", "SOURCES", 11, TextAnchor.MiddleLeft);
+            SetAnchors(resSrcTitle, 0.05f, 0.20f, 0.40f, 0.28f);
+            resSrcTitle.GetComponent<Text>().color = Gold;
+            resSrcTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var resSrc1 = AddText(resFrame, "Source1", "Stone Quarry Lv.5  ×3", 10, TextAnchor.MiddleLeft);
+            SetAnchors(resSrc1, 0.05f, 0.13f, 0.60f, 0.21f);
+            resSrc1.GetComponent<Text>().color = TextLight;
+            var resSrc1Val = AddText(resFrame, "Source1Val", "+9,000/hr", 10, TextAnchor.MiddleRight);
+            SetAnchors(resSrc1Val, 0.60f, 0.13f, 0.95f, 0.21f);
+            resSrc1Val.GetComponent<Text>().color = Teal;
+
+            var resSrc2 = AddText(resFrame, "Source2", "Alliance Bonus", 10, TextAnchor.MiddleLeft);
+            SetAnchors(resSrc2, 0.05f, 0.06f, 0.60f, 0.14f);
+            resSrc2.GetComponent<Text>().color = TextLight;
+            var resSrc2Val = AddText(resFrame, "Source2Val", "+3,500/hr", 10, TextAnchor.MiddleRight);
+            SetAnchors(resSrc2Val, 0.60f, 0.06f, 0.95f, 0.14f);
+            resSrc2Val.GetComponent<Text>().color = Teal;
+
+            // Close button
+            var resCloseBtn = AddStyledButton(resFrame, "CloseBtn", "CLOSE", new Color(0.25f, 0.22f, 0.30f), BgMid);
+            SetAnchors(resCloseBtn, 0.35f, 0.01f, 0.65f, 0.08f);
+            resCloseBtn.transform.Find("Label").GetComponent<Text>().fontSize = 11;
+
+            resPopup.SetActive(false);
+
+            // === BUILDING INFO POPUP (hidden, full screen overlay) ===
+            var infoPopup = AddPanel(canvasGo, "BuildingInfoPopup", new Color(0, 0, 0, 0.6f));
+            StretchToParent(infoPopup);
+            var infoFrame = AddPanel(infoPopup, "Frame", BgPanel);
+            SetAnchors(infoFrame, 0.10f, 0.25f, 0.90f, 0.75f);
+            AddOutlinePanel(infoFrame, Gold);
+            var infoTitle = AddText(infoFrame, "Title", "BARRACKS", 22, TextAnchor.MiddleCenter);
+            SetAnchors(infoTitle, 0.1f, 0.80f, 0.9f, 0.95f);
+            infoTitle.GetComponent<Text>().color = Gold;
+            var infoDesc = AddText(infoFrame, "Desc", "Trains military units. Increases army capacity by 50 per level.", 13, TextAnchor.MiddleCenter);
+            SetAnchors(infoDesc, 0.1f, 0.55f, 0.9f, 0.75f);
+            infoDesc.GetComponent<Text>().color = TextLight;
+            var infoCosts = AddText(infoFrame, "Costs", "Upgrade Cost:  1,200 Stone  •  800 Iron  •  600 Grain", 11, TextAnchor.MiddleCenter);
+            SetAnchors(infoCosts, 0.05f, 0.38f, 0.95f, 0.52f);
+            infoCosts.GetComponent<Text>().color = TextMid;
+            var infoUpBtn = AddStyledButton(infoFrame, "UpgradeBtn", "UPGRADE  (2h 30m)", Gold, GoldDim);
+            SetAnchors(infoUpBtn, 0.15f, 0.10f, 0.55f, 0.30f);
+            var infoClose = AddStyledButton(infoFrame, "CloseBtn", "CLOSE", new Color(0.3f, 0.25f, 0.2f), BgMid);
+            SetAnchors(infoClose, 0.60f, 0.10f, 0.85f, 0.30f);
+            infoPopup.SetActive(false);
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Empire scene UI populated (Resource HUD + toolbar + build queue)");
+            Debug.Log("[SceneUIGenerator] Empire scene: resource HUD, build queue, toolbar");
         }
 
-        // ---------------------------------------------------------------
-        // WorldMap Scene
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // WORLD MAP SCENE — Territory control
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/World Map")]
         public static void SetupWorldMapScene()
         {
             var scene = OpenScene("WorldMap");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            var bg = AddPanel(canvas, "MapBackground", new Color(0.12f, 0.15f, 0.1f, 1f));
+            // Dark map background (full screen)
+            var bg = AddPanel(canvasGo, "MapBackground", new Color(0.06f, 0.08f, 0.04f, 1f));
             StretchToParent(bg);
 
-            var title = AddText(canvas, "MapTitle", "WORLD MAP", 24, TextAnchor.MiddleCenter);
-            var tRect = title.GetComponent<RectTransform>();
-            tRect.anchorMin = new Vector2(0.3f, 0.92f);
-            tRect.anchorMax = new Vector2(0.7f, 1);
-            tRect.offsetMin = Vector2.zero;
-            tRect.offsetMax = Vector2.zero;
+            // Map grid overlay (full screen, behind safe area)
+            for (int r = 0; r < 5; r++)
+            {
+                for (int c = 0; c < 6; c++)
+                {
+                    float x = 0.08f + c * 0.145f;
+                    float y = 0.25f + r * 0.13f;
+                    Color tileColor;
+                    if ((r + c) % 3 == 0) tileColor = new Color(0.15f, 0.25f, 0.12f, 0.4f); // Allied
+                    else if ((r * c) % 5 == 0) tileColor = new Color(0.25f, 0.10f, 0.10f, 0.4f); // Enemy
+                    else tileColor = new Color(0.12f, 0.12f, 0.10f, 0.3f); // Neutral
 
-            var infoPanel = AddPanel(canvas, "TerritoryInfoPanel", new Color(0.1f, 0.1f, 0.15f, 0.9f));
-            var ipRect = infoPanel.GetComponent<RectTransform>();
-            ipRect.anchorMin = new Vector2(0.01f, 0.01f);
-            ipRect.anchorMax = new Vector2(0.25f, 0.3f);
-            ipRect.offsetMin = Vector2.zero;
-            ipRect.offsetMax = Vector2.zero;
+                    var tile = AddPanel(canvasGo, $"Tile_{r}_{c}", tileColor);
+                    SetAnchors(tile, x, y, x + 0.12f, y + 0.11f);
+                    AddOutlinePanel(tile, new Color(0.2f, 0.2f, 0.15f, 0.3f));
+                }
+            }
 
-            AddText(infoPanel, "TerritoryName", "Iron Wastes", 16, TextAnchor.UpperLeft);
-            var ownerLabel = AddText(infoPanel, "OwnerLabel", "Controlled by: Iron Legion Alliance", 11, TextAnchor.MiddleLeft);
-            var olRect = ownerLabel.GetComponent<RectTransform>();
-            olRect.anchorMin = new Vector2(0.05f, 0.4f);
-            olRect.anchorMax = new Vector2(0.95f, 0.6f);
-            olRect.offsetMin = Vector2.zero;
-            olRect.offsetMax = Vector2.zero;
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
 
-            AddMenuButton(infoPanel, "AttackBtn", "ATTACK", new Color(0.7f, 0.25f, 0.15f));
+            // === TOP BAR ===
+            var topBar = AddPanel(canvas, "TopBar", BgPanel);
+            SetAnchors(topBar, 0f, 0.93f, 1f, 1f);
+            AddOutlinePanel(topBar, BorderDim);
 
-            var backBtn = AddPanel(canvas, "BackButton", new Color(0.3f, 0.3f, 0.35f));
-            var bbRect = backBtn.GetComponent<RectTransform>();
-            bbRect.anchorMin = new Vector2(0.01f, 0.93f);
-            bbRect.anchorMax = new Vector2(0.1f, 0.99f);
-            bbRect.offsetMin = Vector2.zero;
-            bbRect.offsetMax = Vector2.zero;
-            backBtn.AddComponent<Button>();
-            var bbLabel = AddText(backBtn, "Label", "< BACK", 12, TextAnchor.MiddleCenter);
-            StretchToParent(bbLabel);
+            var mapTitle = AddText(topBar, "MapTitle", "WORLD MAP — Ashlands", 16, TextAnchor.MiddleCenter);
+            SetAnchors(mapTitle, 0.2f, 0.1f, 0.8f, 0.9f);
+            mapTitle.GetComponent<Text>().color = Gold;
+            mapTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var backBtn = AddStyledButton(topBar, "BackBtn", "< BACK", new Color(0.25f, 0.20f, 0.30f), BgMid);
+            SetAnchors(backBtn, 0.01f, 0.1f, 0.12f, 0.9f);
+            backBtn.transform.Find("Label").GetComponent<Text>().fontSize = 11;
+
+            // === LEGEND ===
+            var legend = AddPanel(canvas, "Legend", BgPanel);
+            SetAnchors(legend, 0.80f, 0.85f, 0.99f, 0.93f);
+            AddOutlinePanel(legend, BorderDim);
+            var legTitle = AddText(legend, "LTitle", "LEGEND", 8, TextAnchor.UpperCenter);
+            SetAnchors(legTitle, 0f, 0.7f, 1f, 1f);
+            legTitle.GetComponent<Text>().color = TextDim;
+            AddLegendItem(legend, "Allied", new Color(0.15f, 0.25f, 0.12f), 0.45f);
+            AddLegendItem(legend, "Enemy", new Color(0.25f, 0.10f, 0.10f), 0.15f);
+
+            // === TERRITORY INFO SIDEBAR ===
+            var infoPanel = AddPanel(canvas, "TerritoryInfo", BgPanel);
+            SetAnchors(infoPanel, 0.01f, 0.10f, 0.28f, 0.45f);
+            AddOutlinePanel(infoPanel, GoldDim);
+
+            var tiTitle = AddText(infoPanel, "TerritoryName", "Iron Wastes", 16, TextAnchor.MiddleLeft);
+            SetAnchors(tiTitle, 0.05f, 0.82f, 0.95f, 0.98f);
+            tiTitle.GetComponent<Text>().color = Gold;
+
+            var tiSep = AddPanel(infoPanel, "Separator", GoldDim);
+            SetAnchors(tiSep, 0.05f, 0.80f, 0.95f, 0.81f);
+
+            var tiOwner = AddText(infoPanel, "Owner", "Controlled by: Iron Legion", 11, TextAnchor.MiddleLeft);
+            SetAnchors(tiOwner, 0.05f, 0.65f, 0.95f, 0.78f);
+            tiOwner.GetComponent<Text>().color = TextLight;
+
+            var tiBonus = AddText(infoPanel, "Bonus", "Bonus: +15% Iron production", 10, TextAnchor.MiddleLeft);
+            SetAnchors(tiBonus, 0.05f, 0.52f, 0.95f, 0.64f);
+            tiBonus.GetComponent<Text>().color = Teal;
+
+            var tiGarrison = AddText(infoPanel, "Garrison", "Garrison: 12,500 Power", 10, TextAnchor.MiddleLeft);
+            SetAnchors(tiGarrison, 0.05f, 0.40f, 0.95f, 0.52f);
+            tiGarrison.GetComponent<Text>().color = TextMid;
+
+            var tiAttackBtn = AddStyledButton(infoPanel, "AttackBtn", "ATTACK", Blood, BloodDark);
+            SetAnchors(tiAttackBtn, 0.05f, 0.05f, 0.48f, 0.28f);
+
+            var tiScoutBtn = AddStyledButton(infoPanel, "ScoutBtn", "SCOUT", SkyDim, BgMid);
+            SetAnchors(tiScoutBtn, 0.52f, 0.05f, 0.95f, 0.28f);
+
+            // === MINI-MAP ===
+            var miniMap = AddPanel(canvas, "MiniMap", new Color(0.04f, 0.04f, 0.03f, 0.8f));
+            SetAnchors(miniMap, 0.80f, 0.10f, 0.99f, 0.30f);
+            AddOutlinePanel(miniMap, BorderDim);
+            var mmLabel = AddText(miniMap, "Label", "MINI MAP", 8, TextAnchor.UpperCenter);
+            SetAnchors(mmLabel, 0f, 0.85f, 1f, 1f);
+            mmLabel.GetComponent<Text>().color = TextDim;
+
+            // Player position dot
+            var playerDot = AddPanel(miniMap, "PlayerDot", Gold);
+            SetAnchors(playerDot, 0.4f, 0.4f, 0.5f, 0.55f);
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] WorldMap scene UI populated");
+            Debug.Log("[SceneUIGenerator] WorldMap scene: territory grid, info panel, mini-map");
         }
 
-        // ---------------------------------------------------------------
-        // Alliance Scene
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // ALLIANCE SCENE — Social hub
+        // ===================================================================
         [MenuItem("AshenThrone/Generate Scene UI/Alliance")]
         public static void SetupAllianceScene()
         {
             var scene = OpenScene("Alliance");
-            var canvas = FindOrCreateCanvas(scene);
+            var canvasGo = FindOrCreateCanvas(scene);
 
-            var bg = AddPanel(canvas, "Background", new Color(0.08f, 0.08f, 0.12f, 1f));
+            var bg = AddPanel(canvasGo, "Background", BgDeep);
             StretchToParent(bg);
 
-            // Tab bar
-            var tabBar = AddPanel(canvas, "TabBar", new Color(0.12f, 0.12f, 0.16f, 0.9f));
-            var tabRect = tabBar.GetComponent<RectTransform>();
-            tabRect.anchorMin = new Vector2(0, 0.9f);
-            tabRect.anchorMax = new Vector2(1, 1);
-            tabRect.offsetMin = Vector2.zero;
-            tabRect.offsetMax = Vector2.zero;
+            // Safe area for all interactive UI
+            var canvas = CreateSafeArea(canvasGo);
+
+            // === TOP BAR ===
+            var topBar = AddPanel(canvas, "TopBar", BgPanel);
+            SetAnchors(topBar, 0f, 0.93f, 1f, 1f);
+            AddOutlinePanel(topBar, BorderDim);
+
+            var allianceName = AddText(topBar, "AllianceName", "IRON LEGION", 18, TextAnchor.MiddleCenter);
+            SetAnchors(allianceName, 0.2f, 0.1f, 0.8f, 0.9f);
+            allianceName.GetComponent<Text>().color = Gold;
+            allianceName.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var memberCount = AddText(topBar, "MemberCount", "42/50 Members", 10, TextAnchor.MiddleRight);
+            SetAnchors(memberCount, 0.70f, 0.1f, 0.98f, 0.9f);
+            memberCount.GetComponent<Text>().color = TextMid;
+
+            var backBtn = AddStyledButton(topBar, "BackBtn", "< BACK", new Color(0.25f, 0.20f, 0.30f), BgMid);
+            SetAnchors(backBtn, 0.01f, 0.1f, 0.12f, 0.9f);
+            backBtn.transform.Find("Label").GetComponent<Text>().fontSize = 11;
+
+            // === TAB BAR ===
+            var tabBar = AddPanel(canvas, "TabBar", new Color(0.06f, 0.04f, 0.10f, 0.95f));
+            SetAnchors(tabBar, 0f, 0.86f, 1f, 0.93f);
+
             var tabLayout = tabBar.AddComponent<HorizontalLayoutGroup>();
-            tabLayout.spacing = 4;
-            tabLayout.childAlignment = TextAnchor.MiddleCenter;
-            tabLayout.padding = new RectOffset(8, 8, 4, 4);
+            tabLayout.spacing = 2;
+            tabLayout.padding = new RectOffset(4, 4, 2, 2);
+            tabLayout.childForceExpandWidth = true;
+            tabLayout.childForceExpandHeight = true;
 
-            AddToolbarButton(tabBar, "ChatTab", "CHAT", new Color(0.2f, 0.5f, 0.85f));
-            AddToolbarButton(tabBar, "MembersTab", "MEMBERS", new Color(0.45f, 0.15f, 0.55f));
-            AddToolbarButton(tabBar, "WarTab", "WAR", new Color(0.7f, 0.25f, 0.15f));
-            AddToolbarButton(tabBar, "TerritoryTab", "TERRITORY", new Color(0.2f, 0.65f, 0.3f));
+            AddTabButton(tabBar, "ChatTab", "CHAT", Teal, true);
+            AddTabButton(tabBar, "MembersTab", "MEMBERS", Purple, false);
+            AddTabButton(tabBar, "WarTab", "WAR", Blood, false);
+            AddTabButton(tabBar, "TerritoryTab", "TERRITORY", Ember, false);
+            AddTabButton(tabBar, "LeaderboardTab", "RANKS", Gold, false);
 
-            // Chat panel
-            var chatPanel = AddPanel(canvas, "ChatPanel", new Color(0.1f, 0.1f, 0.14f, 0.8f));
-            var cpRect = chatPanel.GetComponent<RectTransform>();
-            cpRect.anchorMin = new Vector2(0.02f, 0.1f);
-            cpRect.anchorMax = new Vector2(0.98f, 0.88f);
-            cpRect.offsetMin = Vector2.zero;
-            cpRect.offsetMax = Vector2.zero;
+            // === CHAT PANEL ===
+            var chatPanel = AddPanel(canvas, "ChatPanel", new Color(0, 0, 0, 0));
+            SetAnchors(chatPanel, 0.01f, 0.08f, 0.99f, 0.855f);
 
-            var msgArea = AddPanel(chatPanel, "MessageArea", new Color(0.08f, 0.08f, 0.1f));
-            var maRect = msgArea.GetComponent<RectTransform>();
-            maRect.anchorMin = new Vector2(0.01f, 0.12f);
-            maRect.anchorMax = new Vector2(0.99f, 0.98f);
-            maRect.offsetMin = Vector2.zero;
-            maRect.offsetMax = Vector2.zero;
+            // Message area
+            var msgArea = AddPanel(chatPanel, "MessageArea", BgInput);
+            SetAnchors(msgArea, 0f, 0.12f, 1f, 1f);
+            AddOutlinePanel(msgArea, BorderDim);
 
-            for (int i = 0; i < 4; i++)
+            // Sample chat messages
+            var chatMsgs = new (string sender, string msg, Color sColor)[] {
+                ("Kaelen", "Rally at sector 7! Enemy alliance incoming.", Ember),
+                ("Vorra", "I'll bring my siege squad. ETA 5 minutes.", Sky),
+                ("Commander", "Everyone focus fire on their Stronghold.", Gold),
+                ("Seraphyn", "Healing squad standing by. Let's go!", Teal),
+                ("Mordoc", "Their wall defenses are weak on the east side.", Blood),
+                ("Lyra", "GG everyone! That was a great war.", Purple),
+            };
+
+            for (int i = 0; i < chatMsgs.Length; i++)
             {
-                var msg = AddText(msgArea, $"Msg_{i}", $"[Player_{i}]: Sample alliance chat message {i + 1}", 12, TextAnchor.UpperLeft);
-                var mRect = msg.GetComponent<RectTransform>();
-                mRect.anchorMin = new Vector2(0.02f, 0.75f - i * 0.22f);
-                mRect.anchorMax = new Vector2(0.98f, 0.95f - i * 0.22f);
-                mRect.offsetMin = Vector2.zero;
-                mRect.offsetMax = Vector2.zero;
-                msg.GetComponent<Text>().color = new Color(0.7f, 0.7f, 0.75f);
+                float yBase = 0.85f - i * 0.14f;
+                var msgBubble = AddPanel(msgArea, $"Msg_{i}", new Color(0.10f, 0.08f, 0.14f, 0.6f));
+                SetAnchors(msgBubble, 0.02f, yBase - 0.12f, 0.98f, yBase);
+
+                var sender = AddText(msgBubble, "Sender", chatMsgs[i].sender, 10, TextAnchor.MiddleLeft);
+                SetAnchors(sender, 0.02f, 0.5f, 0.25f, 1f);
+                sender.GetComponent<Text>().color = chatMsgs[i].sColor;
+                sender.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+                var msgText = AddText(msgBubble, "Text", chatMsgs[i].msg, 11, TextAnchor.MiddleLeft);
+                SetAnchors(msgText, 0.02f, 0f, 0.98f, 0.55f);
+                msgText.GetComponent<Text>().color = TextLight;
             }
 
-            var inputArea = AddPanel(chatPanel, "InputArea", new Color(0.15f, 0.15f, 0.2f));
-            var iaRect = inputArea.GetComponent<RectTransform>();
-            iaRect.anchorMin = new Vector2(0.01f, 0.01f);
-            iaRect.anchorMax = new Vector2(0.99f, 0.1f);
-            iaRect.offsetMin = Vector2.zero;
-            iaRect.offsetMax = Vector2.zero;
+            // Input area
+            var inputBar = AddPanel(chatPanel, "InputBar", BgPanel);
+            SetAnchors(inputBar, 0f, 0f, 1f, 0.10f);
+            AddOutlinePanel(inputBar, BorderDim);
 
-            var placeholder = AddText(inputArea, "Placeholder", "Type a message...", 13, TextAnchor.MiddleLeft);
+            var inputField = AddPanel(inputBar, "InputField", BgInput);
+            SetAnchors(inputField, 0.02f, 0.12f, 0.80f, 0.88f);
+            AddOutlinePanel(inputField, BorderDim);
+            var placeholder = AddText(inputField, "Placeholder", "  Type a message...", 12, TextAnchor.MiddleLeft);
             StretchToParent(placeholder);
-            placeholder.GetComponent<Text>().color = new Color(0.4f, 0.4f, 0.45f);
+            placeholder.GetComponent<Text>().color = TextDim;
 
-            var backBtn = AddPanel(canvas, "BackButton", new Color(0.3f, 0.3f, 0.35f));
-            var bbkRect = backBtn.GetComponent<RectTransform>();
-            bbkRect.anchorMin = new Vector2(0.01f, 0.01f);
-            bbkRect.anchorMax = new Vector2(0.1f, 0.07f);
-            bbkRect.offsetMin = Vector2.zero;
-            bbkRect.offsetMax = Vector2.zero;
-            backBtn.AddComponent<Button>();
-            AddText(backBtn, "Label", "< BACK", 12, TextAnchor.MiddleCenter);
+            var sendBtn = AddStyledButton(inputBar, "SendBtn", "SEND", Teal, TealDim);
+            SetAnchors(sendBtn, 0.82f, 0.12f, 0.98f, 0.88f);
+            sendBtn.transform.Find("Label").GetComponent<Text>().fontSize = 12;
+
+            // === BOTTOM BAR (alliance actions) ===
+            var bottomBar = AddPanel(canvas, "BottomBar", BgPanel);
+            SetAnchors(bottomBar, 0f, 0f, 1f, 0.07f);
+            AddOutlinePanel(bottomBar, BorderDim);
+
+            var bbLayout = bottomBar.AddComponent<HorizontalLayoutGroup>();
+            bbLayout.spacing = 8;
+            bbLayout.padding = new RectOffset(8, 8, 4, 4);
+            bbLayout.childForceExpandWidth = true;
+            bbLayout.childForceExpandHeight = true;
+
+            AddToolbarBtn(bottomBar, "DonateBtn", "DONATE", GoldDim, new Color(0.25f, 0.20f, 0.10f));
+            AddToolbarBtn(bottomBar, "WarDeclareBtn", "DECLARE WAR", Blood, BloodDark);
+            AddToolbarBtn(bottomBar, "RecruitBtn", "RECRUIT", Teal, TealDim);
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Alliance scene UI populated");
+            Debug.Log("[SceneUIGenerator] Alliance scene: chat, tabs, member list");
         }
 
-        // ---------------------------------------------------------------
-        // Helpers
-        // ---------------------------------------------------------------
+        // ===================================================================
+        // HELPER METHODS — Complex widgets
+        // ===================================================================
 
-        private static UnityEngine.SceneManagement.Scene OpenScene(string name)
+        static void AddCurrencyDisplay(GameObject parent, string name, string amount, Color iconColor, float xPos)
+        {
+            var group = AddPanel(parent, name, new Color(0, 0, 0, 0));
+            SetAnchors(group, xPos, 0.1f, xPos + 0.12f, 0.9f);
+
+            var icon = AddPanel(group, "Icon", iconColor);
+            SetAnchors(icon, 0f, 0.15f, 0.22f, 0.85f);
+
+            var text = AddText(group, "Amount", amount, 13, TextAnchor.MiddleLeft);
+            SetAnchors(text, 0.26f, 0f, 1f, 1f);
+            text.GetComponent<Text>().color = TextWhite;
+        }
+
+        static void AddResourceDisplay(GameObject parent, string name, string amount, Color color, float xPos)
+        {
+            var icon = AddPanel(parent, $"{name}Icon", color);
+            SetAnchors(icon, xPos, 0.2f, xPos + 0.02f, 0.8f);
+
+            var text = AddText(parent, $"{name}Amt", $"{name[0]}: {amount}", 10, TextAnchor.MiddleLeft);
+            SetAnchors(text, xPos + 0.025f, 0f, xPos + 0.20f, 1f);
+            text.GetComponent<Text>().color = TextLight;
+        }
+
+        /// <summary>Flat resource icon — 26px outer circle bg + inner sprite for visibility on dark bar.</summary>
+        static void AddResIconFlat(GameObject parent, string resName, Color accentColor)
+        {
+            // Outer container — colored circle background (ensures dark sprites are visible)
+            var outer = new GameObject($"IconBg_{resName}", typeof(RectTransform), typeof(Image));
+            outer.transform.SetParent(parent.transform, false);
+            var le = outer.AddComponent<LayoutElement>();
+            le.preferredWidth = 26;
+            le.preferredHeight = 26;
+            le.minWidth = 24;
+            le.minHeight = 24;
+            le.flexibleWidth = 0;
+            // Bright-ish colored circle — accent color at ~40% with min 0.12 per channel
+            var outerImg = outer.GetComponent<Image>();
+            outerImg.color = new Color(
+                Mathf.Max(0.12f, accentColor.r * 0.40f),
+                Mathf.Max(0.10f, accentColor.g * 0.40f),
+                Mathf.Max(0.12f, accentColor.b * 0.40f),
+                0.65f);
+
+            // Inner sprite — fills 80% of the circle
+            var icon = new GameObject($"Icon_{resName}", typeof(RectTransform), typeof(Image));
+            icon.transform.SetParent(outer.transform, false);
+            var iconRT = icon.GetComponent<RectTransform>();
+            iconRT.anchorMin = new Vector2(0.10f, 0.10f);
+            iconRT.anchorMax = new Vector2(0.90f, 0.90f);
+            iconRT.offsetMin = Vector2.zero;
+            iconRT.offsetMax = Vector2.zero;
+
+            string spritePath = $"Assets/Art/UI/Production/icon_{resName.ToLower()}.png";
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+            var img = icon.GetComponent<Image>();
+            if (sprite != null)
+            {
+                img.sprite = sprite;
+                img.preserveAspect = true;
+                img.color = Color.white;
+            }
+            else
+            {
+                img.color = new Color(
+                    Mathf.Min(1f, accentColor.r + 0.3f),
+                    Mathf.Min(1f, accentColor.g + 0.3f),
+                    Mathf.Min(1f, accentColor.b + 0.3f), 1f);
+            }
+        }
+
+        /// <summary>Flat resource amount — flexible text, left-aligned like P&C.</summary>
+        static void AddResAmountFlat(GameObject parent, string resName, string amount)
+        {
+            var amtGo = AddText(parent, $"{resName}Amt", amount, 12, TextAnchor.MiddleLeft);
+            var txt = amtGo.GetComponent<Text>();
+            txt.color = new Color(0.96f, 0.94f, 0.90f, 1f);
+            txt.fontStyle = FontStyle.Bold;
+            var shadow = amtGo.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.92f);
+            shadow.effectDistance = new Vector2(1f, -1f);
+            var le = amtGo.AddComponent<LayoutElement>();
+            le.minWidth = 30;
+            le.preferredWidth = 44;
+            le.flexibleWidth = 1;
+        }
+
+        /// <summary>Left sidebar queue slot — P&C style: compact strip with colored emblem + label + status + progress bar.</summary>
+        static void AddQueueSlot(GameObject parent, string name, string label, string status,
+            Color color, bool active, float yMin, float yMax)
+        {
+            var slot = AddPanel(parent, name, active
+                ? new Color(0.06f, 0.04f, 0.12f, 0.90f)
+                : new Color(0.04f, 0.03f, 0.08f, 0.70f));
+            SetAnchors(slot, 0f, yMin, 1f, yMax);
+            slot.AddComponent<Button>();
+
+            // Border — gold for active, dim for idle
+            AddOutlinePanel(slot, active ? new Color(0.60f, 0.48f, 0.20f, 0.6f) : new Color(0.22f, 0.18f, 0.10f, 0.25f));
+
+            // Left color accent strip
+            var strip = AddPanel(slot, "AccentStrip", active ? color : new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.4f));
+            SetAnchors(strip, 0f, 0.06f, active ? 0.05f : 0.03f, 0.94f);
+
+            // Active slot: subtle gradient glow from left
+            if (active)
+            {
+                var glow = AddPanel(slot, "ActiveGlow", new Color(color.r * 0.15f, color.g * 0.15f, color.b * 0.15f, 0.3f));
+                SetAnchors(glow, 0f, 0f, 0.5f, 1f);
+            }
+
+            // Colored emblem — square with sprite icon
+            var emblemBg = AddPanel(slot, "EmblemBg", new Color(
+                color.r * 0.18f + 0.05f, color.g * 0.18f + 0.04f, color.b * 0.18f + 0.05f,
+                active ? 0.80f : 0.35f));
+            SetAnchors(emblemBg, 0.06f, 0.10f, 0.30f, 0.90f);
+
+            // Sprite icon — fills emblem with padding
+            var emblemIcon = AddPanel(emblemBg, "Icon", Color.white);
+            SetAnchors(emblemIcon, 0.10f, 0.10f, 0.90f, 0.90f);
+            string spriteKey = label.ToLower() switch {
+                "build" => "icon_iron", "research" => "icon_arcane", "training" => "icon_iron", _ => null
+            };
+            bool spriteLoaded = false;
+            if (spriteKey != null)
+            {
+                var spr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Production/{spriteKey}.png");
+                if (spr != null)
+                {
+                    var img = emblemIcon.GetComponent<Image>();
+                    img.sprite = spr;
+                    img.preserveAspect = true;
+                    img.color = active ? new Color(1f, 0.95f, 0.85f, 1f) : new Color(0.55f, 0.50f, 0.45f, 0.5f);
+                    spriteLoaded = true;
+                }
+            }
+            if (!spriteLoaded)
+            {
+                emblemIcon.GetComponent<Image>().color = new Color(0, 0, 0, 0);
+                var letterText = AddText(emblemBg, "Letter", label[..1], 16, TextAnchor.MiddleCenter);
+                StretchToParent(letterText);
+                letterText.GetComponent<Text>().color = active ? Color.white : new Color(0.5f, 0.48f, 0.45f, 0.6f);
+                letterText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            }
+
+            // Label — right of emblem, upper portion
+            var lbl = AddText(slot, "Label", label, 11, TextAnchor.MiddleLeft);
+            SetAnchors(lbl, 0.32f, 0.55f, 0.95f, 0.95f);
+            lbl.GetComponent<Text>().color = active ? Color.white : TextMid;
+            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var lblShadow = lbl.AddComponent<Shadow>();
+            lblShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            lblShadow.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Status — right of emblem, middle (bright green timer or dim IDLE)
+            var statusText = AddText(slot, "Status", status, 10, TextAnchor.MiddleLeft);
+            SetAnchors(statusText, 0.32f, 0.22f, 0.95f, 0.55f);
+            statusText.GetComponent<Text>().color = active ? new Color(0.3f, 1f, 0.75f, 1f) : TextDim;
+            statusText.GetComponent<Text>().fontStyle = active ? FontStyle.Bold : FontStyle.Normal;
+            var statusShadow = statusText.AddComponent<Shadow>();
+            statusShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            statusShadow.effectDistance = new Vector2(1f, -1f);
+
+            // Progress bar at bottom (P&C shows thin progress bars on active slots)
+            if (active)
+            {
+                var progBg = AddPanel(slot, "ProgressBg", new Color(0.08f, 0.06f, 0.12f, 0.9f));
+                SetAnchors(progBg, 0.32f, 0.06f, 0.95f, 0.18f);
+                var progFill = AddPanel(progBg, "ProgressFill", new Color(color.r, color.g, color.b, 0.85f));
+                SetAnchors(progFill, 0f, 0f, 0.35f, 1f); // 35% progress
+                // Glow at fill edge
+                var progGlow = AddPanel(progBg, "ProgressGlow", new Color(color.r * 0.8f + 0.2f, color.g * 0.8f + 0.2f, color.b * 0.3f + 0.2f, 0.5f));
+                SetAnchors(progGlow, 0.33f, 0f, 0.38f, 1f);
+            }
+        }
+
+        /// <summary>P&C-style event button — ornate frame with icon, glow, and timer.</summary>
+        static void AddEventButton(GameObject parent, string name, string label, Color color,
+            float xMin, float yMin, float xMax, float yMax, string timer)
+        {
+            // Use panel_ornate sprite for the button frame
+            var btn = AddPanel(parent, name, Color.white);
+            SetAnchors(btn, xMin, yMin, xMax, yMax);
+            var btnImg = btn.GetComponent<Image>();
+            var ornateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
+            if (ornateSpr != null) { btnImg.sprite = ornateSpr; btnImg.type = Image.Type.Sliced; }
+            else { btnImg.color = new Color(color.r * 0.18f + 0.04f, color.g * 0.18f + 0.03f, color.b * 0.18f + 0.04f, 0.92f); }
+            btn.AddComponent<Button>();
+
+            // Inner color tint overlay with gradient effect
+            var tint = AddPanel(btn, "Tint", new Color(color.r * 0.15f, color.g * 0.15f, color.b * 0.15f, 0.25f));
+            SetAnchors(tint, 0.08f, 0.08f, 0.92f, 0.92f);
+            // Center glow — adds depth behind icon
+            var centerGlow = AddPanel(btn, "CenterGlow", new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.15f));
+            SetAnchors(centerGlow, 0.20f, 0.25f, 0.80f, 0.75f);
+
+            // Icon — use KNOWN-WORKING resource sprites only (transparent RGBA confirmed)
+            var icon = AddPanel(btn, "Icon", Color.white);
+            SetAnchors(icon, 0.14f, 0.24f, 0.86f, 0.78f);
+            string spriteKey = label.ToLower() switch {
+                "events" => "icon_iron",    // swords → iron ingots
+                "vs"     => "icon_gems",    // arena → purple gem
+                "rewards"=> "icon_grain",   // treasure → golden wheat
+                "offer"  => "icon_gems",    // special → gems
+                "shop"   => "icon_arcane",  // magic shop → arcane
+                "gifts"  => "icon_arcane",  // gifts → arcane energy
+                "arena"  => "icon_iron",    // combat → iron
+                _        => "icon_stone"
+            };
+            var spr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Production/{spriteKey}.png");
+            if (spr != null)
+            {
+                icon.GetComponent<Image>().sprite = spr;
+                icon.GetComponent<Image>().preserveAspect = true;
+                // Tint with event color for variety
+                icon.GetComponent<Image>().color = new Color(
+                    Mathf.Min(1f, color.r * 0.3f + 0.7f),
+                    Mathf.Min(1f, color.g * 0.3f + 0.7f),
+                    Mathf.Min(1f, color.b * 0.3f + 0.7f), 1f);
+            }
+            else
+            {
+                icon.GetComponent<Image>().color = color;
+            }
+
+            // Label — bottom of icon area
+            var lbl = AddText(btn, "Label", label, 10, TextAnchor.MiddleCenter);
+            SetAnchors(lbl, 0f, 0.02f, 1f, 0.25f);
+            lbl.GetComponent<Text>().color = Color.white;
+            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var lblShadow = lbl.AddComponent<Shadow>();
+            lblShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            lblShadow.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Timer badge (if any) — top strip
+            if (!string.IsNullOrEmpty(timer))
+            {
+                var timerBg = AddPanel(btn, "TimerBg", new Color(0.02f, 0.02f, 0.06f, 0.85f));
+                SetAnchors(timerBg, 0.05f, 0.84f, 0.95f, 1f);
+                var timerText = AddText(timerBg, "Timer", timer, 9, TextAnchor.MiddleCenter);
+                StretchToParent(timerText);
+                timerText.GetComponent<Text>().color = new Color(0.3f, 1f, 0.75f, 1f);
+                timerText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+                var timerShadow = timerText.AddComponent<Shadow>();
+                timerShadow.effectColor = new Color(0, 0, 0, 0.8f);
+                timerShadow.effectDistance = new Vector2(1f, -1f);
+            }
+        }
+
+        /// <summary>P&C-style nav bar item — golden icon + label + optional badge.</summary>
+        static void AddNavItem(GameObject parent, string name, string label, Color color, bool active, int badgeCount)
+        {
+            var item = AddPanel(parent, name, active ? new Color(0.18f, 0.12f, 0.06f, 0.45f) : new Color(0, 0, 0, 0));
+            item.AddComponent<LayoutElement>().flexibleWidth = 1;
+            item.AddComponent<Button>();
+
+            // Golden icon emblem — use best-matching production sprite per nav item
+            var iconBg = AddPanel(item, "IconBg", active
+                ? new Color(0.28f, 0.22f, 0.10f, 0.5f)
+                : new Color(0, 0, 0, 0));
+            SetAnchors(iconBg, 0.15f, 0.32f, 0.85f, 0.88f);
+
+            var icon = AddPanel(iconBg, "Icon", Color.white);
+            SetAnchors(icon, 0.10f, 0.05f, 0.90f, 0.95f);
+
+            // Map nav items to best production sprites
+            string spriteKey = label.ToLower() switch {
+                "world" => "nav_empire", "hero" => "nav_heroes", "quest" => "icon_arcane",
+                "bag" => "icon_grain", "mail" => "icon_gems", "alliance" => "nav_alliance",
+                "rank" => "icon_gold", _ => null
+            };
+
+            Color activeTint = new Color(1f, 0.92f, 0.72f, 1f); // Warm golden
+            Color inactiveTint = new Color(0.60f, 0.52f, 0.38f, 0.55f); // Dim bronze
+
+            bool spriteSet = false;
+            if (spriteKey != null)
+            {
+                var spr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Production/{spriteKey}.png");
+                if (spr != null)
+                {
+                    icon.GetComponent<Image>().sprite = spr;
+                    icon.GetComponent<Image>().preserveAspect = true;
+                    icon.GetComponent<Image>().color = active ? activeTint : inactiveTint;
+                    spriteSet = true;
+                }
+            }
+            if (!spriteSet)
+            {
+                icon.GetComponent<Image>().color = active ? color : inactiveTint;
+            }
+
+            // Active gold accent bar at top
+            if (active)
+            {
+                var glow = AddPanel(item, "ActiveGlow", new Color(0.85f, 0.68f, 0.25f, 0.85f));
+                SetAnchors(glow, 0.08f, 0.92f, 0.92f, 1f);
+            }
+
+            // Red notification badge (like P&C)
+            if (badgeCount > 0)
+            {
+                var badge = AddPanel(item, "Badge", new Color(0.88f, 0.14f, 0.14f, 1f));
+                SetAnchors(badge, 0.60f, 0.68f, 0.98f, 0.94f);
+                AddOutlinePanel(badge, new Color(0.55f, 0.08f, 0.08f, 0.9f));
+                var badgeText = AddText(badge, "Count", badgeCount.ToString(), 8, TextAnchor.MiddleCenter);
+                StretchToParent(badgeText);
+                badgeText.GetComponent<Text>().color = Color.white;
+                badgeText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            }
+
+            // Label — warm gold for active, steel blue-gray for inactive (P&C style)
+            var lbl = AddText(item, "Label", label, 9, TextAnchor.MiddleCenter);
+            SetAnchors(lbl, 0f, 0f, 1f, 0.30f);
+            lbl.GetComponent<Text>().color = active ? new Color(1f, 0.92f, 0.70f, 1f) : new Color(0.52f, 0.52f, 0.58f, 0.75f);
+            lbl.GetComponent<Text>().fontStyle = active ? FontStyle.Bold : FontStyle.Normal;
+            var lblShadow = lbl.AddComponent<Shadow>();
+            lblShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            lblShadow.effectDistance = new Vector2(1.5f, -1.5f);
+        }
+
+        static void AddHeroStatusPanel(GameObject parent, string heroName, float hpPct, Color heroColor, bool isPlayer)
+        {
+            var panel = AddPanel(parent, heroName, BgPanel);
+            panel.AddComponent<LayoutElement>().preferredHeight = 38;
+            AddOutlinePanel(panel, isPlayer ? new Color(0.15f, 0.20f, 0.35f, 0.5f) : new Color(0.35f, 0.12f, 0.12f, 0.5f));
+
+            var portrait = AddPanel(panel, "Portrait", heroColor);
+            SetAnchors(portrait, 0.02f, 0.08f, 0.28f, 0.92f);
+            AddOutlinePanel(portrait, isPlayer ? SkyDim : BloodDark);
+
+            var nameLabel = AddText(panel, "Name", heroName, 9, TextAnchor.MiddleLeft);
+            SetAnchors(nameLabel, 0.32f, 0.55f, 0.98f, 0.95f);
+            nameLabel.GetComponent<Text>().color = TextWhite;
+
+            var hpBarBg = AddPanel(panel, "HpBarBg", BarHpBg);
+            SetAnchors(hpBarBg, 0.32f, 0.15f, 0.98f, 0.45f);
+
+            var hpBarFill = AddPanel(hpBarBg, "Fill", hpPct > 0.5f ? BarHpGreen : hpPct > 0.25f ? Ember : BarHpRed);
+            SetAnchors(hpBarFill, 0f, 0f, hpPct, 1f);
+
+            var hpText = AddText(panel, "HpText", $"{(int)(hpPct * 1000)}/1000", 7, TextAnchor.MiddleRight);
+            SetAnchors(hpText, 0.60f, 0.55f, 0.98f, 0.92f);
+            hpText.GetComponent<Text>().color = TextDim;
+        }
+
+        static void AddCardWidget(GameObject parent, string cardName, int cost, Color color, string type, int value)
+        {
+            var card = AddPanel(parent, cardName.Replace(" ", ""), BgCard);
+            var le = card.AddComponent<LayoutElement>();
+            le.preferredWidth = 105;
+            le.preferredHeight = 150;
+            AddOutlinePanel(card, color);
+
+            // Card art area
+            var artArea = AddPanel(card, "Art", new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f));
+            SetAnchors(artArea, 0.06f, 0.40f, 0.94f, 0.82f);
+
+            // Cost badge (top-left)
+            var costBadge = AddPanel(card, "CostBadge", BarEnergy);
+            SetAnchors(costBadge, 0.02f, 0.82f, 0.22f, 0.98f);
+            var costText = AddText(costBadge, "Cost", cost.ToString(), 12, TextAnchor.MiddleCenter);
+            StretchToParent(costText);
+            costText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // Type badge (top-right)
+            var typeBadge = AddPanel(card, "TypeBadge",
+                type == "ATK" ? Blood : type == "HEAL" ? Teal : IronColor);
+            SetAnchors(typeBadge, 0.70f, 0.82f, 0.98f, 0.98f);
+            var typeText = AddText(typeBadge, "Type", type, 7, TextAnchor.MiddleCenter);
+            StretchToParent(typeText);
+            typeText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // Card name
+            var nameText = AddText(card, "Name", cardName, 9, TextAnchor.MiddleCenter);
+            SetAnchors(nameText, 0.04f, 0.22f, 0.96f, 0.38f);
+            nameText.GetComponent<Text>().color = color;
+            nameText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // Value text
+            var valText = AddText(card, "Value", value > 0 ? value.ToString() : "", 11, TextAnchor.MiddleCenter);
+            SetAnchors(valText, 0.04f, 0.04f, 0.96f, 0.22f);
+            valText.GetComponent<Text>().color = TextMid;
+
+            // Element accent line
+            var accent = AddPanel(card, "Accent", color);
+            SetAnchors(accent, 0.06f, 0.38f, 0.94f, 0.40f);
+        }
+
+        static void AddBuildQueueSlot(GameObject parent, int index, string buildingName, string timer, float progress, bool active)
+        {
+            float yTop = 0.85f - index * 0.30f;
+            float yBot = yTop - 0.27f;
+
+            var slot = AddPanel(parent, $"QueueSlot_{index}", active ? BgPanelLight : BgInput);
+            SetAnchors(slot, 0.04f, yBot, 0.96f, yTop);
+            AddOutlinePanel(slot, active ? EmberDim : BorderDim);
+
+            var nameText = AddText(slot, "Name", buildingName, 11, TextAnchor.MiddleLeft);
+            SetAnchors(nameText, 0.05f, 0.55f, 0.65f, 0.95f);
+            nameText.GetComponent<Text>().color = active ? TextWhite : TextDim;
+
+            var timerText = AddText(slot, "Timer", timer, 12, TextAnchor.MiddleRight);
+            SetAnchors(timerText, 0.55f, 0.55f, 0.95f, 0.95f);
+            timerText.GetComponent<Text>().color = active ? Ember : TextDim;
+            if (active) timerText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            if (active)
+            {
+                var progressBg = AddPanel(slot, "ProgressBg", new Color(0.06f, 0.04f, 0.08f));
+                SetAnchors(progressBg, 0.05f, 0.12f, 0.95f, 0.40f);
+                var progressFill = AddPanel(progressBg, "Fill", Ember);
+                SetAnchors(progressFill, 0f, 0f, progress, 1f);
+            }
+        }
+
+        static void AddLegendItem(GameObject parent, string label, Color color, float yPos)
+        {
+            var dot = AddPanel(parent, $"Leg_{label}", color);
+            SetAnchors(dot, 0.1f, yPos, 0.25f, yPos + 0.25f);
+            var text = AddText(parent, $"LegText_{label}", label, 8, TextAnchor.MiddleLeft);
+            SetAnchors(text, 0.3f, yPos, 0.95f, yPos + 0.25f);
+            text.GetComponent<Text>().color = TextMid;
+        }
+
+        // ===================================================================
+        // HELPER METHODS — Basic widgets
+        // ===================================================================
+
+        static GameObject AddStyledButton(GameObject parent, string name, string label, Color bgColor, Color darkColor)
+        {
+            var btn = AddPanel(parent, name, bgColor);
+            btn.AddComponent<Button>();
+            AddOutlinePanel(btn, new Color(bgColor.r * 1.3f, bgColor.g * 1.3f, bgColor.b * 1.3f, 0.5f));
+
+            var dark = AddPanel(btn, "DarkOverlay", new Color(darkColor.r, darkColor.g, darkColor.b, 0.3f));
+            SetAnchors(dark, 0f, 0f, 1f, 0.5f);
+
+            var lbl = AddText(btn, "Label", label, 13, TextAnchor.MiddleCenter);
+            StretchToParent(lbl);
+            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            return btn;
+        }
+
+        static void AddNavButton(GameObject parent, string name, string label, Color color, bool isActive)
+        {
+            var btn = AddPanel(parent, name, isActive ? color : new Color(color.r * 0.5f, color.g * 0.5f, color.b * 0.5f, 0.4f));
+            btn.AddComponent<LayoutElement>().flexibleWidth = 1;
+            btn.AddComponent<Button>();
+
+            if (isActive)
+            {
+                var indicator = AddPanel(btn, "ActiveIndicator", Gold);
+                SetAnchors(indicator, 0.2f, 0.85f, 0.8f, 0.92f);
+            }
+
+            var lbl = AddText(btn, "Label", label, 10, TextAnchor.MiddleCenter);
+            StretchToParent(lbl);
+            lbl.GetComponent<Text>().color = isActive ? TextWhite : TextMid;
+            lbl.GetComponent<Text>().fontStyle = isActive ? FontStyle.Bold : FontStyle.Normal;
+        }
+
+        static void AddQuickActionButton(GameObject parent, string name, string label, Color color)
+        {
+            var btn = AddPanel(parent, name, new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.8f));
+            btn.AddComponent<LayoutElement>().flexibleWidth = 1;
+            btn.AddComponent<Button>();
+            AddOutlinePanel(btn, new Color(color.r * 0.6f, color.g * 0.6f, color.b * 0.6f, 0.5f));
+
+            var lbl = AddText(btn, "Label", label, 11, TextAnchor.MiddleCenter);
+            StretchToParent(lbl);
+            lbl.GetComponent<Text>().color = new Color(color.r * 1.2f, color.g * 1.2f, color.b * 1.2f);
+            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+        }
+
+        static void AddTabButton(GameObject parent, string name, string label, Color color, bool isActive)
+        {
+            var tab = AddPanel(parent, name, isActive ? new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.8f) : BgMid);
+            tab.AddComponent<LayoutElement>().flexibleWidth = 1;
+            tab.AddComponent<Button>();
+
+            if (isActive)
+            {
+                var indicator = AddPanel(tab, "ActiveBar", color);
+                SetAnchors(indicator, 0.1f, 0f, 0.9f, 0.06f);
+            }
+
+            var lbl = AddText(tab, "Label", label, 11, TextAnchor.MiddleCenter);
+            StretchToParent(lbl);
+            lbl.GetComponent<Text>().color = isActive ? color : TextDim;
+            lbl.GetComponent<Text>().fontStyle = isActive ? FontStyle.Bold : FontStyle.Normal;
+        }
+
+        static void AddToolbarBtn(GameObject parent, string name, string label, Color color, Color darkColor)
+        {
+            var btn = AddPanel(parent, name, new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.9f));
+            btn.AddComponent<LayoutElement>().flexibleWidth = 1;
+            btn.AddComponent<Button>();
+            AddOutlinePanel(btn, new Color(color.r * 0.5f, color.g * 0.5f, color.b * 0.5f, 0.4f));
+
+            var iconArea = AddPanel(btn, "Icon", new Color(color.r * 0.5f, color.g * 0.5f, color.b * 0.5f, 0.8f));
+            SetAnchors(iconArea, 0.3f, 0.55f, 0.7f, 0.88f);
+
+            var lbl = AddText(btn, "Label", label, 9, TextAnchor.MiddleCenter);
+            SetAnchors(lbl, 0f, 0.02f, 1f, 0.45f);
+            lbl.GetComponent<Text>().color = color;
+            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+        }
+
+        // ===================================================================
+        // HELPER METHODS — Primitives
+        // ===================================================================
+
+        /// <summary>Creates a SafeArea panel under the canvas that adjusts for notch/Dynamic Island.</summary>
+        static GameObject CreateSafeArea(GameObject canvasGo)
+        {
+            var go = new GameObject("SafeArea", typeof(RectTransform));
+            go.transform.SetParent(canvasGo.transform, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var safeAreaType = System.Type.GetType("AshenThrone.UI.SafeAreaPanel, AshenThrone");
+            if (safeAreaType != null) go.AddComponent(safeAreaType);
+            return go;
+        }
+
+        static UnityEngine.SceneManagement.Scene OpenScene(string name)
         {
             string path = $"Assets/Scenes/{name}/{name}.unity";
             if (!File.Exists(path))
@@ -642,7 +1647,7 @@ namespace AshenThrone.Editor
             return EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
         }
 
-        private static GameObject FindOrCreateCanvas(UnityEngine.SceneManagement.Scene scene)
+        static GameObject FindOrCreateCanvas(UnityEngine.SceneManagement.Scene scene)
         {
             foreach (var root in scene.GetRootGameObjects())
             {
@@ -651,6 +1656,14 @@ namespace AshenThrone.Editor
                 {
                     for (int i = existing.transform.childCount - 1; i >= 0; i--)
                         Object.DestroyImmediate(existing.transform.GetChild(i).gameObject);
+                    // Ensure proper scaler
+                    var scaler = existing.GetComponent<CanvasScaler>();
+                    if (scaler != null)
+                    {
+                        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                        scaler.referenceResolution = new Vector2(1080, 1920);
+                        scaler.matchWidthOrHeight = 0.5f;
+                    }
                     return existing.gameObject;
                 }
             }
@@ -658,7 +1671,10 @@ namespace AshenThrone.Editor
             var canvasGo = new GameObject("Canvas");
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvasGo.AddComponent<CanvasScaler>();
+            var cs = canvasGo.AddComponent<CanvasScaler>();
+            cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            cs.referenceResolution = new Vector2(1080, 1920);
+            cs.matchWidthOrHeight = 0.5f;
             canvasGo.AddComponent<GraphicRaycaster>();
 
             bool hasES = false;
@@ -674,7 +1690,7 @@ namespace AshenThrone.Editor
             return canvasGo;
         }
 
-        private static GameObject AddPanel(GameObject parent, string name, Color color)
+        static GameObject AddPanel(GameObject parent, string name, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent.transform, false);
@@ -682,7 +1698,7 @@ namespace AshenThrone.Editor
             return go;
         }
 
-        private static GameObject AddText(GameObject parent, string name, string text, int size, TextAnchor align)
+        static GameObject AddText(GameObject parent, string name, string text, int size, TextAnchor align)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent.transform, false);
@@ -690,34 +1706,37 @@ namespace AshenThrone.Editor
             t.text = text;
             t.fontSize = size;
             t.alignment = align;
-            t.color = Color.white;
+            t.color = TextLight;
             t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
             return go;
         }
 
-        private static void AddMenuButton(GameObject parent, string name, string label, Color color)
+        static void AddOutline(GameObject go, Color color, float distance)
         {
-            var btn = AddPanel(parent, name, color);
-            btn.AddComponent<LayoutElement>().preferredHeight = 48;
-            btn.AddComponent<Button>();
-
-            var lbl = AddText(btn, "Label", label, 18, TextAnchor.MiddleCenter);
-            StretchToParent(lbl);
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = color;
+            outline.effectDistance = new Vector2(distance, -distance);
         }
 
-        private static void AddToolbarButton(GameObject parent, string name, string label, Color color)
+        static void AddOutlinePanel(GameObject go, Color color)
         {
-            var btn = AddPanel(parent, name, color);
-            var le = btn.AddComponent<LayoutElement>();
-            le.preferredHeight = 40;
-            le.flexibleWidth = 1;
-            btn.AddComponent<Button>();
-
-            var lbl = AddText(btn, "Label", label, 12, TextAnchor.MiddleCenter);
-            StretchToParent(lbl);
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = color;
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
-        private static void StretchToParent(GameObject child)
+        static void SetAnchors(GameObject go, float xMin, float yMin, float xMax, float yMax)
+        {
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(xMin, yMin);
+            rect.anchorMax = new Vector2(xMax, yMax);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+        }
+
+        static void StretchToParent(GameObject child)
         {
             var rect = child.GetComponent<RectTransform>();
             rect.anchorMin = Vector2.zero;
@@ -726,9 +1745,11 @@ namespace AshenThrone.Editor
             rect.offsetMax = Vector2.zero;
         }
 
-        private static void SaveScene()
+        static void SaveScene()
         {
-            EditorSceneManager.SaveOpenScenes();
+            var scene = EditorSceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
         }
     }
 }
