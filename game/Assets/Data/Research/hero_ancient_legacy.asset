@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: hero_ancient_legacy
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: hero_ancient_legacy
+  displayName: Ancient Legacy
+  description: Heroes unlock combo skill bonuses at Star Tier 2.
+  branch: 3
+  gridPosition: {x: 3, y: 1}
+  stoneCost: 1500
+  ironCost: 1200
+  grainCost: 900
+  arcaneEssenceCost: 1800
+  researchTimeSeconds: 7200
+  prerequisiteNodeIds:
+  - hero_star_forging_2
+  - hero_alliance_bonds
+  effects:
+  - effectType: 22
+    magnitude: 1
+    description: Combo skills unlocked at Star Tier 2
+  requiredAcademyTier: 3

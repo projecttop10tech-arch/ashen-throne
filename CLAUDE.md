@@ -68,7 +68,8 @@ Instructions for Claude agents working on this project. Read this file at the st
 | Phase 4: Economy & Monetization | COMPLETE (QA passed, committed) |
 | Phase 5: Events | COMPLETE (QA passed, committed) |
 | Phase 6: Polish & Launch | COMPLETE (QA passed, committed) |
-| Phase 7: Infrastructure & Tooling | IN PROGRESS (generators created, needs Unity Editor run) |
+| Phase 7: Infrastructure & Tooling | COMPLETE (all generators run, scenes populated, 544 tests pass) |
+| Phase 8: Placeholder Art & UI Prefabs | IN PROGRESS |
 
 ## Phase 1 Remaining Work
 - [x] TurnManager phase state full implementations (DrawPhaseState, ActionPhaseState, ResolvePhaseState, EndPhaseState, BattleOverPhaseState)

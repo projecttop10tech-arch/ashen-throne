@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Event_ShardHunt
+  m_EditorClassIdentifier: AshenThrone:AshenThrone.Events:EventDefinition
+  eventId: shard_hunt
+  displayName: Shard Hunt
+  description: Ancient power crystals scatter across the realm. Be the first to collect
+    enough hero shards to claim the legendary Ashenmourne.
+  scope: 0
+  bannerImage: {fileID: 0}
+  startTimeIso: 2026-04-22T00:00:00Z
+  endTimeIso: 2026-04-29T00:00:00Z
+  objectiveType: 3
+  objectiveTarget: 500
+  milestoneRewards:
+  - RewardId: shard_hunt_reward_1
+    ProgressThreshold: 100
+    ResourceAmount: 100
+    ItemId: resource_arcane_essence
+  - RewardId: shard_hunt_reward_2
+    ProgressThreshold: 300
+    ResourceAmount: 200
+    ItemId: resource_arcane_essence
+  - RewardId: shard_hunt_reward_3
+    ProgressThreshold: 500
+    ResourceAmount: 0
+    ItemId: hero_ashenmourne_fragment
+  completionRewards:
+  - RewardId: shard_hunt_complete
+    ProgressThreshold: 500
+    ResourceAmount: 0
+    ItemId: cosmetic_shard_hunter_emote

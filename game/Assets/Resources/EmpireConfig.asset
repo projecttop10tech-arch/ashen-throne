@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ec751f27769f4219a7361ad968ca0b6, type: 3}
+  m_Name: EmpireConfig
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.EmpireConfig
+  StartingStone: 500
+  StartingIron: 200
+  StartingGrain: 300
+  StartingArcaneEssence: 50
+  DefaultMaxStone: 5000
+  DefaultMaxIron: 5000
+  DefaultMaxGrain: 5000
+  DefaultMaxArcaneEssence: 1000
+  MaxOfflineEarningsHours: 8
+  FreeQueueSlots: 2
+  MaxBuildTimeSecondsStronghold: 28800
+  MaxBuildTimeSecondsOther: 14400
+  AllianceHelpSecondsPerMember: 120
+  MaxAllianceHelpers: 20
+  MaxResearchQueues: 1

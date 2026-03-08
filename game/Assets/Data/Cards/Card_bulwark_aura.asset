@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b75c96e5e0af4eeab1378447f6e0491, type: 3}
+  m_Name: Card_bulwark_aura
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.AbilityCardData
+  cardId: bulwark_aura
+  displayName: Bulwark Aura
+  effectDescription: Shield all allies for 80 points.
+  cardType: 1
+  targetType: 3
+  element: 0
+  energyCost: 3
+  isReaction: 0
+  baseEffectValue: 80
+  statMultiplier: 0.3
+  scalingStat: 1
+  applyStatusEffect: 0
+  statusDuration: 0
+  statusProcChance: 1
+  splashRadius: 0
+  outputsComboTag: 0
+  requiresComboTag: 0
+  comboBonusMultiplier: 1
+  comboBonusDescription: 
+  cardArtwork: {fileID: 0}
+  cardFrameColor: {r: 1, g: 1, b: 1, a: 1}
+  impactParticles: []
+  castSound: {fileID: 0}
+  impactSound: {fileID: 0}
+  requiredHeroStarTier: 1

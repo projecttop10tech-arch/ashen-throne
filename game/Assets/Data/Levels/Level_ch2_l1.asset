@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd277407cff84f57a631e257966ec35, type: 3}
+  m_Name: Level_ch2_l1
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.PveLevelData
+  levelId: ch2_l1
+  displayName: Into the Deep Forest
+  chapterNumber: 2
+  levelNumber: 1
+  openingNarrative: The forest is thick. Wild Hunters watch from the canopy.
+  victoryNarrative: First patrol neutralised. Move deeper into the hunters' territory.
+  defeatNarrative: The forest takes you back. Regroup at the forest edge.
+  enemies:
+  - heroData: {fileID: 11400000, guid: fe9dd579023134ea5aa65fd22343ec33, type: 2}
+    level: 6
+    rowOverride: 0
+  terrainPresets: []
+  difficulty: 0
+  isBossLevel: 0
+  xpReward: 100
+  heroShardRewards: 
+  firstClearHeroShardReward: {fileID: 0}
+  firstClearShardAmount: 5
+  requiredLevelId: ch1_l5
+  requiredStrongholdLevel: 1

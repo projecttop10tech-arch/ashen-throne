@@ -1,0 +1,166 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecddd8c4bd13042c49808bae1d40a2f4, type: 3}
+  m_Name: Building_observatory
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.BuildingData
+  buildingId: observatory
+  displayName: Observatory
+  description: Reveals hidden map features and boosts scouting.
+  category: 3
+  district: 3
+  tierSprites: []
+  constructionParticlePrefab: {fileID: 0}
+  constructionCompleteSound: {fileID: 0}
+  footprintSize: {x: 2, y: 2}
+  isUniquePerCity: 0
+  strongholdLevelRequired: 4
+  tiers:
+  - tierLabel: Level 1
+    stoneCost: 80
+    ironCost: 56
+    grainCost: 30
+    arcaneEssenceCost: 0
+    buildTimeSeconds: 300
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +2% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 2
+  - tierLabel: Level 2
+    stoneCost: 320
+    ironCost: 224
+    grainCost: 120
+    arcaneEssenceCost: 0
+    buildTimeSeconds: 1867
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +4% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 4
+  - tierLabel: Level 3
+    stoneCost: 720
+    ironCost: 504
+    grainCost: 270
+    arcaneEssenceCost: 0
+    buildTimeSeconds: 3433
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +6% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 6
+  - tierLabel: Level 4
+    stoneCost: 1280
+    ironCost: 896
+    grainCost: 480
+    arcaneEssenceCost: 96
+    buildTimeSeconds: 5000
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +8% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 8
+  - tierLabel: Level 5
+    stoneCost: 2000
+    ironCost: 1400
+    grainCost: 750
+    arcaneEssenceCost: 240
+    buildTimeSeconds: 6567
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +10% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 10
+  - tierLabel: Level 6
+    stoneCost: 2880
+    ironCost: 2016
+    grainCost: 1080
+    arcaneEssenceCost: 432
+    buildTimeSeconds: 8133
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +12% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 12
+  - tierLabel: Level 7
+    stoneCost: 3920
+    ironCost: 2744
+    grainCost: 1470
+    arcaneEssenceCost: 672
+    buildTimeSeconds: 9700
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +14% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 14
+  - tierLabel: Level 8
+    stoneCost: 5120
+    ironCost: 3584
+    grainCost: 1920
+    arcaneEssenceCost: 960
+    buildTimeSeconds: 11267
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +16% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 16
+  - tierLabel: Level 9
+    stoneCost: 6480
+    ironCost: 4536
+    grainCost: 2430
+    arcaneEssenceCost: 1296
+    buildTimeSeconds: 12833
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +18% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 18
+  - tierLabel: Level 10
+    stoneCost: 8000
+    ironCost: 5600
+    grainCost: 3000
+    arcaneEssenceCost: 1680
+    buildTimeSeconds: 14400
+    stoneProduction: 0
+    ironProduction: 0
+    grainProduction: 0
+    arcaneEssenceProduction: 0
+    bonusDescription: +20% ResearchSpeed
+    bonuses:
+    - bonusType: 1
+      bonusPercent: 20

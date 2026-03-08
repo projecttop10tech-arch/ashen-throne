@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: resource_fertile_fields
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: resource_fertile_fields
+  displayName: Fertile Fields
+  description: +10% grain production from all farms.
+  branch: 1
+  gridPosition: {x: 1, y: 0}
+  stoneCost: 120
+  ironCost: 80
+  grainCost: 100
+  arcaneEssenceCost: 0
+  researchTimeSeconds: 300
+  prerequisiteNodeIds: []
+  effects:
+  - effectType: 6
+    magnitude: 10
+    description: +10% grain production
+  requiredAcademyTier: 1

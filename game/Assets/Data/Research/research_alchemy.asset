@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: research_alchemy
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: research_alchemy
+  displayName: Alchemy
+  description: Heroes receive +10% healing from all sources.
+  branch: 2
+  gridPosition: {x: 1, y: 1}
+  stoneCost: 200
+  ironCost: 150
+  grainCost: 100
+  arcaneEssenceCost: 400
+  researchTimeSeconds: 1500
+  prerequisiteNodeIds:
+  - research_library_archives
+  effects:
+  - effectType: 12
+    magnitude: 10
+    description: +10% healing received
+  requiredAcademyTier: 2

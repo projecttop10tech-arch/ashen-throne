@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.8.1] — 2026-03-07 (Phase 7 Complete: All Generators Run, Scenes Populated)
+
+### ADDED
+- **Unity WebSocket bridge** (`tools/unity-bridge.mjs`): Sends commands to Unity Editor MCP server on port 8090.
+- **MCP config** (`.claude/mcp.json`): Registers Unity MCP server for Claude Code.
+- **Ralph loop plan** (`.claude/ralph-loop.md`): Full phases 7-16 with 62-check QA protocol.
+
+### CHANGED
+- Executed all generators in Unity Editor via MCP: SceneGenerator (6 scenes), SceneUIGenerator (UI hierarchies), BuildingDataGenerator (21 SOs), QuestDefinitionGenerator (30 SOs), TutorialStepGenerator (8 SOs), ConfigGenerator, ArtAssetGenerator (combat grid, card widget, damage popup, hero/building placeholders, resource icons), StarterAssetGenerator, ResearchTreeGenerator.
+
+### FIXED
+- **AshenThrone.Editor.asmdef**: Fixed TMPro assembly reference (now uses GUIDs).
+- **SceneUIGenerator.cs**: Regenerated missing .meta file after file rename broke Unity asset tracking.
+
+---
+
 ## [0.8.0] — 2026-03-07 (Phase 7: Infrastructure, Tooling, Project Hygiene)
 
 ### ADDED

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d83d8a4f691d48f78de8e436f5d9841, type: 3}
+  m_Name: CombatConfig
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.CombatConfig
+  DeckSize: 15
+  MaxHandSize: 5
+  DrawsPerTurn: 3
+  MaxEnergy: 4
+  EnergyRegenPerTurn: 2
+  FireTileDamagePerTurn: 50
+  HighGroundDamageMultiplier: 1.25
+  ShadowVeilMissChance: 0.3
+  ArcaneLayLineEnergyCostReduction: 1
+  MinimumDamage: 1
+  MinimumHeal: 1
+  MitigationDivisor: 4
+  CriticalHitMultiplier: 1.5
+  SlowSpeedPenalty: 3
+  EnragedAttackBonus: 0.5
+  EnragedDefensePenalty: 0.333
+  MarkedDamageBonus: 1.25
+  AiActionDelaySeconds: 0.6
+  PlayerActionTimeoutSeconds: 30
+  BurnDamagePerTurn: 30
+  BleedDamagePerTurn: 25
+  PoisonDamagePerTurn: 20
+  RegenerationHealPerTurn: 40
+  FactionBonus2Heroes: 0.1
+  FactionBonus3Heroes: 0.15

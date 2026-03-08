@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd277407cff84f57a631e257966ec35, type: 3}
+  m_Name: Level_ch1_l4
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.PveLevelData
+  levelId: ch1_l4
+  displayName: Vorra's Challenge
+  chapterNumber: 1
+  levelNumber: 4
+  openingNarrative: Vorra Steelborn blocks the mountain pass. Her hammer gleams in
+    the ash light.
+  victoryNarrative: Vorra falls. The pass to the cultist stronghold is open.
+  defeatNarrative: Vorra holds the pass. Her reputation well-earned.
+  enemies:
+  - heroData: {fileID: 11400000, guid: bbfe7a71dd85047a3985e0401797819b, type: 2}
+    level: 5
+    rowOverride: 0
+  terrainPresets: []
+  difficulty: 1
+  isBossLevel: 0
+  xpReward: 125
+  heroShardRewards: 
+  firstClearHeroShardReward: {fileID: 0}
+  firstClearShardAmount: 5
+  requiredLevelId: ch1_l3
+  requiredStrongholdLevel: 1

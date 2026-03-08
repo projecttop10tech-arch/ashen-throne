@@ -192,11 +192,10 @@ namespace AshenThrone.Economy
 
         private int GetShardsRequired(string heroDataId)
         {
-            // In production: look up from the loaded HeroData asset via AssetDatabase or Resources.
-            // Using a constant here as HeroData.ShardsToSummon is defined per-rarity tier:
-            // Common=50, Rare=80, Epic=120, Legendary=200.
-            // TODO: wire up to HeroData lookup when asset database is integrated.
-            return 80; // Default: Rare tier requirement
+            var heroData = Resources.Load<HeroData>($"Heroes/{heroDataId}");
+            if (heroData != null)
+                return heroData.shardsToUnlock;
+            return 80; // Fallback: Rare tier if asset not found
         }
     }
 

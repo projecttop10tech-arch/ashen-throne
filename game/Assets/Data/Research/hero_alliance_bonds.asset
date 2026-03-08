@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: hero_alliance_bonds
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: hero_alliance_bonds
+  displayName: Alliance Bonds
+  description: +10% contribution to alliance research and buildings.
+  branch: 3
+  gridPosition: {x: 2, y: 1}
+  stoneCost: 400
+  ironCost: 300
+  grainCost: 300
+  arcaneEssenceCost: 400
+  researchTimeSeconds: 1500
+  prerequisiteNodeIds:
+  - hero_star_forging_1
+  effects:
+  - effectType: 17
+    magnitude: 10
+    description: +10% alliance contribution
+  requiredAcademyTier: 2

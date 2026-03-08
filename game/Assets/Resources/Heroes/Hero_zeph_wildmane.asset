@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8c8c3d6968048319f6ac657c620af9, type: 3}
+  m_Name: Hero_zeph_wildmane
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.HeroData
+  heroId: zeph_wildmane
+  displayName: Zeph Wildmane
+  loreDescription: Half-feral, half-unstoppable. The Wild Hunters found him in the
+    deep forest fighting a bear. The bear lost.
+  rarity: 0
+  primaryRole: 1
+  secondaryRole: 0
+  faction: 2
+  portrait: {fileID: 0}
+  fullBodySprite: {fileID: 0}
+  spineSkeletonData: {fileID: 0}
+  factionColor: {r: 1, g: 1, b: 1, a: 1}
+  baseHealth: 1100
+  baseAttack: 135
+  baseDefense: 85
+  baseSpeed: 14
+  baseCritChance: 0.09
+  preferredRow: 0
+  abilityPool:
+  - {fileID: 11400000, guid: 470df1b95b01a43d984b1b0c017866e3, type: 2}
+  - {fileID: 11400000, guid: b8dbffd98541c4c71942542ec0250f88, type: 2}
+  - {fileID: 11400000, guid: 7950c565ceaa24e7d91aa8a1d27ffa30, type: 2}
+  - {fileID: 11400000, guid: 32fdac3e2e3a343ce8f8f00c223a24e5, type: 2}
+  - {fileID: 11400000, guid: 7af0dba98744441b797703943c890b06, type: 2}
+  passiveAbility: {fileID: 0}
+  shardsToUnlock: 30
+  shardsPerStarTier: 14000000280000003c0000005000000064000000
+  voiceSelect: {fileID: 0}
+  voiceCombatStart: {fileID: 0}
+  voiceVictory: {fileID: 0}
+  voiceDefeated: {fileID: 0}

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Event_VoidRift
+  m_EditorClassIdentifier: AshenThrone:AshenThrone.Events:EventDefinition
+  eventId: void_rift
+  displayName: Void Rift
+  description: "A rift in reality tears open the dungeon floors. Descend as deep
+    as you dare \u2014 each floor cleared earns score toward the weekly leaderboard."
+  scope: 0
+  bannerImage: {fileID: 0}
+  startTimeIso: 2026-04-29T00:00:00Z
+  endTimeIso: 2026-05-06T00:00:00Z
+  objectiveType: 4
+  objectiveTarget: 100
+  milestoneRewards:
+  - RewardId: void_rift_reward_1
+    ProgressThreshold: 10
+    ResourceAmount: 150
+    ItemId: resource_stone
+  - RewardId: void_rift_reward_2
+    ProgressThreshold: 50
+    ResourceAmount: 300
+    ItemId: resource_iron
+  - RewardId: void_rift_reward_3
+    ProgressThreshold: 100
+    ResourceAmount: 200
+    ItemId: hero_shard_token
+  completionRewards:
+  - RewardId: void_rift_complete
+    ProgressThreshold: 100
+    ResourceAmount: 0
+    ItemId: cosmetic_void_rift_portal_skin

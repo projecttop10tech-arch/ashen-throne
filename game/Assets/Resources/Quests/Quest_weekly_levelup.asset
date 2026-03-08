@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47844c974ffe7470db2dd6eac0da0c8c, type: 3}
+  m_Name: Quest_weekly_levelup
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.QuestDefinition
+  <QuestId>k__BackingField: weekly_levelup
+  <DisplayName>k__BackingField: Mentor
+  <Description>k__BackingField: Level up a hero 5 times
+  <Cadence>k__BackingField: 1
+  <ObjectiveType>k__BackingField: 8
+  <RequiredCount>k__BackingField: 5
+  <BattlePassPoints>k__BackingField: 350
+  <StoneReward>k__BackingField: 500
+  <IronReward>k__BackingField: 500
+  <GrainReward>k__BackingField: 500
+  <ArcaneReward>k__BackingField: 200
+  <HeroShardReward>k__BackingField: 5
+  <ContextTag>k__BackingField: 

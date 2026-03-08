@@ -125,13 +125,13 @@ namespace AshenThrone.UI.Localization
             return language switch
             {
                 GameLanguage.English            => "English",
-                GameLanguage.Spanish            => "Espanol",
-                GameLanguage.French             => "Francais",
+                GameLanguage.Spanish            => "Espa\u00f1ol",
+                GameLanguage.French             => "Fran\u00e7ais",
                 GameLanguage.German             => "Deutsch",
-                GameLanguage.Portuguese         => "Portugues",
-                GameLanguage.Japanese           => "Japanese",
-                GameLanguage.Korean             => "Korean",
-                GameLanguage.ChineseSimplified  => "Chinese (Simplified)",
+                GameLanguage.Portuguese         => "Portugu\u00eas",
+                GameLanguage.Japanese           => "\u65e5\u672c\u8a9e",
+                GameLanguage.Korean             => "\ud55c\uad6d\uc5b4",
+                GameLanguage.ChineseSimplified  => "\u7b80\u4f53\u4e2d\u6587",
                 _ => "English"
             };
         }

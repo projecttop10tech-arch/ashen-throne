@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: resource_arcane_tapping
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: resource_arcane_tapping
+  displayName: Arcane Tapping
+  description: +10% arcane essence production.
+  branch: 1
+  gridPosition: {x: 2, y: 0}
+  stoneCost: 100
+  ironCost: 80
+  grainCost: 60
+  arcaneEssenceCost: 100
+  researchTimeSeconds: 600
+  prerequisiteNodeIds: []
+  effects:
+  - effectType: 7
+    magnitude: 10
+    description: +10% arcane production
+  requiredAcademyTier: 1

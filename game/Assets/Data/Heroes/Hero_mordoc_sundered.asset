@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8c8c3d6968048319f6ac657c620af9, type: 3}
+  m_Name: Hero_mordoc_sundered
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.HeroData
+  heroId: mordoc_sundered
+  displayName: Mordoc the Sundered
+  loreDescription: Once a scholar of the arcane. The void that claimed his soul left
+    something far more dangerous in its place.
+  rarity: 2
+  primaryRole: 5
+  secondaryRole: 3
+  faction: 1
+  portrait: {fileID: 0}
+  fullBodySprite: {fileID: 0}
+  spineSkeletonData: {fileID: 0}
+  factionColor: {r: 1, g: 1, b: 1, a: 1}
+  baseHealth: 950
+  baseAttack: 120
+  baseDefense: 70
+  baseSpeed: 10
+  baseCritChance: 0.08
+  preferredRow: 2
+  abilityPool:
+  - {fileID: 11400000, guid: 0c37211b653c14cb98f228c7a0538088, type: 2}
+  - {fileID: 11400000, guid: b22c76ef06b6f45b5a95a774923bca3d, type: 2}
+  - {fileID: 11400000, guid: 4b8ba85654e99493db6e8e46b987d8bc, type: 2}
+  - {fileID: 11400000, guid: 992148c1d2bea49a2a614ea0fe98eec3, type: 2}
+  - {fileID: 11400000, guid: 3d9e41870a3eb4c4ca48e3a2f4b18c8a, type: 2}
+  passiveAbility: {fileID: 0}
+  shardsToUnlock: 60
+  shardsPerStarTier: 14000000280000003c0000005000000064000000
+  voiceSelect: {fileID: 0}
+  voiceCombatStart: {fileID: 0}
+  voiceVictory: {fileID: 0}
+  voiceDefeated: {fileID: 0}

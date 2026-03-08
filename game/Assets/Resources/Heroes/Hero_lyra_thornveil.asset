@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8c8c3d6968048319f6ac657c620af9, type: 3}
+  m_Name: Hero_lyra_thornveil
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.HeroData
+  heroId: lyra_thornveil
+  displayName: Lyra Thornveil
+  loreDescription: She can thread an arrow through the eye of a storm at five hundred
+    paces. The Wild Hunters' most celebrated scout.
+  rarity: 2
+  primaryRole: 2
+  secondaryRole: 6
+  faction: 2
+  portrait: {fileID: 0}
+  fullBodySprite: {fileID: 0}
+  spineSkeletonData: {fileID: 0}
+  factionColor: {r: 1, g: 1, b: 1, a: 1}
+  baseHealth: 900
+  baseAttack: 145
+  baseDefense: 60
+  baseSpeed: 16
+  baseCritChance: 0.18
+  preferredRow: 2
+  abilityPool:
+  - {fileID: 11400000, guid: cba6f0e31021b419889259c95cc36cf9, type: 2}
+  - {fileID: 11400000, guid: c42fd35098f204615ae50a47373bf61c, type: 2}
+  - {fileID: 11400000, guid: 103c8bdc4fa3243b8820501839597813, type: 2}
+  - {fileID: 11400000, guid: 04b0f6a6a88a14c48a5b33c5816d3276, type: 2}
+  - {fileID: 11400000, guid: d32813b5812964eda82482eba2711752, type: 2}
+  passiveAbility: {fileID: 0}
+  shardsToUnlock: 60
+  shardsPerStarTier: 14000000280000003c0000005000000064000000
+  voiceSelect: {fileID: 0}
+  voiceCombatStart: {fileID: 0}
+  voiceVictory: {fileID: 0}
+  voiceDefeated: {fileID: 0}

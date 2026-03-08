@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9fdbc780b586438e930f162b6ace6ae, type: 3}
+  m_Name: TerritoryConfig
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.TerritoryConfig
+  <TotalRegions>k__BackingField: 200
+  <MapRadius>k__BackingField: 8
+  <WarWindowDurationSeconds>k__BackingField: 7200
+  <WarWindowsPerDay>k__BackingField: 2
+  <WarWindowStartHourUtc>k__BackingField: 18
+  <NeutralCapturePower>k__BackingField: 500
+  <MinAttackers>k__BackingField: 1
+  <RallyMinAttackers>k__BackingField: 10
+  <RallyMaxAttackers>k__BackingField: 50
+  <RallyOpenDurationSeconds>k__BackingField: 300
+  <FortificationBaseHp>k__BackingField: 5000
+  <FortificationTierMultiplier>k__BackingField: 1.5
+  <FortificationMaxTier>k__BackingField: 5
+  <SupplyLineMaxRange>k__BackingField: 3
+  <ResourceTerritoryBonus>k__BackingField: 0.05
+  <MilitaryTerritoryBonus>k__BackingField: 0.03
+  <ResearchTerritoryBonus>k__BackingField: 0.04
+  <ContributionForCapture>k__BackingField: 500
+  <ContributionForDefend>k__BackingField: 300
+  <ContributionForRally>k__BackingField: 100

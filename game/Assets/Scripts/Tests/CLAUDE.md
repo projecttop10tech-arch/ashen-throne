@@ -13,6 +13,7 @@ Tests/
 ├── Empire/       -> mirrors Scripts/Empire/
 ├── Economy/      -> mirrors Scripts/Economy/
 ├── Alliance/     -> mirrors Scripts/Alliance/
+├── Heroes/       -> mirrors Scripts/Heroes/
 ├── Events/       -> mirrors Scripts/Events/
 └── UI/           -> mirrors Scripts/UI/ (Tutorial, Accessibility, Localization)
 ```
@@ -50,8 +51,9 @@ Tests/
 | Core | `ServiceLocatorTests.cs` | 16 |
 | Core | `StateMachineTests.cs` | 20 |
 | Core | `ObjectPoolTests.cs` | 14 |
+| Heroes | `HeroRosterTests.cs` | 35 |
 
-**Total: 544 tests**
+**Total: 579 tests**
 
 ## Test Patterns
 

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d7c81299c6754e229ff4fbf4dfcf527, type: 3}
+  m_Name: hero_training_2
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.ResearchNodeData
+  nodeId: hero_training_2
+  displayName: Advanced Training
+  description: All heroes gain +10% XP (cumulative with Training I).
+  branch: 3
+  gridPosition: {x: 0, y: 1}
+  stoneCost: 300
+  ironCost: 200
+  grainCost: 250
+  arcaneEssenceCost: 400
+  researchTimeSeconds: 900
+  prerequisiteNodeIds:
+  - hero_training_1
+  effects:
+  - effectType: 14
+    magnitude: 10
+    description: +10% hero XP gain
+  requiredAcademyTier: 2

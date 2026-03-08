@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8c8c3d6968048319f6ac657c620af9, type: 3}
+  m_Name: Hero_mira_pale_stone
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.HeroData
+  heroId: mira_pale_stone
+  displayName: Mira of the Pale Stone
+  loreDescription: Her voice can silence a battlefield. Her runes can turn a rout
+    into a rally. The Sanctum calls her the Architect of Survival.
+  rarity: 1
+  primaryRole: 5
+  secondaryRole: 4
+  faction: 3
+  portrait: {fileID: 0}
+  fullBodySprite: {fileID: 0}
+  spineSkeletonData: {fileID: 0}
+  factionColor: {r: 1, g: 1, b: 1, a: 1}
+  baseHealth: 1100
+  baseAttack: 90
+  baseDefense: 90
+  baseSpeed: 12
+  baseCritChance: 0.05
+  preferredRow: 1
+  abilityPool:
+  - {fileID: 11400000, guid: caa98b12e07ce44b7914abc1eba31672, type: 2}
+  - {fileID: 11400000, guid: 46fbf8601960e4963bf223583ef0cbe5, type: 2}
+  - {fileID: 11400000, guid: 17fc7ca64a5174b459fe6e362ff5e870, type: 2}
+  - {fileID: 11400000, guid: cd70fb43d690d4a049298d34f6f0e188, type: 2}
+  - {fileID: 11400000, guid: 204d30abad0084153837d1881f0fc887, type: 2}
+  passiveAbility: {fileID: 0}
+  shardsToUnlock: 40
+  shardsPerStarTier: 14000000280000003c0000005000000064000000
+  voiceSelect: {fileID: 0}
+  voiceCombatStart: {fileID: 0}
+  voiceVictory: {fileID: 0}
+  voiceDefeated: {fileID: 0}

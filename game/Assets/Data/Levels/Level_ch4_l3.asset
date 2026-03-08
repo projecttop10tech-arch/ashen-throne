@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd277407cff84f57a631e257966ec35, type: 3}
+  m_Name: Level_ch4_l3
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.PveLevelData
+  levelId: ch4_l3
+  displayName: Dimensional Crossroads
+  chapterNumber: 4
+  levelNumber: 3
+  openingNarrative: Reality folds here. Attacks miss. Space distorts. The Reapers
+    thrive in this confusion.
+  victoryNarrative: The crossroads stabilise. A brief respite.
+  defeatNarrative: The crossroads consume your squad. The void expands.
+  enemies:
+  - heroData: {fileID: 11400000, guid: d2a37ebb99a684a4e91fcc38d0938e19, type: 2}
+    level: 18
+    rowOverride: 2
+  - heroData: {fileID: 11400000, guid: 183e5f021ccf54cec991189c68610554, type: 2}
+    level: 17
+    rowOverride: 1
+  terrainPresets:
+  - column: 3
+    row: 1
+    tileType: 6
+  - column: 3
+    row: 2
+    tileType: 6
+  - column: 3
+    row: 3
+    tileType: 6
+  difficulty: 3
+  isBossLevel: 0
+  xpReward: 300
+  heroShardRewards: 
+  firstClearHeroShardReward: {fileID: 0}
+  firstClearShardAmount: 5
+  requiredLevelId: ch4_l2
+  requiredStrongholdLevel: 1

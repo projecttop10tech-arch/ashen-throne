@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd277407cff84f57a631e257966ec35, type: 3}
+  m_Name: Level_ch3_l3
+  m_EditorClassIdentifier: AshenThrone::AshenThrone.Data.PveLevelData
+  levelId: ch3_l3
+  displayName: The Sacred Hall
+  chapterNumber: 3
+  levelNumber: 3
+  openingNarrative: "The Sanctum's great hall. Ley lines hum beneath the floor \u2014
+    everyone feels their energy."
+  victoryNarrative: The hall falls. Ancient power dims.
+  defeatNarrative: The hall holds. Ley lines surge as your forces retreat.
+  enemies:
+  - heroData: {fileID: 11400000, guid: 02876194660364da4894d7814eaa4bd4, type: 2}
+    level: 12
+    rowOverride: 1
+  - heroData: {fileID: 11400000, guid: 6934fe42c5cd4415984f8c24ee61af2b, type: 2}
+    level: 12
+    rowOverride: 2
+  terrainPresets:
+  - column: 2
+    row: 2
+    tileType: 5
+  - column: 4
+    row: 2
+    tileType: 5
+  difficulty: 2
+  isBossLevel: 0
+  xpReward: 200
+  heroShardRewards: 
+  firstClearHeroShardReward: {fileID: 0}
+  firstClearShardAmount: 5
+  requiredLevelId: ch3_l2
+  requiredStrongholdLevel: 1
