@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.10.0] — 2026-03-07 (Phase 9: SDK Integration)
+
+### ADDED
+- **AnalyticsService.cs**: Firebase Analytics wrapper with stub mode (`#if FIREBASE_SDK`). Convenience methods for battle, purchase, tutorial events.
+- **CrashReporter.cs**: Firebase Crashlytics wrapper with unhandled exception capture and breadcrumb logging.
+- **PhotonManager.cs**: Photon Fusion 2 wrapper with room create/join, chat messaging, data broadcast. Stub mode (`#if PHOTON_SDK`).
+- **ATTManager.cs**: iOS App Tracking Transparency prompt. Auto-authorizes on Android/Editor.
+- **IAPCatalogRegistrar.cs**: Registers 6 IAP SKUs at boot (Battle Pass, 3 gem packs, cosmetic bundle, valor pass). All zero P2W.
+- **40 new unit tests**: AnalyticsServiceTests (10), PhotonManagerTests (15), CrashReporterTests (6), ATTManagerTests (5), IAPCatalogRegistrarTests (9).
+
+### CHANGED
+- **GameManager.cs**: Boot sequence now initializes ATT → CrashReporter → Analytics → PlayFab → Photon in correct compliance order.
+- **Network/CLAUDE.md**: Updated to document all 5 network services.
+
+---
+
 ## [0.9.0] — 2026-03-07 (Phase 8: Placeholder Art & UI Prefabs)
 
 ### ADDED

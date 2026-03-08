@@ -47,7 +47,37 @@ namespace AshenThrone.Core
         private IEnumerator BootSequence()
         {
             TransitionTo(AppState.Boot);
+
+            // 1. ATT prompt (iOS only, must precede analytics — compliance check #48)
+            if (ServiceLocator.TryGet<Network.ATTManager>(out var att))
+            {
+                att.RequestTrackingAuthorization();
+                yield return new WaitUntil(() => att.HasResponded);
+            }
+
+            // 2. Crash reporter (before anything that might throw)
+            if (ServiceLocator.TryGet<Network.CrashReporter>(out var crash))
+                crash.Initialize();
+
+            // 3. Analytics (after ATT, before auth so we can track boot events)
+            if (ServiceLocator.TryGet<Network.AnalyticsService>(out var analytics))
+                analytics.Initialize();
+
+            // 4. Authenticate with PlayFab
             yield return StartCoroutine(ServiceLocator.Get<Network.PlayFabService>().AuthenticateAsync());
+
+            // 5. Wire user IDs to analytics and crash reporter after auth
+            var playFab = ServiceLocator.Get<Network.PlayFabService>();
+            if (playFab.IsAuthenticated)
+            {
+                analytics?.SetUserId(playFab.PlayFabId);
+                crash?.SetUserId(playFab.PlayFabId);
+            }
+
+            // 6. Connect to Photon for multiplayer features
+            if (ServiceLocator.TryGet<Network.PhotonManager>(out var photon))
+                photon.Connect();
+
             TransitionTo(AppState.Lobby);
             yield return LoadSceneAsync(SceneName.Lobby);
         }

@@ -1,14 +1,18 @@
-# Scripts/Network/ — PlayFab Network Layer
+# Scripts/Network/ — Network & SDK Integration Layer
 
 > See root `/CLAUDE.md` for project-wide rules.
 
-The Network layer is a thin wrapper around the PlayFab Unity SDK. It handles authentication, Cloud Script calls, and user data persistence. All other systems call this through ServiceLocator — they never import PlayFab SDK directly.
+The Network layer wraps all external SDK integrations. All services register with ServiceLocator and use conditional compilation (`#if FIREBASE_SDK`, `#if PHOTON_SDK`) to switch between stub and real SDK modes.
 
 ## Files
 
 | File | Class | Purpose |
 |------|-------|---------|
 | `PlayFabService.cs` | `PlayFabService` | Auth, CloudScript, UserData CRUD |
+| `AnalyticsService.cs` | `AnalyticsService` | Firebase Analytics wrapper (events, user properties) |
+| `CrashReporter.cs` | `CrashReporter` | Firebase Crashlytics wrapper (crash reporting, breadcrumbs) |
+| `PhotonManager.cs` | `PhotonManager` | Photon Fusion 2 wrapper (rooms, chat, data broadcast) |
+| `ATTManager.cs` | `ATTManager` | iOS App Tracking Transparency prompt |
 
 ## Current Status: STUB MODE
 
