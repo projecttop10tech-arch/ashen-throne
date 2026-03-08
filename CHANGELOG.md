@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.7.3] — 2026-03-07 (QA: Backend fixes, null guards, GC optimization)
+
+### FIXED
+- **Backend Jest tests**: Fixed 2 failing tests (14/14 now passing):
+  - `GrantCombatShards > caps shards at 10`: Corrected mock to route `battle_tokens` through `GetUserData` (not `GetUserInternalData`), matching actual `validateAndConsumeBattleToken` code path.
+  - `ValidateIAP > prevents duplicate receipt`: Fixed incorrect hardcoded receipt hash (`-1177685440` → `-1684829004`) to match actual `hashString("valid_receipt_data")` output.
+  - `INVALID_BATTLE_TOKEN` test mock also corrected for consistency.
+- **Null guard — CardHandView.cs**: Added null check after `GetComponent<CardWidget>()` in `AddWidget()` to prevent NRE if prefab is misconfigured.
+- **Null guard — TurnOrderDisplay.cs**: Added null check after `GetComponent<TurnTokenWidget>()` in `SetTurnOrder()` to prevent NRE if prefab is misconfigured.
+- **Null guard — QuestEngine.cs**: Changed `ServiceLocator.Get<>()` to `ServiceLocator.TryGet()` in `Start()` for `BattlePassManager` and `ResourceManager` — consistent with nullable usage in `ClaimReward()`.
+- **GC optimization — CardHandManager.cs**: Replaced LINQ `.OrderBy().ToList()` shuffle with Fisher-Yates in-place shuffle in both `InitializeDeck()` and `ReshuffleDiscardIntoDeck()`. Removed unused `System.Linq` using directive. Eliminates per-reshuffle heap allocations.
+
+---
+
 ## [0.7.2] — 2026-03-07 (Coverage: Core/ unit tests)
 
 ### ADDED

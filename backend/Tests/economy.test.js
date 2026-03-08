@@ -54,8 +54,11 @@ describe("GrantCombatShards", () => {
     });
 
     test("returns INVALID_BATTLE_TOKEN when token not found in player data", () => {
-        mockServer.GetUserInternalData.mockImplementation(({ Keys }) => {
-            if (Keys.includes("battle_tokens")) return { Data: { battle_tokens: { Value: JSON.stringify([]) } } };
+        // validateAndConsumeBattleToken reads battle_tokens via GetUserData (not GetUserInternalData)
+        mockServer.GetUserData.mockImplementation(({ Keys }) => {
+            if (Keys && Keys.includes("battle_tokens")) {
+                return { Data: { battle_tokens: { Value: JSON.stringify([]) } } };
+            }
             return { Data: {} };
         });
 
@@ -65,12 +68,14 @@ describe("GrantCombatShards", () => {
     });
 
     test("caps shards at 10 even if client sends more", () => {
-        mockServer.GetUserInternalData.mockImplementation(({ Keys }) => {
-            if (Keys[0] && Keys[0].startsWith("rate_")) return { Data: {} };
-            if (Keys.includes("battle_tokens")) return { Data: { battle_tokens: { Value: JSON.stringify(["valid_token"]) } } };
+        // Rate limiter uses GetUserInternalData; battle tokens use GetUserData via getPlayerDataValue
+        mockServer.GetUserInternalData.mockReturnValue({ Data: {} });
+        mockServer.GetUserData.mockImplementation(({ Keys }) => {
+            if (Keys && Keys.includes("battle_tokens")) {
+                return { Data: { battle_tokens: { Value: JSON.stringify(["valid_token"]) } } };
+            }
             return { Data: {} };
         });
-        mockServer.GetUserData.mockReturnValue({ Data: {} });
 
         const result = handlers.GrantCombatShards({ heroId: "hero_kaelen", shardAmount: 999, battleToken: "valid_token" }, {});
         expect(result.success).toBe(true);
@@ -114,7 +119,7 @@ describe("ValidateIAP", () => {
         // First call: no processed receipts
         mockServer.GetUserData.mockReturnValueOnce({ Data: {} });
         // Second call: receipt already in list
-        mockServer.GetUserData.mockReturnValue({ Data: { processed_receipts: { Value: JSON.stringify(["-1177685440"]) } } });
+        mockServer.GetUserData.mockReturnValue({ Data: { processed_receipts: { Value: JSON.stringify(["-1684829004"]) } } });
 
         handlers.ValidateIAP({ receiptData: receipt, platform: "ios", productId: "BATTLE_PASS_PREMIUM" }, {});
         const result = handlers.ValidateIAP({ receiptData: receipt, platform: "ios", productId: "BATTLE_PASS_PREMIUM" }, {});

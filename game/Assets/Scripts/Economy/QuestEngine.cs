@@ -106,8 +106,8 @@ namespace AshenThrone.Economy
 
         private void Start()
         {
-            _battlePassManager = ServiceLocator.Get<BattlePassManager>();
-            _resourceManager   = ServiceLocator.Get<ResourceManager>();
+            ServiceLocator.TryGet(out _battlePassManager);
+            ServiceLocator.TryGet(out _resourceManager);
         }
 
         private void OnEnable()

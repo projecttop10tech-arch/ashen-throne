@@ -102,6 +102,12 @@ namespace AshenThrone.UI.Combat
             {
                 var go = Instantiate(_cardWidgetPrefab, _cardContainer);
                 widget = go.GetComponent<CardWidget>();
+                if (widget == null)
+                {
+                    Debug.LogError("[CardHandView] CardWidget component missing on prefab", go);
+                    Destroy(go);
+                    return;
+                }
             }
             widget.transform.SetParent(_cardContainer, false);
             widget.Bind(card, OnWidgetClicked);

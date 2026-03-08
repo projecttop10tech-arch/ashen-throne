@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using AshenThrone.Core;
 using AshenThrone.Data;
@@ -55,7 +54,9 @@ namespace AshenThrone.Combat
             if (loadout == null || loadout.Count != DeckSize)
                 throw new ArgumentException($"[CardHandManager] Loadout must contain exactly {DeckSize} cards.");
 
-            _deck = new Queue<AbilityCardData>(loadout.OrderBy(_ => UnityEngine.Random.value));
+            var shuffled = new List<AbilityCardData>(loadout);
+            ShuffleInPlace(shuffled);
+            _deck = new Queue<AbilityCardData>(shuffled);
             _hand.Clear();
             _discardPile.Clear();
             CurrentEnergy = MaxEnergy;
@@ -153,9 +154,18 @@ namespace AshenThrone.Combat
 
         private void ReshuffleDiscardIntoDeck()
         {
-            List<AbilityCardData> shuffled = _discardPile.OrderBy(_ => UnityEngine.Random.value).ToList();
+            ShuffleInPlace(_discardPile);
+            _deck = new Queue<AbilityCardData>(_discardPile);
             _discardPile.Clear();
-            _deck = new Queue<AbilityCardData>(shuffled);
+        }
+
+        private static void ShuffleInPlace<T>(List<T> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
         }
 
         private void OnPhaseChanged(CombatPhaseChangedEvent evt)

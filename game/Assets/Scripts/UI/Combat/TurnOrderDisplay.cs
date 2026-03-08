@@ -61,6 +61,12 @@ namespace AshenThrone.UI.Combat
                 {
                     var go = Instantiate(_turnTokenPrefab, _tokenContainer);
                     token = go.GetComponent<TurnTokenWidget>();
+                    if (token == null)
+                    {
+                        Debug.LogError("[TurnOrderDisplay] TurnTokenWidget component missing on prefab", go);
+                        Destroy(go);
+                        continue;
+                    }
                 }
                 token.transform.SetParent(_tokenContainer, false);
                 token.Bind(heroes[i], i == 0);
