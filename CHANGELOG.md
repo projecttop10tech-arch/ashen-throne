@@ -4,6 +4,27 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.14.0] — 2026-03-08 (Phases 13-15: Integration Testing, Polish, Compliance)
+
+### ADDED
+- **Integration tests**: CombatFlowTests (11), EconomyFlowTests (9), BootSequenceTests (11) — verify cross-system flows.
+- **Performance benchmarks**: PerformanceBenchmarkTests (6) — CombatHero creation, EventBus throughput, ServiceLocator lookup, ObjectPool get/return, damage operations, grid place/remove.
+- **SceneTransitionOverlay.cs**: Fullscreen fade overlay for scene transitions using EventBus events.
+- **UIAnimationHelper.cs**: Lightweight UI animation utilities (slide, fade, scale punch, fill lerp). Respects AccessibilityManager.ReduceMotion.
+- **HapticFeedbackManager.cs**: Centralized haptic feedback for mobile. Subscribes to card play, hero death, build complete, level up, gacha pull events. Respects AccessibilityManager.HapticsEnabled.
+- **SettingsManager.cs**: Persistent settings via PlayerPrefs (audio volumes, graphics quality, frame rate, language, notifications). Publishes SettingsChangedEvent.
+- **DeepLinkHandler.cs**: URL scheme handler for `ashenthrone://` deep links. Parses route and query params, publishes DeepLinkEvent.
+- **PrivacyConsentManager.cs**: GDPR consent with versioning, PlayerPrefs persistence. AcceptConsent/DeclineConsent publish events.
+- **SceneTransitionOverlayTests (3)**, **SettingsManagerTests (13)**, **HapticFeedbackManagerTests (5)**, **DeepLinkHandlerTests (3)**, **PrivacyConsentManagerTests (8)** — new test coverage.
+
+### FIXED
+- SceneTransitionOverlay: `IEventSubscription` → `EventSubscription` (compile error fix).
+- CombatFlowTests: Updated to match actual CombatGrid/CombatHero/CardHandManager APIs.
+- PerformanceBenchmarkTests: Fixed namespace resolution (`AshenThrone.Network.PlayFabService`).
+- EconomyFlowTests: Removed Editor-only `GachaPoolConfig` reference from test assembly.
+
+---
+
 ## [0.11.0] — 2026-03-07 (Phase 10: Content Population & Balancing)
 
 ### ADDED

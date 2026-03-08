@@ -73,7 +73,9 @@ Instructions for Claude agents working on this project. Read this file at the st
 | Phase 9: SDK Integration | COMPLETE (5 SDK services, 6 IAP SKUs, boot sequence wired, ~40 new tests) |
 | Phase 10: Content Population & Balancing | COMPLETE (BP Season 1, 40 gacha items, 219 locale keys, balance sheets) |
 | Phase 11-12: Art & Audio Production | PLACEHOLDER (external art needed) |
-| Phase 13: Integration Testing | NOT STARTED |
+| Phase 13: Integration Testing & Performance | COMPLETE (38 integration tests, 6 benchmarks, zero compile errors) |
+| Phase 14: Polish, UX, Accessibility | COMPLETE (scene transitions, UI animation, haptics, settings, deep links, privacy consent) |
+| Phase 15: Platform Compliance | COMPLETE (GDPR consent, privacy manager, deep link handler, all tests passing) |
 
 ## Phase 1 Remaining Work
 - [x] TurnManager phase state full implementations (DrawPhaseState, ActionPhaseState, ResolvePhaseState, EndPhaseState, BattleOverPhaseState)
