@@ -548,102 +548,182 @@ namespace AshenThrone.Editor
             var vigRight = AddPanel(bg, "VignetteR", new Color(0.01f, 0.01f, 0.02f, 0.3f));
             SetAnchors(vigRight, 0.92f, 0f, 1f, 1f);
 
+            // Notch/Dynamic Island fill — dark bar that extends above safe area
+            // Covers the full top area behind iPhone notch/Dynamic Island so it blends
+            // with the resource bar background. Fully opaque to hide the cutout.
+            var notchFill = AddPanel(canvasGo, "NotchFill", new Color(0.03f, 0.02f, 0.06f, 1f));
+            SetAnchors(notchFill, 0f, 0.91f, 1f, 1f);
+            // Gold border at bottom of notch fill (matches resource bar border)
+            var notchBorder = AddPanel(notchFill, "Border", new Color(0.72f, 0.56f, 0.22f, 0.70f));
+            SetAnchors(notchBorder, 0f, 0f, 1f, 0.008f);
+
             // Safe area for all interactive UI
             var canvas = CreateSafeArea(canvasGo);
 
-            // === RESOURCE BAR (top 4.5%) ===
-            // Use a background panel for the bar strip, and a separate child for the HLG content
+            // === RESOURCE BAR (top strip — slightly taller for readability) ===
             var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.03f, 0.02f, 0.06f, 0.96f));
-            SetAnchors(resBarBg, 0f, 0.955f, 1f, 1f);
+            SetAnchors(resBarBg, 0f, 0.957f, 1f, 0.995f);
             // Gold bottom border
             var resBarBorder = AddPanel(resBarBg, "BottomBorder", new Color(0.72f, 0.56f, 0.22f, 0.70f));
-            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.05f);
+            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.035f);
 
             // Layout container — sits on top of the bar background
             var resBar = AddPanel(canvas, "ResourceBar", new Color(0, 0, 0, 0));
-            SetAnchors(resBar, 0f, 0.955f, 1f, 1f);
+            SetAnchors(resBar, 0f, 0.957f, 1f, 0.995f);
 
             var resLayout = resBar.AddComponent<HorizontalLayoutGroup>();
             resLayout.spacing = 2;
-            resLayout.padding = new RectOffset(6, 4, 3, 3);
+            resLayout.padding = new RectOffset(8, 6, 4, 4);
             resLayout.childAlignment = TextAnchor.MiddleCenter;
+            resLayout.childControlWidth = true;
+            resLayout.childControlHeight = true;
             resLayout.childForceExpandWidth = false;
-            resLayout.childForceExpandHeight = true;
+            resLayout.childForceExpandHeight = false;
 
-            // Flat layout: icon, amount, icon, amount, ... "+" — compact with even flex
+            // Flat layout: icon+amount pairs with thin separators between
             AddResIconFlat(resBar, "Grain", GrainColor);
             AddResAmountFlat(resBar, "Grain", "8.37M");
+            AddResSeparator(resBar);
             AddResIconFlat(resBar, "Iron", IronColor);
             AddResAmountFlat(resBar, "Iron", "365K");
+            AddResSeparator(resBar);
             AddResIconFlat(resBar, "Stone", StoneColor);
             AddResAmountFlat(resBar, "Stone", "4.73M");
+            AddResSeparator(resBar);
             AddResIconFlat(resBar, "Arcane", ArcaneColor);
             AddResAmountFlat(resBar, "Arcane", "3.69M");
+            AddResSeparator(resBar);
             AddResIconFlat(resBar, "Gems", GemsColor);
             AddResAmountFlat(resBar, "Gems", "8.38K");
 
-            // "+" button — compact golden cross like P&C, transparent bg so it doesn't stretch
-            var plusBtn = AddPanel(resBar, "AddBtn", new Color(0, 0, 0, 0));
+            // Flexible spacer to push "+" to the right
+            var spacer = new GameObject("Spacer", typeof(RectTransform));
+            spacer.transform.SetParent(resBar.transform, false);
+            var spacerLE = spacer.AddComponent<LayoutElement>();
+            spacerLE.flexibleWidth = 1;
+
+            // "+" button — bright green panel (AddPanel is proven to render)
+            var plusBtn = AddPanel(resBar, "AddBtn", new Color(0.20f, 0.65f, 0.32f, 1f));
             var plusLE = plusBtn.AddComponent<LayoutElement>();
-            plusLE.preferredWidth = 28;
-            plusLE.minWidth = 26;
+            plusLE.preferredWidth = 32;
+            plusLE.preferredHeight = 32;
+            plusLE.minWidth = 28;
+            plusLE.minHeight = 28;
             plusLE.flexibleWidth = 0;
             plusBtn.AddComponent<Button>();
-            var plusText = AddText(plusBtn, "Label", "+", 20, TextAnchor.MiddleCenter);
+            // "+" text
+            var plusText = AddText(plusBtn, "Label", "+", 16, TextAnchor.MiddleCenter);
             StretchToParent(plusText);
-            plusText.GetComponent<Text>().color = new Color(0.22f, 0.75f, 0.40f, 0.95f);
+            plusText.GetComponent<Text>().color = Color.white;
             plusText.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var plusShadow = plusText.AddComponent<Shadow>();
-            plusShadow.effectColor = new Color(0, 0, 0, 0.9f);
-            plusShadow.effectDistance = new Vector2(1f, -1f);
 
-            // === INFO ROW (VIP + Power + Coords) — slim row with gradient like P&C ===
-            var infoRow = AddPanel(canvas, "InfoRow", new Color(0.03f, 0.02f, 0.06f, 0.82f));
-            SetAnchors(infoRow, 0f, 0.925f, 1f, 0.955f);
-            // Bottom separator — very subtle
-            var infoRowSep = AddPanel(infoRow, "BottomSep", new Color(0.45f, 0.35f, 0.15f, 0.25f));
-            SetAnchors(infoRowSep, 0f, 0f, 1f, 0.04f);
+            // === PLAYER AVATAR BLOCK — same width as build queue (0.01–0.18) ===
+            var avatarBlock = AddPanel(canvas, "AvatarBlock", new Color(0.05f, 0.03f, 0.09f, 0.95f));
+            SetAnchors(avatarBlock, 0.01f, 0.875f, 0.18f, 0.955f);
+            // Double gold border — outer + inner with gap for premium frame
+            AddOutlinePanel(avatarBlock, new Color(0.82f, 0.65f, 0.28f, 0.85f));
+            var avatarInnerBorder = AddPanel(avatarBlock, "InnerBorder", new Color(0, 0, 0, 0));
+            SetAnchors(avatarInnerBorder, 0.04f, 0.03f, 0.96f, 0.97f);
+            AddOutlinePanel(avatarInnerBorder, new Color(0.55f, 0.42f, 0.18f, 0.50f));
+            // Portrait fill
+            var avatarPortrait = AddPanel(avatarBlock, "Portrait", new Color(0.28f, 0.14f, 0.42f, 0.95f));
+            SetAnchors(avatarPortrait, 0.06f, 0.05f, 0.94f, 0.95f);
+            // Subtle inner light on portrait (top highlight)
+            var avatarHighlight = AddPanel(avatarPortrait, "Highlight", new Color(0.50f, 0.35f, 0.65f, 0.15f));
+            SetAnchors(avatarHighlight, 0f, 0.60f, 1f, 1f);
+            // Level badge — gold pill, bottom-center, overlapping frame
+            var lvlBadge = AddPanel(avatarBlock, "LevelBadge", new Color(0.72f, 0.56f, 0.22f, 1f));
+            SetAnchors(lvlBadge, 0.22f, -0.06f, 0.78f, 0.12f);
+            AddOutlinePanel(lvlBadge, new Color(0.45f, 0.34f, 0.12f, 0.9f));
+            var lvlText = AddText(lvlBadge, "Level", "Lv.42", 8, TextAnchor.MiddleCenter);
+            StretchToParent(lvlText);
+            lvlText.GetComponent<Text>().color = TextWhite;
+            lvlText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var lvlShadow = lvlText.AddComponent<Shadow>();
+            lvlShadow.effectColor = new Color(0, 0, 0, 0.7f);
+            lvlShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // VIP badge — purple with THICK gold outline like P&C (compact, rounded look)
-            var vipBadge = AddPanel(infoRow, "VipBadge", new Color(0.42f, 0.12f, 0.55f, 0.95f));
-            SetAnchors(vipBadge, 0.02f, 0.08f, 0.12f, 0.92f);
-            // Inner glow for premium feel
-            var vipGlow = AddPanel(vipBadge, "Glow", new Color(0.60f, 0.30f, 0.80f, 0.25f));
-            SetAnchors(vipGlow, 0f, 0.5f, 1f, 1f);
-            AddOutlinePanel(vipBadge, new Color(0.82f, 0.65f, 0.28f, 0.9f));
-            var vipText = AddText(vipBadge, "Label", "VIP 11", 10, TextAnchor.MiddleCenter);
+            // === INFO PANEL — right of avatar, premium dark panel with layered depth ===
+            // Background panel with subtle gradient
+            var infoPanelBg = AddPanel(canvas, "InfoPanelBg", new Color(0.04f, 0.03f, 0.08f, 0.90f));
+            SetAnchors(infoPanelBg, 0.19f, 0.910f, 0.84f, 0.955f);
+            // Top highlight gradient for glass effect
+            var infoTopGrad = AddPanel(infoPanelBg, "TopGrad", new Color(0.12f, 0.08f, 0.18f, 0.25f));
+            SetAnchors(infoTopGrad, 0f, 0.55f, 1f, 1f);
+            // Left accent strip — thin gold vertical line
+            var infoLeftAccent = AddPanel(infoPanelBg, "LeftAccent", new Color(0.72f, 0.56f, 0.22f, 0.50f));
+            SetAnchors(infoLeftAccent, 0f, 0.08f, 0.008f, 0.92f);
+            // Bottom border — subtle gold
+            var infoBotBorder = AddPanel(infoPanelBg, "BotBorder", new Color(0.55f, 0.42f, 0.18f, 0.30f));
+            SetAnchors(infoBotBorder, 0.02f, 0f, 0.98f, 0.025f);
+
+            // === TOP ROW: Player Name + VIP Badge ===
+            // Player name — warm gold, clean typography with outline for readability
+            var avatarName = AddText(infoPanelBg, "PlayerName", "Commander", 13, TextAnchor.MiddleLeft);
+            SetAnchors(avatarName, 0.04f, 0.52f, 0.52f, 0.96f);
+            avatarName.GetComponent<Text>().color = new Color(0.92f, 0.78f, 0.38f, 1f);
+            avatarName.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var nameShadow = avatarName.AddComponent<Shadow>();
+            nameShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            nameShadow.effectDistance = new Vector2(1f, -1f);
+            var nameOutline = avatarName.AddComponent<Outline>();
+            nameOutline.effectColor = new Color(0.15f, 0.10f, 0.05f, 0.5f);
+            nameOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // VIP badge — layered purple/gold premium pill
+            var vipOuter = AddPanel(infoPanelBg, "VipOuter", new Color(0.60f, 0.45f, 0.18f, 0.70f));
+            SetAnchors(vipOuter, 0.54f, 0.56f, 0.78f, 0.94f);
+            var vipBadge = AddPanel(vipOuter, "VipBadge", new Color(0.42f, 0.12f, 0.55f, 0.95f));
+            SetAnchors(vipBadge, 0.04f, 0.06f, 0.96f, 0.94f);
+            // Inner shimmer
+            var vipShimmer = AddPanel(vipBadge, "Shimmer", new Color(0.65f, 0.40f, 0.85f, 0.20f));
+            SetAnchors(vipShimmer, 0f, 0.45f, 1f, 1f);
+            var vipText = AddText(vipBadge, "Label", "VIP 11", 9, TextAnchor.MiddleCenter);
             StretchToParent(vipText);
-            vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.70f, 1f);
+            vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.75f, 1f);
             vipText.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var vipShadow = vipText.AddComponent<Shadow>();
-            vipShadow.effectColor = new Color(0, 0, 0, 0.9f);
-            vipShadow.effectDistance = new Vector2(1f, -1f);
+            vipShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            vipShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Power icon — golden crossed swords
-            var powerIconText = AddText(infoRow, "PowerIcon", "\u2694", 14, TextAnchor.MiddleCenter);
-            SetAnchors(powerIconText, 0.13f, 0f, 0.18f, 1f);
+            // Server tag — small muted tag at right
+            var serverTag = AddText(infoPanelBg, "ServerTag", "S:142", 8, TextAnchor.MiddleRight);
+            SetAnchors(serverTag, 0.80f, 0.58f, 0.98f, 0.94f);
+            serverTag.GetComponent<Text>().color = new Color(0.40f, 0.38f, 0.35f, 0.65f);
+
+            // === BOTTOM ROW: Power + Coordinates ===
+            // Power icon — golden swords with glow
+            var powerIconText = AddText(infoPanelBg, "PowerIcon", "\u2694", 11, TextAnchor.MiddleCenter);
+            SetAnchors(powerIconText, 0.03f, 0.06f, 0.10f, 0.50f);
             powerIconText.GetComponent<Text>().color = new Color(0.92f, 0.75f, 0.32f, 1f);
             var piShadow = powerIconText.AddComponent<Shadow>();
-            piShadow.effectColor = new Color(0, 0, 0, 0.8f);
-            piShadow.effectDistance = new Vector2(1f, -1f);
+            piShadow.effectColor = new Color(0.50f, 0.35f, 0.10f, 0.5f);
+            piShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Power value — prominent white with glow
-            var powerVal = AddText(infoRow, "PowerValue", "355,582,021", 14, TextAnchor.MiddleLeft);
-            SetAnchors(powerVal, 0.18f, 0f, 0.50f, 1f);
-            powerVal.GetComponent<Text>().color = TextWhite;
+            // Power value — bright white, larger, prominent
+            var powerVal = AddText(infoPanelBg, "PowerValue", "355,582,021", 12, TextAnchor.MiddleLeft);
+            SetAnchors(powerVal, 0.10f, 0.04f, 0.58f, 0.52f);
+            powerVal.GetComponent<Text>().color = new Color(0.95f, 0.93f, 0.88f, 1f);
             powerVal.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var pvShadow = powerVal.AddComponent<Shadow>();
             pvShadow.effectColor = new Color(0, 0, 0, 0.85f);
             pvShadow.effectDistance = new Vector2(1f, -1f);
 
-            // Coordinates — right-aligned, slightly brighter
-            var coordText = AddText(infoRow, "Coords", "UTC 14:32  K:12 X:482 Y:317", 9, TextAnchor.MiddleRight);
-            SetAnchors(coordText, 0.50f, 0f, 0.98f, 1f);
-            coordText.GetComponent<Text>().color = new Color(0.45f, 0.42f, 0.38f, 0.8f);
+            // Thin vertical separator before coords
+            var coordSep = AddPanel(infoPanelBg, "CoordSep", new Color(0.40f, 0.32f, 0.18f, 0.25f));
+            SetAnchors(coordSep, 0.60f, 0.12f, 0.605f, 0.46f);
 
-            // === LEFT SIDEBAR — Build/Research queue (P&C: simple dark strips, 17% wide) ===
+            // Coordinates — clean, muted, right-aligned
+            var coordText = AddText(infoPanelBg, "Coords", "K:12  X:482  Y:317", 8, TextAnchor.MiddleRight);
+            SetAnchors(coordText, 0.62f, 0.06f, 0.98f, 0.50f);
+            coordText.GetComponent<Text>().color = new Color(0.50f, 0.48f, 0.42f, 0.75f);
+            var coordShadow = coordText.AddComponent<Shadow>();
+            coordShadow.effectColor = new Color(0, 0, 0, 0.6f);
+            coordShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // === LEFT SIDEBAR — Build/Research queue (below avatar block, same width) ===
             var leftSidebar = AddPanel(canvas, "LeftSidebar", new Color(0, 0, 0, 0));
-            SetAnchors(leftSidebar, 0.01f, 0.64f, 0.18f, 0.92f);
+            SetAnchors(leftSidebar, 0.01f, 0.55f, 0.18f, 0.873f);
 
             // 4 compact queue strips with tight spacing
             AddQueueSlot(leftSidebar, "BuildSlot1", "Build", "2:34:15", Ember, true, 0.77f, 0.99f);
@@ -655,7 +735,7 @@ namespace AshenThrone.Editor
             float rbX0 = 0.86f, rbX1 = 0.99f; // 13% wide
             float rbH = 0.068f; // ~7% tall each
             float rbGap = 0.005f;
-            float rbTop = 0.915f;
+            float rbTop = 0.955f;
             AddEventButton(canvas, "EventBtn1", "Events", Ember,   rbX0, rbTop - rbH, rbX1, rbTop, "10:04:49");
             rbTop -= rbH + rbGap;
             AddEventButton(canvas, "EventBtn2", "VS", new Color(0.4f, 0.3f, 0.8f, 1f), rbX0, rbTop - rbH, rbX1, rbTop, "");
@@ -701,14 +781,11 @@ namespace AshenThrone.Editor
             chat2Shadow.effectDistance = new Vector2(1f, -1f);
 
             // === UPGRADE BANNER (above nav) — gradient button with gold accents like P&C ===
-            var upgradeBanner = AddPanel(canvas, "UpgradeBanner", Color.white);
-            SetAnchors(upgradeBanner, 0.03f, 0.092f, 0.97f, 0.14f);
+            var upgradeBanner = AddPanel(canvas, "UpgradeBanner", new Color(0.05f, 0.04f, 0.10f, 0.94f));
+            SetAnchors(upgradeBanner, 0.03f, 0.102f, 0.97f, 0.14f);
             var btnOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/btn_ornate.png");
-            if (btnOrnateSpr != null) { upgradeBanner.GetComponent<Image>().sprite = btnOrnateSpr; upgradeBanner.GetComponent<Image>().type = Image.Type.Sliced; }
-            else {
-                upgradeBanner.GetComponent<Image>().color = new Color(0.05f, 0.04f, 0.10f, 0.94f);
-                AddOutlinePanel(upgradeBanner, new Color(0.55f, 0.42f, 0.18f, 0.7f));
-            }
+            if (btnOrnateSpr != null) { upgradeBanner.GetComponent<Image>().sprite = btnOrnateSpr; upgradeBanner.GetComponent<Image>().type = Image.Type.Sliced; upgradeBanner.GetComponent<Image>().color = new Color(0.80f, 0.72f, 0.60f, 1f); }
+            else { AddOutlinePanel(upgradeBanner, new Color(0.55f, 0.42f, 0.18f, 0.7f)); }
             // Top gradient highlight for depth
             var upgGrad = AddPanel(upgradeBanner, "Gradient", new Color(0.20f, 0.15f, 0.08f, 0.25f));
             SetAnchors(upgGrad, 0.02f, 0.50f, 0.98f, 1f);
@@ -735,38 +812,110 @@ namespace AshenThrone.Editor
             SetAnchors(upgRightInner, 0.94f, 0.25f, 0.955f, 0.75f);
             upgradeBanner.AddComponent<Button>();
 
-            // === BOTTOM NAV BAR — 9% tall, ornate fantasy bar (prominent like P&C) ===
-            var navBar = AddPanel(canvas, "BottomNavBar", Color.white);
-            SetAnchors(navBar, 0f, 0f, 1f, 0.09f);
-            var navBarSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/nav_bar.png");
-            if (navBarSprite != null) { navBar.GetComponent<Image>().sprite = navBarSprite; navBar.GetComponent<Image>().type = Image.Type.Sliced; }
-            else { navBar.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.10f, 0.98f); }
-            // Gold ornate top border — thicker, brighter like P&C
-            var navBorderTop = AddPanel(navBar, "TopBorder", new Color(0.78f, 0.62f, 0.25f, 0.92f));
-            SetAnchors(navBorderTop, 0f, 0.96f, 1f, 1f);
-            // Inner glow below gold border (premium effect)
-            var navBorderGlow = AddPanel(navBar, "TopGlow", new Color(0.70f, 0.55f, 0.20f, 0.20f));
-            SetAnchors(navBorderGlow, 0f, 0.88f, 1f, 0.96f);
-            // Second glow layer — softer, wider
-            var navBorderGlow2 = AddPanel(navBar, "TopGlow2", new Color(0.50f, 0.38f, 0.12f, 0.10f));
-            SetAnchors(navBorderGlow2, 0f, 0.78f, 1f, 0.88f);
-            // Dark gradient at bottom to blend with home indicator area
-            var navBotGrad = AddPanel(navBar, "BotGrad", new Color(0.02f, 0.02f, 0.04f, 0.5f));
-            SetAnchors(navBotGrad, 0f, 0f, 1f, 0.15f);
+            // === BOTTOM NAV BAR — exceeds P&C: layered ornate dark bar with raised center ===
+            // Dark strip behind home indicator (outside safe area, full screen)
+            var navBarBg = AddPanel(canvasGo, "NavBarBg", new Color(0.03f, 0.02f, 0.06f, 1f));
+            SetAnchors(navBarBg, 0f, 0f, 1f, 0.06f);
 
-            var navLayout = navBar.AddComponent<HorizontalLayoutGroup>();
-            navLayout.spacing = 0;
-            navLayout.padding = new RectOffset(4, 4, 4, 10);
-            navLayout.childForceExpandWidth = true;
-            navLayout.childForceExpandHeight = true;
+            var navBar = AddPanel(canvas, "BottomNavBar", new Color(0.04f, 0.03f, 0.07f, 0.98f));
+            SetAnchors(navBar, 0f, 0f, 1f, 0.10f);
 
-            AddNavItem(navBar, "NavWorld", "WORLD", Ember, true, 0);
-            AddNavItem(navBar, "NavHero", "HERO", Purple, false, 0);
-            AddNavItem(navBar, "NavQuest", "QUEST", Teal, false, 17);
-            AddNavItem(navBar, "NavBag", "BAG", GoldDim, false, 3);
-            AddNavItem(navBar, "NavMail", "MAIL", Sky, false, 5);
-            AddNavItem(navBar, "NavAlliance", "ALLIANCE", TealDim, false, 0);
-            AddNavItem(navBar, "NavRank", "RANK", Gold, false, 38);
+            // === Triple-layer top border (P&C uses double — we use triple for premium feel) ===
+            var navBorderGold = AddPanel(navBar, "TopBorderGold", new Color(0.85f, 0.68f, 0.28f, 0.95f));
+            SetAnchors(navBorderGold, 0f, 0.972f, 1f, 1f);
+            var navBorderDark = AddPanel(navBar, "TopBorderDark", new Color(0.35f, 0.25f, 0.10f, 0.80f));
+            SetAnchors(navBorderDark, 0f, 0.955f, 1f, 0.972f);
+            var navBorderThin = AddPanel(navBar, "TopBorderThin", new Color(0.72f, 0.56f, 0.22f, 0.55f));
+            SetAnchors(navBorderThin, 0f, 0.948f, 1f, 0.955f);
+            // Warm glow cascade (3 layers, fading down)
+            var navGlow1 = AddPanel(navBar, "TopGlow1", new Color(0.72f, 0.55f, 0.22f, 0.14f));
+            SetAnchors(navGlow1, 0f, 0.90f, 1f, 0.948f);
+            var navGlow2 = AddPanel(navBar, "TopGlow2", new Color(0.55f, 0.40f, 0.15f, 0.07f));
+            SetAnchors(navGlow2, 0f, 0.85f, 1f, 0.90f);
+            var navGlow3 = AddPanel(navBar, "TopGlow3", new Color(0.40f, 0.28f, 0.10f, 0.03f));
+            SetAnchors(navGlow3, 0f, 0.80f, 1f, 0.85f);
+            // Bottom fade for home indicator
+            var navBotFade = AddPanel(navBar, "BotFade", new Color(0.02f, 0.01f, 0.04f, 0.6f));
+            SetAnchors(navBotFade, 0f, 0f, 1f, 0.12f);
+
+            // === Nav items — 3 left, CENTER raised button, 3 right ===
+            var navLayoutLeft = AddPanel(navBar, "NavLeft", new Color(0, 0, 0, 0));
+            SetAnchors(navLayoutLeft, 0f, 0.02f, 0.38f, 0.94f);
+            var nllLayout = navLayoutLeft.AddComponent<HorizontalLayoutGroup>();
+            nllLayout.spacing = 0;
+            nllLayout.padding = new RectOffset(4, 0, 4, 6);
+            nllLayout.childForceExpandWidth = true;
+            nllLayout.childForceExpandHeight = true;
+
+            AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, true, 0);
+            AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 0);
+            AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17);
+
+            // === CENTER BUTTON — raised ornate button (extends above bar like P&C) ===
+            // Outer glow/shadow behind the raised button
+            var centerShadow = AddPanel(navBar, "CenterShadow", new Color(0.72f, 0.55f, 0.20f, 0.06f));
+            SetAnchors(centerShadow, 0.33f, 0.05f, 0.67f, 1.18f);
+            // Main button body
+            var centerBtn = AddPanel(navBar, "NavCenterBtn", new Color(0.08f, 0.05f, 0.14f, 0.98f));
+            SetAnchors(centerBtn, 0.35f, 0.06f, 0.65f, 1.14f);
+            // Triple gold border: outer bright, dark gap, inner warm
+            AddOutlinePanel(centerBtn, new Color(0.85f, 0.68f, 0.28f, 0.95f));
+            var centerBorderMid = AddPanel(centerBtn, "BorderMid", new Color(0, 0, 0, 0));
+            SetAnchors(centerBorderMid, 0.02f, 0.02f, 0.98f, 0.98f);
+            AddOutlinePanel(centerBorderMid, new Color(0.35f, 0.25f, 0.10f, 0.70f));
+            var centerBorderInner = AddPanel(centerBtn, "BorderInner", new Color(0, 0, 0, 0));
+            SetAnchors(centerBorderInner, 0.04f, 0.03f, 0.96f, 0.97f);
+            AddOutlinePanel(centerBorderInner, new Color(0.65f, 0.50f, 0.20f, 0.45f));
+            // Inner dark fill
+            var centerInner = AddPanel(centerBtn, "Inner", new Color(0.05f, 0.03f, 0.09f, 0.95f));
+            SetAnchors(centerInner, 0.05f, 0.04f, 0.95f, 0.96f);
+            // Top highlight (glass effect)
+            var centerHighlight = AddPanel(centerInner, "Highlight", new Color(0.15f, 0.10f, 0.22f, 0.30f));
+            SetAnchors(centerHighlight, 0.05f, 0.55f, 0.95f, 0.95f);
+            // Ember glow behind icon — warm radial
+            var centerGlow = AddPanel(centerInner, "Glow", new Color(0.91f, 0.45f, 0.16f, 0.12f));
+            SetAnchors(centerGlow, 0.08f, 0.22f, 0.92f, 0.82f);
+            var centerGlowInner = AddPanel(centerInner, "GlowInner", new Color(0.95f, 0.55f, 0.20f, 0.08f));
+            SetAnchors(centerGlowInner, 0.18f, 0.32f, 0.82f, 0.72f);
+            // Icon — transparent bg, sprite only
+            var centerIcon = AddPanel(centerInner, "Icon", new Color(0, 0, 0, 0));
+            SetAnchors(centerIcon, 0.15f, 0.26f, 0.85f, 0.82f);
+            var empSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/nav_empire.png");
+            if (empSpr != null)
+            {
+                centerIcon.GetComponent<Image>().sprite = empSpr;
+                centerIcon.GetComponent<Image>().preserveAspect = true;
+                centerIcon.GetComponent<Image>().color = new Color(1f, 0.92f, 0.72f, 1f);
+            }
+            else { centerIcon.GetComponent<Image>().color = Ember; }
+            // Label — warm gold with outline for crispness
+            var centerLabel = AddText(centerInner, "Label", "EMPIRE", 10, TextAnchor.MiddleCenter);
+            SetAnchors(centerLabel, 0f, 0.02f, 1f, 0.24f);
+            centerLabel.GetComponent<Text>().color = new Color(1f, 0.92f, 0.70f, 1f);
+            centerLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var clShadow = centerLabel.AddComponent<Shadow>();
+            clShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            clShadow.effectDistance = new Vector2(1f, -1f);
+            // Top gold accent crown on raised button
+            var centerTopAccent = AddPanel(centerBtn, "TopAccent", new Color(0.88f, 0.70f, 0.28f, 0.92f));
+            SetAnchors(centerTopAccent, 0.08f, 0.975f, 0.92f, 1f);
+            // Second accent — darker below
+            var centerTopAccent2 = AddPanel(centerBtn, "TopAccent2", new Color(0.55f, 0.42f, 0.18f, 0.50f));
+            SetAnchors(centerTopAccent2, 0.12f, 0.96f, 0.88f, 0.975f);
+            centerBtn.AddComponent<Button>();
+
+            // Right nav items
+            var navLayoutRight = AddPanel(navBar, "NavRight", new Color(0, 0, 0, 0));
+            SetAnchors(navLayoutRight, 0.62f, 0.02f, 1f, 0.94f);
+            var nlrLayout = navLayoutRight.AddComponent<HorizontalLayoutGroup>();
+            nlrLayout.spacing = 0;
+            nlrLayout.padding = new RectOffset(0, 4, 4, 6);
+            nlrLayout.childForceExpandWidth = true;
+            nlrLayout.childForceExpandHeight = true;
+
+            AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3);
+            AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5);
+            AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 0);
 
             // === RESOURCE DETAIL POPUP (hidden, full screen overlay) ===
             var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.6f));
@@ -1132,32 +1281,31 @@ namespace AshenThrone.Editor
             text.GetComponent<Text>().color = TextLight;
         }
 
-        /// <summary>Flat resource icon — 26px outer circle bg + inner sprite for visibility on dark bar.</summary>
+        /// <summary>Flat resource icon — 20px outer circle bg + inner sprite, compact like P&C.</summary>
         static void AddResIconFlat(GameObject parent, string resName, Color accentColor)
         {
-            // Outer container — colored circle background (ensures dark sprites are visible)
+            // Outer container — subtle colored circle background for dark sprite visibility
             var outer = new GameObject($"IconBg_{resName}", typeof(RectTransform), typeof(Image));
             outer.transform.SetParent(parent.transform, false);
             var le = outer.AddComponent<LayoutElement>();
-            le.preferredWidth = 26;
-            le.preferredHeight = 26;
-            le.minWidth = 24;
-            le.minHeight = 24;
+            le.preferredWidth = 32;
+            le.preferredHeight = 32;
+            le.minWidth = 26;
+            le.minHeight = 26;
             le.flexibleWidth = 0;
-            // Bright-ish colored circle — accent color at ~40% with min 0.12 per channel
             var outerImg = outer.GetComponent<Image>();
             outerImg.color = new Color(
-                Mathf.Max(0.12f, accentColor.r * 0.40f),
-                Mathf.Max(0.10f, accentColor.g * 0.40f),
-                Mathf.Max(0.12f, accentColor.b * 0.40f),
-                0.65f);
+                Mathf.Max(0.10f, accentColor.r * 0.35f),
+                Mathf.Max(0.08f, accentColor.g * 0.35f),
+                Mathf.Max(0.10f, accentColor.b * 0.35f),
+                0.55f);
 
-            // Inner sprite — fills 80% of the circle
+            // Inner sprite — fills 85% of the circle
             var icon = new GameObject($"Icon_{resName}", typeof(RectTransform), typeof(Image));
             icon.transform.SetParent(outer.transform, false);
             var iconRT = icon.GetComponent<RectTransform>();
-            iconRT.anchorMin = new Vector2(0.10f, 0.10f);
-            iconRT.anchorMax = new Vector2(0.90f, 0.90f);
+            iconRT.anchorMin = new Vector2(0.075f, 0.075f);
+            iconRT.anchorMax = new Vector2(0.925f, 0.925f);
             iconRT.offsetMin = Vector2.zero;
             iconRT.offsetMax = Vector2.zero;
 
@@ -1179,10 +1327,10 @@ namespace AshenThrone.Editor
             }
         }
 
-        /// <summary>Flat resource amount — flexible text, left-aligned like P&C.</summary>
+        /// <summary>Flat resource amount — flexible text, left-aligned like P&C, 11px compact.</summary>
         static void AddResAmountFlat(GameObject parent, string resName, string amount)
         {
-            var amtGo = AddText(parent, $"{resName}Amt", amount, 12, TextAnchor.MiddleLeft);
+            var amtGo = AddText(parent, $"{resName}Amt", amount, 13, TextAnchor.MiddleLeft);
             var txt = amtGo.GetComponent<Text>();
             txt.color = new Color(0.96f, 0.94f, 0.90f, 1f);
             txt.fontStyle = FontStyle.Bold;
@@ -1190,9 +1338,22 @@ namespace AshenThrone.Editor
             shadow.effectColor = new Color(0, 0, 0, 0.92f);
             shadow.effectDistance = new Vector2(1f, -1f);
             var le = amtGo.AddComponent<LayoutElement>();
-            le.minWidth = 30;
-            le.preferredWidth = 44;
-            le.flexibleWidth = 1;
+            le.minWidth = 34;
+            le.preferredWidth = 50;
+            le.flexibleWidth = 0;
+        }
+
+        /// <summary>Thin vertical separator between resource pairs in the resource bar.</summary>
+        static void AddResSeparator(GameObject parent)
+        {
+            var sep = new GameObject("ResSep", typeof(RectTransform), typeof(Image));
+            sep.transform.SetParent(parent.transform, false);
+            sep.GetComponent<Image>().color = new Color(0.40f, 0.35f, 0.25f, 0.30f);
+            var le = sep.AddComponent<LayoutElement>();
+            le.preferredWidth = 1;
+            le.minWidth = 1;
+            le.preferredHeight = 20;
+            le.flexibleWidth = 0;
         }
 
         /// <summary>Left sidebar queue slot — P&C style: compact strip with colored emblem + label + status + progress bar.</summary>
@@ -1288,33 +1449,38 @@ namespace AshenThrone.Editor
         static void AddEventButton(GameObject parent, string name, string label, Color color,
             float xMin, float yMin, float xMax, float yMax, string timer)
         {
-            // Use panel_ornate sprite for the button frame
-            var btn = AddPanel(parent, name, Color.white);
+            // Dark button panel — always dark base, ornate sprite overlaid with warm tint
+            var btn = AddPanel(parent, name, new Color(0.06f, 0.04f, 0.10f, 0.95f));
             SetAnchors(btn, xMin, yMin, xMax, yMax);
             var btnImg = btn.GetComponent<Image>();
             var ornateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
-            if (ornateSpr != null) { btnImg.sprite = ornateSpr; btnImg.type = Image.Type.Sliced; }
-            else { btnImg.color = new Color(color.r * 0.18f + 0.04f, color.g * 0.18f + 0.03f, color.b * 0.18f + 0.04f, 0.92f); }
+            if (ornateSpr != null)
+            {
+                btnImg.sprite = ornateSpr;
+                btnImg.type = Image.Type.Sliced;
+                btnImg.color = new Color(0.75f, 0.68f, 0.58f, 1f); // warm dark tint, no white flash
+            }
+            AddOutlinePanel(btn, new Color(0.55f, 0.42f, 0.18f, 0.45f));
             btn.AddComponent<Button>();
 
-            // Inner color tint overlay with gradient effect
-            var tint = AddPanel(btn, "Tint", new Color(color.r * 0.15f, color.g * 0.15f, color.b * 0.15f, 0.25f));
-            SetAnchors(tint, 0.08f, 0.08f, 0.92f, 0.92f);
-            // Center glow — adds depth behind icon
-            var centerGlow = AddPanel(btn, "CenterGlow", new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.15f));
-            SetAnchors(centerGlow, 0.20f, 0.25f, 0.80f, 0.75f);
+            // Subtle color tint overlay
+            var tint = AddPanel(btn, "Tint", new Color(color.r * 0.12f, color.g * 0.12f, color.b * 0.12f, 0.20f));
+            SetAnchors(tint, 0.06f, 0.06f, 0.94f, 0.94f);
+            // Center glow behind icon
+            var centerGlow = AddPanel(btn, "CenterGlow", new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.12f));
+            SetAnchors(centerGlow, 0.18f, 0.22f, 0.82f, 0.78f);
 
-            // Icon — use KNOWN-WORKING resource sprites only (transparent RGBA confirmed)
-            var icon = AddPanel(btn, "Icon", Color.white);
+            // Icon — transparent background, sprite only (no white rect behind it)
+            var icon = AddPanel(btn, "Icon", new Color(0, 0, 0, 0));
             SetAnchors(icon, 0.14f, 0.24f, 0.86f, 0.78f);
             string spriteKey = label.ToLower() switch {
-                "events" => "icon_iron",    // swords → iron ingots
-                "vs"     => "icon_gems",    // arena → purple gem
-                "rewards"=> "icon_grain",   // treasure → golden wheat
-                "offer"  => "icon_gems",    // special → gems
-                "shop"   => "icon_arcane",  // magic shop → arcane
-                "gifts"  => "icon_arcane",  // gifts → arcane energy
-                "arena"  => "icon_iron",    // combat → iron
+                "events" => "icon_iron",
+                "vs"     => "icon_gems",
+                "rewards"=> "icon_grain",
+                "offer"  => "icon_gems",
+                "shop"   => "icon_arcane",
+                "gifts"  => "icon_arcane",
+                "arena"  => "icon_iron",
                 _        => "icon_stone"
             };
             var spr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Production/{spriteKey}.png");
@@ -1322,15 +1488,11 @@ namespace AshenThrone.Editor
             {
                 icon.GetComponent<Image>().sprite = spr;
                 icon.GetComponent<Image>().preserveAspect = true;
-                // Tint with event color for variety
-                icon.GetComponent<Image>().color = new Color(
-                    Mathf.Min(1f, color.r * 0.3f + 0.7f),
-                    Mathf.Min(1f, color.g * 0.3f + 0.7f),
-                    Mathf.Min(1f, color.b * 0.3f + 0.7f), 1f);
+                icon.GetComponent<Image>().color = Color.white; // full brightness, sprite handles color
             }
             else
             {
-                icon.GetComponent<Image>().color = color;
+                icon.GetComponent<Image>().color = color; // fallback: colored square
             }
 
             // Label — bottom of icon area
