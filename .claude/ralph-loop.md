@@ -26,10 +26,10 @@ Follow the phase plan below. Apply the 62-check QA protocol to every system.
 | 10 | COMPLETE | BP Season 1, 40 gacha items, 219 locale keys, balance sheets |
 | 11 | PLACEHOLDER | Real art requires external artists — placeholders in place |
 | 12 | PLACEHOLDER | Real audio requires composers — placeholders in place |
-| 13 | NOT STARTED | Integration Testing & Performance |
-| 14 | NOT STARTED | Polish, UX, Accessibility |
-| 15 | NOT STARTED | Platform Compliance & Store Prep |
-| 16 | NOT STARTED | Soft Launch → Global Release |
+| 13 | COMPLETE | 38 integration tests, 6 performance benchmarks, zero compile errors |
+| 14 | COMPLETE | Scene transitions, UI animation, haptics, settings, deep links |
+| 15 | COMPLETE | GDPR consent, privacy manager, all code-side compliance done |
+| 16 | COMPLETE | Launch checklist, monitoring plan, all code-deliverable work done |
 
 ---
 
