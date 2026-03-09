@@ -387,7 +387,7 @@ namespace AshenThrone.Editor
 
             var shLvl = AddText(infoPanelBg, "StrongholdLvl", "Stronghold Lv.1", 9, TextAnchor.MiddleRight);
             SetAnchors(shLvl, 0.55f, 0.06f, 0.98f, 0.50f);
-            shLvl.GetComponent<Text>().color = new Color(0.50f, 0.48f, 0.42f, 0.75f);
+            shLvl.GetComponent<Text>().color = new Color(0.62f, 0.58f, 0.50f, 0.85f);
 
             // === CURRENCY DISPLAY (right of info panel — Gold + Gems) ===
             var currPanel = AddPanel(canvas, "CurrencyPanel", new Color(0.04f, 0.03f, 0.08f, 0.88f));
@@ -743,21 +743,42 @@ namespace AshenThrone.Editor
 
             string[] heroNames = { "Kaelen", "Vorra", "Seraphyn", "Mordoc", "Lyra", "Skaros" };
             Color[] heroColors = { Blood, Ember, Purple, IronColor, Teal, BloodDark };
+            float[] tokenHp = { 0.85f, 0.55f, 1.0f, 0.70f, 0.40f, 0.90f };
             for (int i = 0; i < 6; i++)
             {
-                Color tokenBg = i < 3 ? new Color(0.08f, 0.10f, 0.20f, 0.80f) : new Color(0.20f, 0.06f, 0.06f, 0.80f);
+                bool isActive = i == 0;
+                Color tokenBg = i < 3 ? new Color(0.08f, 0.10f, 0.20f, 0.88f) : new Color(0.20f, 0.06f, 0.06f, 0.88f);
                 var token = AddPanel(tokenArea, $"Token_{i}", tokenBg);
-                token.AddComponent<LayoutElement>().preferredHeight = 30;
-                // Active token gold border
-                if (i == 0) { AddOutlinePanel(token, new Color(0.85f, 0.68f, 0.28f, 0.90f)); }
-                // Portrait color
-                var tIcon = AddPanel(token, "Icon", heroColors[i]);
-                SetAnchors(tIcon, 0.04f, 0.08f, 0.38f, 0.92f);
-                AddOutlinePanel(tIcon, new Color(0.55f, 0.42f, 0.18f, i == 0 ? 0.7f : 0.3f));
-                var tName = AddText(token, "Name", heroNames[i][..3], 7, TextAnchor.MiddleCenter);
-                SetAnchors(tName, 0.40f, 0f, 1f, 1f);
-                tName.GetComponent<Text>().color = i == 0 ? Gold : TextMid;
-                tName.GetComponent<Text>().fontStyle = i == 0 ? FontStyle.Bold : FontStyle.Normal;
+                token.AddComponent<LayoutElement>().preferredHeight = 34;
+                // Active token — bright gold border + outer glow
+                if (isActive)
+                {
+                    AddOutlinePanel(token, new Color(0.90f, 0.72f, 0.28f, 0.95f));
+                    var activeGlow = AddPanel(token, "Glow", new Color(0.85f, 0.68f, 0.28f, 0.12f));
+                    StretchToParent(activeGlow);
+                    activeGlow.AddComponent<LayoutElement>().ignoreLayout = true;
+                }
+                else { AddOutlinePanel(token, new Color(0.30f, 0.25f, 0.18f, 0.3f)); }
+                // Portrait with initial
+                var tIcon = AddPanel(token, "Icon", new Color(heroColors[i].r * 0.4f, heroColors[i].g * 0.4f, heroColors[i].b * 0.4f, 1f));
+                SetAnchors(tIcon, 0.04f, 0.08f, 0.36f, 0.92f);
+                AddOutlinePanel(tIcon, new Color(0.55f, 0.42f, 0.18f, isActive ? 0.7f : 0.3f));
+                var tInit = AddText(tIcon, "Init", heroNames[i][..1], 10, TextAnchor.MiddleCenter);
+                StretchToParent(tInit);
+                tInit.GetComponent<Text>().color = new Color(heroColors[i].r + 0.2f, heroColors[i].g + 0.2f, heroColors[i].b + 0.2f, 0.85f);
+                tInit.GetComponent<Text>().fontStyle = FontStyle.Bold;
+                // Name — show 4 chars
+                int nameLen = Mathf.Min(4, heroNames[i].Length);
+                var tName = AddText(token, "Name", heroNames[i][..nameLen], 7, TextAnchor.MiddleLeft);
+                SetAnchors(tName, 0.40f, 0.35f, 1f, 0.95f);
+                tName.GetComponent<Text>().color = isActive ? Gold : TextMid;
+                tName.GetComponent<Text>().fontStyle = isActive ? FontStyle.Bold : FontStyle.Normal;
+                // Mini HP bar in token
+                var miniHpBg = AddPanel(token, "MiniHp", new Color(0.06f, 0.05f, 0.08f, 0.8f));
+                SetAnchors(miniHpBg, 0.40f, 0.08f, 0.95f, 0.28f);
+                Color tkHpColor = tokenHp[i] > 0.5f ? BarHpGreen : tokenHp[i] > 0.25f ? Ember : BarHpRed;
+                var miniHpFill = AddPanel(miniHpBg, "Fill", tkHpColor);
+                SetAnchors(miniHpFill, 0f, 0f, tokenHp[i], 1f);
             }
 
             // === PLAYER HERO STATUS — left side, ornate panels ===
@@ -805,9 +826,25 @@ namespace AshenThrone.Editor
             var circleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Kenney/buttonRound_brown.png");
             for (int i = 0; i < 4; i++)
             {
-                var orb = AddPanel(orbRow, $"Orb_{i}", i < 3 ? BarEnergy : BarEnergyDim);
-                orb.AddComponent<LayoutElement>().preferredWidth = 20;
-                if (circleSpr != null) { orb.GetComponent<Image>().sprite = circleSpr; orb.GetComponent<Image>().type = Image.Type.Sliced; orb.GetComponent<Image>().color = i < 3 ? new Color(0.25f, 0.65f, 0.90f, 1f) : new Color(0.12f, 0.12f, 0.20f, 0.6f); }
+                bool filled = i < 3;
+                // Glow behind filled orbs
+                var orbContainer = AddPanel(orbRow, $"OrbC_{i}", new Color(0, 0, 0, 0));
+                orbContainer.AddComponent<LayoutElement>().preferredWidth = 24;
+                if (filled)
+                {
+                    var orbGlow = AddPanel(orbContainer, "Glow", new Color(0.20f, 0.50f, 0.85f, 0.18f));
+                    StretchToParent(orbGlow);
+                    orbGlow.AddComponent<LayoutElement>().ignoreLayout = true;
+                }
+                var orb = AddPanel(orbContainer, $"Orb_{i}", filled ? BarEnergy : BarEnergyDim);
+                SetAnchors(orb, 0.08f, 0.08f, 0.92f, 0.92f);
+                if (circleSpr != null)
+                {
+                    orb.GetComponent<Image>().sprite = circleSpr;
+                    orb.GetComponent<Image>().type = Image.Type.Sliced;
+                    orb.GetComponent<Image>().color = filled ? new Color(0.28f, 0.68f, 0.95f, 1f) : new Color(0.10f, 0.10f, 0.18f, 0.55f);
+                }
+                if (filled) { AddOutlinePanel(orb, new Color(0.45f, 0.72f, 1f, 0.35f)); }
             }
 
             var enText = AddText(energyPanel, "EnergyCount", "3 / 4", 11, TextAnchor.MiddleCenter);
@@ -816,13 +853,22 @@ namespace AshenThrone.Editor
             enText.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
             // === CARD HAND — ornate card tray ===
-            var cardTray = AddPanel(canvas, "CardTray", new Color(0.03f, 0.02f, 0.06f, 0.94f));
-            SetAnchors(cardTray, 0.08f, 0f, 0.90f, 0.20f);
-            // Top gold border for card tray
-            var ctBorder = AddPanel(cardTray, "TopBorder", new Color(0.72f, 0.56f, 0.22f, 0.65f));
-            SetAnchors(ctBorder, 0.02f, 0.97f, 0.98f, 1f);
-            var ctGlow = AddPanel(cardTray, "TopGlow", new Color(0.55f, 0.42f, 0.15f, 0.08f));
-            SetAnchors(ctGlow, 0f, 0.90f, 1f, 0.97f);
+            var cardTray = AddPanel(canvas, "CardTray", new Color(0.03f, 0.02f, 0.06f, 0.96f));
+            SetAnchors(cardTray, 0.08f, 0f, 0.87f, 0.20f);
+            if (ornateSpr != null) { cardTray.GetComponent<Image>().sprite = ornateSpr; cardTray.GetComponent<Image>().type = Image.Type.Sliced; cardTray.GetComponent<Image>().color = new Color(0.40f, 0.38f, 0.35f, 1f); }
+            // Top gold border + glow for card tray
+            var ctBorder = AddPanel(cardTray, "TopBorder", new Color(0.78f, 0.62f, 0.24f, 0.75f));
+            SetAnchors(ctBorder, 0.01f, 0.97f, 0.99f, 1f);
+            ctBorder.AddComponent<LayoutElement>().ignoreLayout = true;
+            var ctGlow = AddPanel(cardTray, "TopGlow", new Color(0.55f, 0.42f, 0.15f, 0.12f));
+            SetAnchors(ctGlow, 0f, 0.88f, 1f, 0.97f);
+            ctGlow.AddComponent<LayoutElement>().ignoreLayout = true;
+            // "HAND" label at top of tray
+            var handLabel = AddText(cardTray, "HandLabel", "HAND", 8, TextAnchor.MiddleCenter);
+            SetAnchors(handLabel, 0.42f, 0.90f, 0.58f, 1f);
+            handLabel.GetComponent<Text>().color = new Color(0.75f, 0.60f, 0.25f, 0.65f);
+            handLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            handLabel.AddComponent<LayoutElement>().ignoreLayout = true;
 
             var cardContainer = AddPanel(cardTray, "CardContainer", new Color(0, 0, 0, 0));
             SetAnchors(cardContainer, 0.01f, 0.03f, 0.99f, 0.95f);
@@ -839,20 +885,26 @@ namespace AshenThrone.Editor
             string[] cardFrames = { "Fire", "Physical", "Shadow", "Nature", "Ice" };
 
             for (int i = 0; i < 5; i++)
-                AddCardWidget(cardContainer, cardNames[i], cardCosts[i], cardColors[i], cardTypes[i], cardDmg[i]);
+                AddCardWidget(cardContainer, cardNames[i], cardCosts[i], cardColors[i], cardTypes[i], cardDmg[i], cardFrames[i]);
 
-            // === END TURN — ornate button ===
+            // === END TURN — ornate button with urgency glow ===
+            var endTurnGlow = AddPanel(canvas, "EndTurnGlow", new Color(0.75f, 0.20f, 0.12f, 0.10f));
+            SetAnchors(endTurnGlow, 0.86f, 0f, 1f, 0.22f);
             var endTurnBtn = AddPanel(canvas, "EndTurnButton", Blood);
-            SetAnchors(endTurnBtn, 0.88f, 0.02f, 0.99f, 0.12f);
-            if (btnOrnateSpr != null) { endTurnBtn.GetComponent<Image>().sprite = btnOrnateSpr; endTurnBtn.GetComponent<Image>().type = Image.Type.Sliced; endTurnBtn.GetComponent<Image>().color = new Color(0.78f, 0.22f, 0.15f, 1f); }
+            SetAnchors(endTurnBtn, 0.87f, 0.02f, 0.99f, 0.20f);
+            if (btnOrnateSpr != null) { endTurnBtn.GetComponent<Image>().sprite = btnOrnateSpr; endTurnBtn.GetComponent<Image>().type = Image.Type.Sliced; endTurnBtn.GetComponent<Image>().color = new Color(0.82f, 0.22f, 0.15f, 1f); }
+            AddOutlinePanel(endTurnBtn, new Color(0.95f, 0.45f, 0.20f, 0.35f));
             endTurnBtn.AddComponent<Button>();
-            var etLabel = AddText(endTurnBtn, "Label", "END\nTURN", 10, TextAnchor.MiddleCenter);
+            var etLabel = AddText(endTurnBtn, "Label", "END\nTURN", 11, TextAnchor.MiddleCenter);
             StretchToParent(etLabel);
             etLabel.GetComponent<Text>().color = Color.white;
             etLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var etShadow = etLabel.AddComponent<Shadow>();
             etShadow.effectColor = new Color(0, 0, 0, 0.9f);
             etShadow.effectDistance = new Vector2(1f, -1f);
+            var etOutline = etLabel.AddComponent<Outline>();
+            etOutline.effectColor = new Color(0.75f, 0.15f, 0.10f, 0.4f);
+            etOutline.effectDistance = new Vector2(0.5f, -0.5f);
 
             // === VICTORY PANEL — ornate frame ===
             var victoryPanel = AddPanel(canvasGo, "VictoryPanel", new Color(0.02f, 0.06f, 0.02f, 0.95f));
@@ -1519,21 +1571,69 @@ namespace AshenThrone.Editor
             var fogBot = AddPanel(bg, "FogBot", new Color(0.02f, 0.02f, 0.01f, 0.4f));
             SetAnchors(fogBot, 0f, 0f, 1f, 0.15f);
 
-            // Map grid overlay — territory tiles
+            // Map grid overlay — territory tiles with labels and terrain types
+            string[,] tileNames = {
+                { "Ashfall", "Iron Wastes", "Duskfen", "Stonewatch", "Thornvale", "Grimreach" },
+                { "Emberveil", "", "Blackhollow", "", "Wraithwood", "" },
+                { "Goldvein", "Mistpeak", "", "Frostmere", "Shadowfen", "Deepforge" },
+                { "", "Dragonspire", "Voidrift", "", "Skybreak", "" },
+                { "Sunhaven", "", "Moonfall", "Irondeep", "", "Ashenmoor" }
+            };
+            int[,] tileTypes = { // 0=neutral, 1=allied, 2=enemy, 3=contested
+                { 1, 1, 0, 2, 0, 2 },
+                { 1, 0, 3, 0, 2, 0 },
+                { 0, 1, 0, 0, 3, 2 },
+                { 0, 1, 2, 0, 0, 0 },
+                { 1, 0, 0, 2, 0, 2 }
+            };
+            Color[] tileTypeColors = {
+                new Color(0.12f, 0.12f, 0.10f, 0.35f), // neutral
+                new Color(0.12f, 0.22f, 0.10f, 0.45f), // allied (green)
+                new Color(0.25f, 0.08f, 0.08f, 0.45f), // enemy (red)
+                new Color(0.25f, 0.20f, 0.05f, 0.50f)  // contested (amber)
+            };
+            Color[] tileBorderColors = {
+                new Color(0.25f, 0.23f, 0.18f, 0.30f), // neutral
+                new Color(0.20f, 0.40f, 0.15f, 0.50f), // allied
+                new Color(0.50f, 0.15f, 0.12f, 0.50f), // enemy
+                new Color(0.55f, 0.45f, 0.12f, 0.55f)  // contested
+            };
+
             for (int r = 0; r < 5; r++)
             {
                 for (int c = 0; c < 6; c++)
                 {
-                    float x = 0.08f + c * 0.145f;
-                    float y = 0.25f + r * 0.13f;
-                    Color tileColor;
-                    if ((r + c) % 3 == 0) tileColor = new Color(0.15f, 0.25f, 0.12f, 0.4f);
-                    else if ((r * c) % 5 == 0) tileColor = new Color(0.25f, 0.10f, 0.10f, 0.4f);
-                    else tileColor = new Color(0.12f, 0.12f, 0.10f, 0.3f);
+                    float x = 0.06f + c * 0.148f;
+                    float y = 0.22f + r * 0.135f;
+                    int tt = tileTypes[r, c];
+                    var tile = AddPanel(canvasGo, $"Tile_{r}_{c}", tileTypeColors[tt]);
+                    SetAnchors(tile, x, y, x + 0.13f, y + 0.12f);
+                    AddOutlinePanel(tile, tileBorderColors[tt]);
 
-                    var tile = AddPanel(canvasGo, $"Tile_{r}_{c}", tileColor);
-                    SetAnchors(tile, x, y, x + 0.12f, y + 0.11f);
-                    AddOutlinePanel(tile, new Color(0.30f, 0.28f, 0.20f, 0.35f));
+                    // Territory name label
+                    string name = tileNames[r, c];
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        var nameLabel = AddText(tile, "Name", name, 7, TextAnchor.MiddleCenter);
+                        SetAnchors(nameLabel, 0.02f, 0.55f, 0.98f, 0.90f);
+                        nameLabel.GetComponent<Text>().color = tt == 1 ? new Color(0.55f, 0.82f, 0.45f, 0.9f) :
+                            tt == 2 ? new Color(0.85f, 0.45f, 0.40f, 0.9f) :
+                            tt == 3 ? new Color(0.90f, 0.78f, 0.30f, 0.9f) :
+                            new Color(0.65f, 0.62f, 0.55f, 0.75f);
+                        nameLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+                        var nSh = nameLabel.AddComponent<Shadow>();
+                        nSh.effectColor = new Color(0, 0, 0, 0.9f);
+                        nSh.effectDistance = new Vector2(0.5f, -0.5f);
+                    }
+
+                    // Resource/power icon for named territories
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        string resIcon = tt == 1 ? "\u2694" : tt == 2 ? "\u2620" : tt == 3 ? "\u26A0" : "\u25C6";
+                        var icon = AddText(tile, "Icon", resIcon, 9, TextAnchor.MiddleCenter);
+                        SetAnchors(icon, 0.35f, 0.10f, 0.65f, 0.50f);
+                        icon.GetComponent<Text>().color = tileBorderColors[tt];
+                    }
                 }
             }
 
@@ -1568,17 +1668,56 @@ namespace AshenThrone.Editor
             bbLabel.GetComponent<Text>().color = TextLight;
             bbLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
-            // === LEGEND — ornate frame ===
-            var legend = AddPanel(canvas, "Legend", new Color(0.04f, 0.03f, 0.06f, 0.90f));
-            SetAnchors(legend, 0.80f, 0.84f, 0.99f, 0.93f);
+            // === COORDINATES DISPLAY ===
+            var coordsPanel = AddPanel(canvas, "CoordsPanel", new Color(0.04f, 0.03f, 0.06f, 0.85f));
+            SetAnchors(coordsPanel, 0.30f, 0.93f, 0.70f, 0.995f);
+            if (ornateSpr != null) { coordsPanel.GetComponent<Image>().sprite = ornateSpr; coordsPanel.GetComponent<Image>().type = Image.Type.Sliced; coordsPanel.GetComponent<Image>().color = new Color(0.45f, 0.42f, 0.38f, 1f); }
+            var coordText = AddText(coordsPanel, "Coords", "K:12  (482, 317)", 10, TextAnchor.MiddleCenter);
+            StretchToParent(coordText);
+            coordText.GetComponent<Text>().color = TextLight;
+            coordText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // === ZOOM CONTROLS ===
+            var zoomIn = AddPanel(canvas, "ZoomIn", new Color(0.30f, 0.25f, 0.20f, 0.9f));
+            SetAnchors(zoomIn, 0.91f, 0.58f, 0.98f, 0.65f);
+            if (btnOrnateSpr != null) { zoomIn.GetComponent<Image>().sprite = btnOrnateSpr; zoomIn.GetComponent<Image>().type = Image.Type.Sliced; zoomIn.GetComponent<Image>().color = new Color(0.50f, 0.45f, 0.38f, 1f); }
+            zoomIn.AddComponent<Button>();
+            var ziLabel = AddText(zoomIn, "Label", "+", 16, TextAnchor.MiddleCenter);
+            StretchToParent(ziLabel);
+            ziLabel.GetComponent<Text>().color = Gold;
+            ziLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            var zoomOut = AddPanel(canvas, "ZoomOut", new Color(0.30f, 0.25f, 0.20f, 0.9f));
+            SetAnchors(zoomOut, 0.91f, 0.50f, 0.98f, 0.57f);
+            if (btnOrnateSpr != null) { zoomOut.GetComponent<Image>().sprite = btnOrnateSpr; zoomOut.GetComponent<Image>().type = Image.Type.Sliced; zoomOut.GetComponent<Image>().color = new Color(0.50f, 0.45f, 0.38f, 1f); }
+            zoomOut.AddComponent<Button>();
+            var zoLabel = AddText(zoomOut, "Label", "\u2212", 16, TextAnchor.MiddleCenter);
+            StretchToParent(zoLabel);
+            zoLabel.GetComponent<Text>().color = Gold;
+            zoLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // === SEARCH COORDS BUTTON ===
+            var searchBtn = AddPanel(canvas, "SearchBtn", new Color(0.25f, 0.22f, 0.30f, 0.9f));
+            SetAnchors(searchBtn, 0.88f, 0.93f, 0.99f, 0.995f);
+            if (btnOrnateSpr != null) { searchBtn.GetComponent<Image>().sprite = btnOrnateSpr; searchBtn.GetComponent<Image>().type = Image.Type.Sliced; searchBtn.GetComponent<Image>().color = new Color(0.45f, 0.40f, 0.50f, 1f); }
+            searchBtn.AddComponent<Button>();
+            var srchLabel = AddText(searchBtn, "Label", "\uD83D\uDD0D", 12, TextAnchor.MiddleCenter);
+            StretchToParent(srchLabel);
+            srchLabel.GetComponent<Text>().color = TextLight;
+
+            // === LEGEND — ornate frame with 4 types ===
+            var legend = AddPanel(canvas, "Legend", new Color(0.04f, 0.03f, 0.06f, 0.92f));
+            SetAnchors(legend, 0.78f, 0.78f, 0.99f, 0.925f);
             if (ornateSpr != null) { legend.GetComponent<Image>().sprite = ornateSpr; legend.GetComponent<Image>().type = Image.Type.Sliced; legend.GetComponent<Image>().color = new Color(0.55f, 0.52f, 0.45f, 1f); }
             else { AddOutlinePanel(legend, GoldDim); }
             var legTitle = AddText(legend, "LTitle", "LEGEND", 8, TextAnchor.UpperCenter);
-            SetAnchors(legTitle, 0f, 0.68f, 1f, 1f);
+            SetAnchors(legTitle, 0f, 0.82f, 1f, 1f);
             legTitle.GetComponent<Text>().color = Gold;
             legTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            AddLegendItem(legend, "Allied", new Color(0.15f, 0.25f, 0.12f), 0.45f);
-            AddLegendItem(legend, "Enemy", new Color(0.25f, 0.10f, 0.10f), 0.15f);
+            AddLegendItem(legend, "Allied", new Color(0.20f, 0.40f, 0.15f), 0.60f);
+            AddLegendItem(legend, "Enemy", new Color(0.50f, 0.15f, 0.12f), 0.40f);
+            AddLegendItem(legend, "Contested", new Color(0.55f, 0.45f, 0.12f), 0.20f);
+            AddLegendItem(legend, "Neutral", new Color(0.25f, 0.23f, 0.18f), 0.0f);
 
             // === TERRITORY INFO — ornate sidebar ===
             var infoPanel = AddPanel(canvas, "TerritoryInfo", new Color(0.04f, 0.03f, 0.08f, 0.92f));
@@ -1628,21 +1767,56 @@ namespace AshenThrone.Editor
             scoutLabel.GetComponent<Text>().color = Color.white;
             scoutLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
-            // === MINI-MAP — ornate ===
-            var miniMap = AddPanel(canvas, "MiniMap", new Color(0.04f, 0.04f, 0.03f, 0.88f));
-            SetAnchors(miniMap, 0.80f, 0.10f, 0.99f, 0.32f);
-            if (ornateSpr != null) { miniMap.GetComponent<Image>().sprite = ornateSpr; miniMap.GetComponent<Image>().type = Image.Type.Sliced; miniMap.GetComponent<Image>().color = new Color(0.50f, 0.48f, 0.42f, 1f); }
+            // === MINI-MAP — ornate with full detail ===
+            var miniMap = AddPanel(canvas, "MiniMap", new Color(0.04f, 0.04f, 0.03f, 0.92f));
+            SetAnchors(miniMap, 0.78f, 0.06f, 0.99f, 0.32f);
+            if (ornateSpr != null) { miniMap.GetComponent<Image>().sprite = ornateSpr; miniMap.GetComponent<Image>().type = Image.Type.Sliced; miniMap.GetComponent<Image>().color = new Color(0.52f, 0.50f, 0.44f, 1f); }
             else { AddOutlinePanel(miniMap, GoldDim); }
             var mmLabel = AddText(miniMap, "Label", "MINI MAP", 8, TextAnchor.UpperCenter);
-            SetAnchors(mmLabel, 0f, 0.86f, 1f, 1f);
+            SetAnchors(mmLabel, 0f, 0.88f, 1f, 1f);
             mmLabel.GetComponent<Text>().color = Gold;
             mmLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
 
+            // Terrain regions on minimap
+            var mmAllied = AddPanel(miniMap, "AlliedZone", new Color(0.15f, 0.30f, 0.12f, 0.45f));
+            SetAnchors(mmAllied, 0.08f, 0.25f, 0.45f, 0.65f);
+            var mmEnemy = AddPanel(miniMap, "EnemyZone", new Color(0.30f, 0.10f, 0.10f, 0.45f));
+            SetAnchors(mmEnemy, 0.55f, 0.40f, 0.92f, 0.80f);
+            var mmContested = AddPanel(miniMap, "ContestedZone", new Color(0.30f, 0.25f, 0.08f, 0.40f));
+            SetAnchors(mmContested, 0.35f, 0.45f, 0.60f, 0.65f);
+
+            // View rectangle (gold outline showing current viewport)
+            var viewRect = AddPanel(miniMap, "ViewRect", new Color(0.85f, 0.68f, 0.28f, 0.08f));
+            SetAnchors(viewRect, 0.25f, 0.30f, 0.55f, 0.55f);
+            AddOutlinePanel(viewRect, new Color(0.85f, 0.68f, 0.28f, 0.80f));
+
+            // Player marker (gold diamond)
             var playerDot = AddPanel(miniMap, "PlayerDot", Gold);
-            SetAnchors(playerDot, 0.4f, 0.38f, 0.5f, 0.52f);
-            // Enemy dot
-            var enemyDot = AddPanel(miniMap, "EnemyDot", Blood);
-            SetAnchors(enemyDot, 0.65f, 0.55f, 0.72f, 0.65f);
+            SetAnchors(playerDot, 0.36f, 0.38f, 0.44f, 0.48f);
+            AddOutlinePanel(playerDot, new Color(1f, 0.85f, 0.45f, 0.6f));
+
+            // Alliance markers (green dots)
+            float[] allyX = { 0.18f, 0.30f, 0.22f };
+            float[] allyY = { 0.35f, 0.52f, 0.58f };
+            for (int i = 0; i < 3; i++)
+            {
+                var ally = AddPanel(miniMap, $"AllyDot_{i}", new Color(0.30f, 0.65f, 0.25f, 0.75f));
+                SetAnchors(ally, allyX[i], allyY[i], allyX[i] + 0.05f, allyY[i] + 0.06f);
+            }
+
+            // Enemy markers (red dots)
+            float[] enX = { 0.65f, 0.78f, 0.70f, 0.82f };
+            float[] enY = { 0.55f, 0.48f, 0.68f, 0.62f };
+            for (int i = 0; i < 4; i++)
+            {
+                var en = AddPanel(miniMap, $"EnemyDot_{i}", new Color(0.70f, 0.20f, 0.15f, 0.70f));
+                SetAnchors(en, enX[i], enY[i], enX[i] + 0.04f, enY[i] + 0.05f);
+            }
+
+            // "Your City" label on minimap
+            var mmCityLabel = AddText(miniMap, "CityLabel", "Your City", 6, TextAnchor.MiddleCenter);
+            SetAnchors(mmCityLabel, 0.22f, 0.25f, 0.58f, 0.35f);
+            mmCityLabel.GetComponent<Text>().color = new Color(0.85f, 0.72f, 0.35f, 0.7f);
 
             SaveScene();
             Debug.Log("[SceneUIGenerator] WorldMap scene: premium territory control HUD");
@@ -1762,10 +1936,11 @@ namespace AshenThrone.Editor
                 if (active) { var tSh = tLbl.AddComponent<Shadow>(); tSh.effectColor = new Color(0, 0, 0, 0.85f); tSh.effectDistance = new Vector2(1, -1); }
             }
 
-            // === CHAT AREA — solid dark panel, clearly distinct from background ===
+            // === CHAT AREA — ornate framed panel, clearly distinct from background ===
             var chatPanel = AddPanel(canvas, "ChatPanel", new Color(0.08f, 0.06f, 0.14f, 1f));
             SetAnchors(chatPanel, 0.015f, 0.13f, 0.985f, 0.86f);
-            AddOutlinePanel(chatPanel, new Color(0.55f, 0.42f, 0.18f, 0.35f));
+            if (ornateSpr != null) { chatPanel.GetComponent<Image>().sprite = ornateSpr; chatPanel.GetComponent<Image>().type = Image.Type.Sliced; chatPanel.GetComponent<Image>().color = new Color(0.42f, 0.38f, 0.35f, 1f); }
+            else { AddOutlinePanel(chatPanel, new Color(0.55f, 0.42f, 0.18f, 0.50f)); }
 
             var chatMsgs = new (string sender, string msg, Color sColor, string time)[] {
                 ("Kaelen", "Rally at sector 7! Enemy alliance incoming.", Ember, "2m"),
@@ -1784,16 +1959,17 @@ namespace AshenThrone.Editor
                 float yTop = 1f - i * msgH - 0.02f;
                 float yBot = yTop - msgH + 0.01f;
 
-                var row = AddPanel(chatPanel, $"Msg_{i}", new Color(0.10f, 0.08f, 0.18f, i % 2 == 0 ? 0.85f : 0.65f));
-                SetAnchors(row, 0.01f, yBot, 0.99f, yTop);
-                // Subtle left accent bar in sender color
-                var accent = AddPanel(row, "Accent", new Color(chatMsgs[i].sColor.r, chatMsgs[i].sColor.g, chatMsgs[i].sColor.b, 0.50f));
-                SetAnchors(accent, 0f, 0.10f, 0.008f, 0.90f);
+                var row = AddPanel(chatPanel, $"Msg_{i}", new Color(0.10f, 0.08f, 0.18f, i % 2 == 0 ? 0.90f : 0.70f));
+                SetAnchors(row, 0.015f, yBot, 0.985f, yTop);
+                AddOutlinePanel(row, new Color(0.25f, 0.20f, 0.30f, i % 2 == 0 ? 0.30f : 0.15f));
+                // Left accent bar in sender color — thicker
+                var accent = AddPanel(row, "Accent", new Color(chatMsgs[i].sColor.r, chatMsgs[i].sColor.g, chatMsgs[i].sColor.b, 0.65f));
+                SetAnchors(accent, 0f, 0.05f, 0.012f, 0.95f);
 
-                // Avatar circle with initial
-                var avatar = AddPanel(row, "Avatar", new Color(chatMsgs[i].sColor.r * 0.30f, chatMsgs[i].sColor.g * 0.30f, chatMsgs[i].sColor.b * 0.30f, 0.75f));
-                SetAnchors(avatar, 0.015f, 0.10f, 0.065f, 0.90f);
-                AddOutlinePanel(avatar, new Color(chatMsgs[i].sColor.r * 0.5f, chatMsgs[i].sColor.g * 0.5f, chatMsgs[i].sColor.b * 0.5f, 0.35f));
+                // Avatar circle with initial — brighter
+                var avatar = AddPanel(row, "Avatar", new Color(chatMsgs[i].sColor.r * 0.45f, chatMsgs[i].sColor.g * 0.45f, chatMsgs[i].sColor.b * 0.45f, 0.85f));
+                SetAnchors(avatar, 0.018f, 0.10f, 0.065f, 0.90f);
+                AddOutlinePanel(avatar, new Color(chatMsgs[i].sColor.r * 0.65f, chatMsgs[i].sColor.g * 0.65f, chatMsgs[i].sColor.b * 0.65f, 0.45f));
                 var initial = AddText(avatar, "Init", chatMsgs[i].sender.Substring(0, 1), 13, TextAnchor.MiddleCenter);
                 StretchToParent(initial);
                 initial.GetComponent<Text>().color = new Color(1f, 1f, 1f, 0.90f);
@@ -1820,12 +1996,16 @@ namespace AshenThrone.Editor
             }
 
             // === INPUT BAR — ornate with gold trim ===
-            var inputBar = AddPanel(canvas, "InputBar", new Color(0.04f, 0.03f, 0.07f, 0.96f));
+            var inputBar = AddPanel(canvas, "InputBar", new Color(0.05f, 0.04f, 0.09f, 0.97f));
             SetAnchors(inputBar, 0f, 0.08f, 1f, 0.13f);
-            // Gold top trim
-            var inTopBorder = AddPanel(inputBar, "TopBorder", new Color(0.60f, 0.45f, 0.18f, 0.40f));
+            // Gold top trim — brighter
+            var inTopBorder = AddPanel(inputBar, "TopBorder", new Color(0.68f, 0.52f, 0.20f, 0.55f));
             SetAnchors(inTopBorder, 0f, 0.95f, 1f, 1f);
             inTopBorder.AddComponent<LayoutElement>().ignoreLayout = true;
+            // Gold bottom trim
+            var inBotBorder = AddPanel(inputBar, "BotBorder", new Color(0.55f, 0.42f, 0.16f, 0.30f));
+            SetAnchors(inBotBorder, 0f, 0f, 1f, 0.05f);
+            inBotBorder.AddComponent<LayoutElement>().ignoreLayout = true;
 
             // Text field — inset dark
             var inputField = AddPanel(inputBar, "InputField", new Color(0.05f, 0.035f, 0.08f, 0.92f));
@@ -2238,83 +2418,158 @@ namespace AshenThrone.Editor
 
         static void AddHeroStatusPanel(GameObject parent, string heroName, float hpPct, Color heroColor, bool isPlayer)
         {
-            var panel = AddPanel(parent, heroName, new Color(0.04f, 0.03f, 0.08f, 0.88f));
-            panel.AddComponent<LayoutElement>().preferredHeight = 44;
-            // Gold border for active, team-colored for others
-            Color borderColor = isPlayer
-                ? new Color(0.25f, 0.35f, 0.55f, 0.6f)
-                : new Color(0.50f, 0.15f, 0.15f, 0.6f);
-            AddOutlinePanel(panel, borderColor);
+            var panel = AddPanel(parent, heroName, new Color(0.04f, 0.03f, 0.08f, 0.92f));
+            panel.AddComponent<LayoutElement>().preferredHeight = 50;
 
-            // Portrait with gold inner border
-            var portrait = AddPanel(panel, "Portrait", heroColor);
-            SetAnchors(portrait, 0.03f, 0.06f, 0.30f, 0.94f);
-            AddOutlinePanel(portrait, new Color(0.55f, 0.42f, 0.18f, 0.50f));
+            // Ornate panel frame
+            var ornateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
+            if (ornateSpr != null)
+            {
+                panel.GetComponent<Image>().sprite = ornateSpr;
+                panel.GetComponent<Image>().type = Image.Type.Sliced;
+                Color frameColor = isPlayer ? new Color(0.35f, 0.42f, 0.58f, 1f) : new Color(0.55f, 0.30f, 0.28f, 1f);
+                panel.GetComponent<Image>().color = frameColor;
+            }
+            else
+            {
+                Color borderColor = isPlayer ? new Color(0.25f, 0.35f, 0.55f, 0.7f) : new Color(0.50f, 0.15f, 0.15f, 0.7f);
+                AddOutlinePanel(panel, borderColor);
+            }
 
-            var nameLabel = AddText(panel, "Name", heroName, 9, TextAnchor.MiddleLeft);
-            SetAnchors(nameLabel, 0.33f, 0.58f, 0.98f, 0.96f);
+            // Portrait with hero initial — circular with gold border
+            var portraitBg = AddPanel(panel, "PortraitBg", new Color(heroColor.r * 0.3f, heroColor.g * 0.3f, heroColor.b * 0.3f, 1f));
+            SetAnchors(portraitBg, 0.03f, 0.08f, 0.28f, 0.92f);
+            var circleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Kenney/buttonRound_brown.png");
+            if (circleSpr != null) { portraitBg.GetComponent<Image>().sprite = circleSpr; portraitBg.GetComponent<Image>().type = Image.Type.Sliced; portraitBg.GetComponent<Image>().color = new Color(heroColor.r * 0.4f, heroColor.g * 0.4f, heroColor.b * 0.4f, 1f); }
+            AddOutlinePanel(portraitBg, new Color(0.72f, 0.56f, 0.22f, 0.70f));
+            // Hero initial letter
+            var initText = AddText(portraitBg, "Initial", heroName[..1], 16, TextAnchor.MiddleCenter);
+            StretchToParent(initText);
+            initText.GetComponent<Text>().color = new Color(heroColor.r + 0.2f, heroColor.g + 0.2f, heroColor.b + 0.2f, 0.9f);
+            initText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var initShadow = initText.AddComponent<Shadow>();
+            initShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            initShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Hero name with team icon
+            string teamIcon = isPlayer ? "\u2694 " : "\u2620 "; // swords or skull
+            var nameLabel = AddText(panel, "Name", teamIcon + heroName, 9, TextAnchor.MiddleLeft);
+            SetAnchors(nameLabel, 0.31f, 0.55f, 0.98f, 0.95f);
             nameLabel.GetComponent<Text>().color = TextWhite;
             nameLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var nShadow = nameLabel.AddComponent<Shadow>();
             nShadow.effectColor = new Color(0, 0, 0, 0.8f);
             nShadow.effectDistance = new Vector2(1f, -1f);
 
-            // HP bar with glow at fill edge
-            var hpBarBg = AddPanel(panel, "HpBarBg", new Color(0.06f, 0.05f, 0.10f, 0.9f));
-            SetAnchors(hpBarBg, 0.33f, 0.18f, 0.98f, 0.50f);
+            // HP percentage text — right-aligned above bar
+            int hpCurrent = (int)(hpPct * 1000);
+            var hpText = AddText(panel, "HpText", $"{(int)(hpPct * 100)}%", 8, TextAnchor.MiddleRight);
+            SetAnchors(hpText, 0.72f, 0.55f, 0.98f, 0.95f);
             Color hpColor = hpPct > 0.5f ? BarHpGreen : hpPct > 0.25f ? Ember : BarHpRed;
+            hpText.GetComponent<Text>().color = new Color(hpColor.r, hpColor.g, hpColor.b, 0.85f);
+            hpText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // HP bar with glow at fill edge
+            var hpBarBg = AddPanel(panel, "HpBarBg", new Color(0.06f, 0.05f, 0.10f, 0.95f));
+            SetAnchors(hpBarBg, 0.31f, 0.15f, 0.98f, 0.48f);
+            AddOutlinePanel(hpBarBg, new Color(0.20f, 0.18f, 0.15f, 0.4f));
             var hpBarFill = AddPanel(hpBarBg, "Fill", hpColor);
             SetAnchors(hpBarFill, 0f, 0f, hpPct, 1f);
             // Glow at fill edge
-            var hpGlow = AddPanel(hpBarBg, "Glow", new Color(hpColor.r + 0.2f, hpColor.g + 0.2f, hpColor.b + 0.1f, 0.4f));
-            SetAnchors(hpGlow, Mathf.Max(0, hpPct - 0.04f), 0f, Mathf.Min(1f, hpPct + 0.02f), 1f);
+            var hpGlow = AddPanel(hpBarBg, "Glow", new Color(hpColor.r + 0.3f, hpColor.g + 0.3f, hpColor.b + 0.15f, 0.45f));
+            SetAnchors(hpGlow, Mathf.Max(0, hpPct - 0.05f), 0f, Mathf.Min(1f, hpPct + 0.03f), 1f);
 
-            var hpText = AddText(panel, "HpText", $"{(int)(hpPct * 1000)}", 7, TextAnchor.MiddleRight);
-            SetAnchors(hpText, 0.65f, 0.55f, 0.98f, 0.92f);
-            hpText.GetComponent<Text>().color = new Color(0.55f, 0.52f, 0.48f, 0.70f);
+            // Status effect slots (3 small circles below HP bar)
+            for (int s = 0; s < 3; s++)
+            {
+                float sx = 0.31f + s * 0.08f;
+                var slot = AddPanel(panel, $"Status_{s}", new Color(0.08f, 0.06f, 0.12f, 0.5f));
+                SetAnchors(slot, sx, 0.02f, sx + 0.06f, 0.14f);
+            }
         }
 
-        static void AddCardWidget(GameObject parent, string cardName, int cost, Color color, string type, int value)
+        static void AddCardWidget(GameObject parent, string cardName, int cost, Color color, string type, int value, string element = "Fire")
         {
             var card = AddPanel(parent, cardName.Replace(" ", ""), BgCard);
             var le = card.AddComponent<LayoutElement>();
             le.preferredWidth = 105;
             le.preferredHeight = 150;
-            AddOutlinePanel(card, color);
 
-            // Card art area
-            var artArea = AddPanel(card, "Art", new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f));
-            SetAnchors(artArea, 0.06f, 0.40f, 0.94f, 0.82f);
+            // Use actual card frame sprite if available
+            var frameSpr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Cards/CardFrame_{element}.png");
+            if (frameSpr != null)
+            {
+                card.GetComponent<Image>().sprite = frameSpr;
+                card.GetComponent<Image>().type = Image.Type.Sliced;
+                card.GetComponent<Image>().color = new Color(0.85f, 0.82f, 0.78f, 1f);
+            }
+            else
+            {
+                AddOutlinePanel(card, color);
+            }
 
-            // Cost badge (top-left)
-            var costBadge = AddPanel(card, "CostBadge", BarEnergy);
-            SetAnchors(costBadge, 0.02f, 0.82f, 0.22f, 0.98f);
-            var costText = AddText(costBadge, "Cost", cost.ToString(), 12, TextAnchor.MiddleCenter);
+            // Card art area — element-tinted with inner vignette
+            var artArea = AddPanel(card, "Art", new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.95f));
+            SetAnchors(artArea, 0.08f, 0.42f, 0.92f, 0.80f);
+            // Element symbol in art area
+            string elemSymbol = type == "ATK" ? "\u2694" : type == "HEAL" ? "\u2665" : "\u2726"; // swords, heart, diamond
+            var elemIcon = AddText(artArea, "ElemIcon", elemSymbol, 22, TextAnchor.MiddleCenter);
+            StretchToParent(elemIcon);
+            elemIcon.GetComponent<Text>().color = new Color(color.r, color.g, color.b, 0.55f);
+
+            // Cost badge — circular with glow
+            var costGlow = AddPanel(card, "CostGlow", new Color(0.15f, 0.40f, 0.85f, 0.20f));
+            SetAnchors(costGlow, 0f, 0.82f, 0.26f, 1f);
+            var costBadge = AddPanel(card, "CostBadge", new Color(0.12f, 0.35f, 0.75f, 1f));
+            SetAnchors(costBadge, 0.03f, 0.84f, 0.23f, 0.98f);
+            var circleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Kenney/buttonRound_brown.png");
+            if (circleSpr != null) { costBadge.GetComponent<Image>().sprite = circleSpr; costBadge.GetComponent<Image>().type = Image.Type.Sliced; costBadge.GetComponent<Image>().color = new Color(0.15f, 0.38f, 0.82f, 1f); }
+            AddOutlinePanel(costBadge, new Color(0.55f, 0.72f, 1f, 0.5f));
+            var costText = AddText(costBadge, "Cost", cost.ToString(), 13, TextAnchor.MiddleCenter);
             StretchToParent(costText);
             costText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            costText.GetComponent<Text>().color = Color.white;
+            var costShadow = costText.AddComponent<Shadow>();
+            costShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            costShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Type badge (top-right)
-            var typeBadge = AddPanel(card, "TypeBadge",
-                type == "ATK" ? Blood : type == "HEAL" ? Teal : IronColor);
-            SetAnchors(typeBadge, 0.70f, 0.82f, 0.98f, 0.98f);
+            // Type badge (top-right) — rounded with element color
+            Color typeBgColor = type == "ATK" ? new Color(0.72f, 0.14f, 0.14f, 1f) :
+                                type == "HEAL" ? new Color(0.12f, 0.62f, 0.48f, 1f) :
+                                new Color(0.42f, 0.42f, 0.55f, 1f);
+            var typeBadge = AddPanel(card, "TypeBadge", typeBgColor);
+            SetAnchors(typeBadge, 0.65f, 0.84f, 0.97f, 0.97f);
+            AddOutlinePanel(typeBadge, new Color(typeBgColor.r + 0.2f, typeBgColor.g + 0.1f, typeBgColor.b + 0.1f, 0.4f));
             var typeText = AddText(typeBadge, "Type", type, 7, TextAnchor.MiddleCenter);
             StretchToParent(typeText);
             typeText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            typeText.GetComponent<Text>().color = Color.white;
 
-            // Card name
+            // Card name — gold for attacks, teal for heals
             var nameText = AddText(card, "Name", cardName, 9, TextAnchor.MiddleCenter);
-            SetAnchors(nameText, 0.04f, 0.22f, 0.96f, 0.38f);
+            SetAnchors(nameText, 0.04f, 0.24f, 0.96f, 0.40f);
             nameText.GetComponent<Text>().color = color;
             nameText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var nameShadow = nameText.AddComponent<Shadow>();
+            nameShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            nameShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Value text
-            var valText = AddText(card, "Value", value > 0 ? value.ToString() : "", 11, TextAnchor.MiddleCenter);
-            SetAnchors(valText, 0.04f, 0.04f, 0.96f, 0.22f);
-            valText.GetComponent<Text>().color = TextMid;
+            // Value text — with context label (DMG/HP/DEF)
+            string valLabel = type == "ATK" ? "DMG" : type == "HEAL" ? "HP" : "DEF";
+            string valStr = value > 0 ? $"{value} {valLabel}" : "";
+            var valText = AddText(card, "Value", valStr, 11, TextAnchor.MiddleCenter);
+            SetAnchors(valText, 0.04f, 0.06f, 0.96f, 0.22f);
+            valText.GetComponent<Text>().color = type == "ATK" ? new Color(1f, 0.65f, 0.55f) : type == "HEAL" ? new Color(0.55f, 1f, 0.82f) : TextMid;
+            valText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var valShadow = valText.AddComponent<Shadow>();
+            valShadow.effectColor = new Color(0, 0, 0, 0.7f);
+            valShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Element accent line
+            // Element accent line — glowing
             var accent = AddPanel(card, "Accent", color);
-            SetAnchors(accent, 0.06f, 0.38f, 0.94f, 0.40f);
+            SetAnchors(accent, 0.08f, 0.40f, 0.92f, 0.42f);
+            var accentGlow = AddPanel(card, "AccentGlow", new Color(color.r, color.g, color.b, 0.15f));
+            SetAnchors(accentGlow, 0.06f, 0.38f, 0.94f, 0.44f);
         }
 
         static void AddBuildQueueSlot(GameObject parent, int index, string buildingName, string timer, float progress, bool active)
