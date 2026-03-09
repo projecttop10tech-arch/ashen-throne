@@ -371,7 +371,7 @@ namespace AshenThrone.Editor
             SetAnchors(vipBadge, 0.04f, 0.06f, 0.96f, 0.94f);
             var vipShimmer = AddPanel(vipBadge, "Shimmer", new Color(0.65f, 0.40f, 0.85f, 0.20f));
             SetAnchors(vipShimmer, 0f, 0.45f, 1f, 1f);
-            var vipText = AddText(vipBadge, "Label", "VIP 1", 9, TextAnchor.MiddleCenter);
+            var vipText = AddText(vipBadge, "Label", "VIP 1", 10, TextAnchor.MiddleCenter);
             StretchToParent(vipText);
             vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.75f, 1f);
             vipText.GetComponent<Text>().fontStyle = FontStyle.Bold;
@@ -1061,9 +1061,9 @@ namespace AshenThrone.Editor
             lvlShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             // === INFO PANEL — right of avatar, premium dark panel with layered depth ===
-            // Background panel with subtle gradient
-            var infoPanelBg = AddPanel(canvas, "InfoPanelBg", new Color(0.04f, 0.03f, 0.08f, 0.90f));
-            SetAnchors(infoPanelBg, 0.19f, 0.910f, 0.84f, 0.955f);
+            // Background panel with subtle gradient — slightly taller for readability
+            var infoPanelBg = AddPanel(canvas, "InfoPanelBg", new Color(0.04f, 0.03f, 0.08f, 0.92f));
+            SetAnchors(infoPanelBg, 0.19f, 0.903f, 0.84f, 0.955f);
             // Top highlight gradient for glass effect
             var infoTopGrad = AddPanel(infoPanelBg, "TopGrad", new Color(0.12f, 0.08f, 0.18f, 0.25f));
             SetAnchors(infoTopGrad, 0f, 0.55f, 1f, 1f);
@@ -1095,7 +1095,7 @@ namespace AshenThrone.Editor
             // Inner shimmer
             var vipShimmer = AddPanel(vipBadge, "Shimmer", new Color(0.65f, 0.40f, 0.85f, 0.20f));
             SetAnchors(vipShimmer, 0f, 0.45f, 1f, 1f);
-            var vipText = AddText(vipBadge, "Label", "VIP 11", 9, TextAnchor.MiddleCenter);
+            var vipText = AddText(vipBadge, "Label", "VIP 11", 10, TextAnchor.MiddleCenter);
             StretchToParent(vipText);
             vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.75f, 1f);
             vipText.GetComponent<Text>().fontStyle = FontStyle.Bold;
@@ -1117,9 +1117,9 @@ namespace AshenThrone.Editor
             piShadow.effectColor = new Color(0.50f, 0.35f, 0.10f, 0.5f);
             piShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Power value — bright white, larger, prominent
-            var powerVal = AddText(infoPanelBg, "PowerValue", "355,582,021", 12, TextAnchor.MiddleLeft);
-            SetAnchors(powerVal, 0.10f, 0.04f, 0.58f, 0.52f);
+            // Power value — bright white, larger, prominent (shortened like P&C)
+            var powerVal = AddText(infoPanelBg, "PowerValue", "355.6M", 13, TextAnchor.MiddleLeft);
+            SetAnchors(powerVal, 0.10f, 0.04f, 0.50f, 0.52f);
             powerVal.GetComponent<Text>().color = new Color(0.95f, 0.93f, 0.88f, 1f);
             powerVal.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var pvShadow = powerVal.AddComponent<Shadow>();
@@ -1130,10 +1130,10 @@ namespace AshenThrone.Editor
             var coordSep = AddPanel(infoPanelBg, "CoordSep", new Color(0.40f, 0.32f, 0.18f, 0.25f));
             SetAnchors(coordSep, 0.60f, 0.12f, 0.605f, 0.46f);
 
-            // Coordinates — clean, muted, right-aligned
-            var coordText = AddText(infoPanelBg, "Coords", "K:12  X:482  Y:317", 8, TextAnchor.MiddleRight);
-            SetAnchors(coordText, 0.62f, 0.06f, 0.98f, 0.50f);
-            coordText.GetComponent<Text>().color = new Color(0.50f, 0.48f, 0.42f, 0.75f);
+            // Coordinates — clean, muted, right-aligned (P&C format)
+            var coordText = AddText(infoPanelBg, "Coords", "K:12 (482, 317)", 9, TextAnchor.MiddleRight);
+            SetAnchors(coordText, 0.55f, 0.06f, 0.98f, 0.50f);
+            coordText.GetComponent<Text>().color = new Color(0.55f, 0.52f, 0.46f, 0.80f);
             var coordShadow = coordText.AddComponent<Shadow>();
             coordShadow.effectColor = new Color(0, 0, 0, 0.6f);
             coordShadow.effectDistance = new Vector2(0.5f, -0.5f);
