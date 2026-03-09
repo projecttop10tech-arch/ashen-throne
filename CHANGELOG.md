@@ -4,6 +4,25 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.15.0] — 2026-03-08 (UI Audit: Combat, WorldMap, Alliance Overhaul)
+
+### ADDED
+- **Combat cards**: Card widgets now use actual CardFrame sprites per element type (Fire, Ice, Shadow, Nature, Physical). Circular cost badges with glow, value context labels (DMG/HP/DEF).
+- **Combat hero panels**: Ornate panel_ornate frames, hero initial letters in portraits, HP percentage display, team icons, 3 status effect slots.
+- **Combat turn tokens**: Mini HP bars per token, 4-char names, active token glow effect.
+- **Combat energy orbs**: Glow behind filled orbs, depth on empty orbs.
+- **WorldMap territories**: Named territory labels on 30 grid tiles with type icons. Coordinate display panel. Zoom +/- controls. Search button. 4-type legend (Allied/Enemy/Contested/Neutral).
+- **WorldMap minimap**: Zone coloring, view rectangle, ally/enemy markers, "Your City" label.
+- **Alliance chat**: Ornate panel_ornate frame on chat panel. Row outlines for visual separation. Input bar gold bottom trim.
+
+### CHANGED
+- Alliance avatar circles brightness increased (0.30x → 0.45x multiplier) for better visibility.
+- Alliance accent bars thickened and brightened.
+- Lobby Stronghold Lv text brightness increased for readability.
+- Combat card tray uses ornate panel frame. End Turn button enlarged with urgency glow.
+
+---
+
 ## [0.14.0] — 2026-03-08 (Phases 13-15: Integration Testing, Polish, Compliance)
 
 ### ADDED
