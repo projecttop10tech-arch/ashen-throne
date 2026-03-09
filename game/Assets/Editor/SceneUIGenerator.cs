@@ -5,6 +5,8 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using AshenThrone.UI;
+using AshenThrone.Core;
 
 namespace AshenThrone.Editor
 {
@@ -610,9 +612,9 @@ namespace AshenThrone.Editor
             nllLayout.spacing = 0; nllLayout.padding = new RectOffset(4, 0, 4, 6);
             nllLayout.childForceExpandWidth = true; nllLayout.childForceExpandHeight = true;
 
-            AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, false, 0);
-            AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 0);
-            AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17);
+            AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, false, 0, SceneName.WorldMap);
+            AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 0, SceneName.Empire);
+            AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17, SceneName.Empire);
 
             // Center raised button — "LOBBY" instead of "EMPIRE"
             var centerGlowOuter = AddPanel(navBar, "CenterGlowOuter", new Color(0.72f, 0.55f, 0.20f, 0.05f));
@@ -645,12 +647,13 @@ namespace AshenThrone.Editor
             var clShadow = centerLabel.AddComponent<Shadow>();
             clShadow.effectColor = new Color(0, 0, 0, 0.95f);
             clShadow.effectDistance = new Vector2(1.5f, -1.5f);
-            centerBtn.AddComponent<Button>();
 
             var centerTopAccent = AddPanel(centerBtn, "TopAccent", new Color(0.90f, 0.72f, 0.30f, 0.95f));
             SetAnchors(centerTopAccent, 0.06f, 0.978f, 0.94f, 1f);
             var centerBotAccent = AddPanel(centerBtn, "BotAccent", new Color(0.72f, 0.56f, 0.22f, 0.50f));
             SetAnchors(centerBotAccent, 0.10f, 0f, 0.90f, 0.025f);
+            centerBtn.AddComponent<Button>();
+            AddSceneNav(centerBtn, SceneName.Lobby);
 
             // Right nav items
             var navLayoutRight = AddPanel(navBar, "NavRight", new Color(0, 0, 0, 0));
@@ -659,9 +662,9 @@ namespace AshenThrone.Editor
             nlrLayout.spacing = 0; nlrLayout.padding = new RectOffset(0, 4, 4, 6);
             nlrLayout.childForceExpandWidth = true; nlrLayout.childForceExpandHeight = true;
 
-            AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3);
-            AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5);
-            AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 0);
+            AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3, SceneName.Empire);
+            AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5, SceneName.Empire);
+            AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 0, SceneName.Alliance);
 
             SaveScene();
             Debug.Log("[SceneUIGenerator] Lobby scene: P&C-quality main menu hub");
@@ -1002,21 +1005,24 @@ namespace AshenThrone.Editor
             // Notch/Dynamic Island fill — dark bar that extends above safe area
             // Covers the full top area behind iPhone notch/Dynamic Island so it blends
             // with the resource bar background. Fully opaque to hide the cutout.
-            var notchFill = AddPanel(canvasGo, "NotchFill", new Color(0.03f, 0.02f, 0.06f, 1f));
+            var notchFill = AddPanel(canvasGo, "NotchFill", new Color(0.10f, 0.07f, 0.16f, 1f));
             SetAnchors(notchFill, 0f, 0.91f, 1f, 1f);
             // Gold border at bottom of notch fill (matches resource bar border)
-            var notchBorder = AddPanel(notchFill, "Border", new Color(0.72f, 0.56f, 0.22f, 0.70f));
-            SetAnchors(notchBorder, 0f, 0f, 1f, 0.008f);
+            var notchBorder = AddPanel(notchFill, "Border", new Color(0.78f, 0.62f, 0.24f, 0.85f));
+            SetAnchors(notchBorder, 0f, 0f, 1f, 0.012f);
 
             // Safe area for all interactive UI
             var canvas = CreateSafeArea(canvasGo);
 
             // === RESOURCE BAR (top strip — slightly taller for readability) ===
-            var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.03f, 0.02f, 0.06f, 0.96f));
+            var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.10f, 0.07f, 0.16f, 0.96f));
             SetAnchors(resBarBg, 0f, 0.957f, 1f, 0.995f);
-            // Gold bottom border
-            var resBarBorder = AddPanel(resBarBg, "BottomBorder", new Color(0.72f, 0.56f, 0.22f, 0.70f));
-            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.035f);
+            // Gold bottom border — thicker and brighter for clear separation
+            var resBarBorder = AddPanel(resBarBg, "BottomBorder", new Color(0.78f, 0.62f, 0.24f, 0.85f));
+            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.06f);
+            // Top highlight for glass effect
+            var resBarHighlight = AddPanel(resBarBg, "TopHighlight", new Color(0.18f, 0.12f, 0.28f, 0.30f));
+            SetAnchors(resBarHighlight, 0f, 0.55f, 1f, 1f);
 
             // Layout container — sits on top of the bar background
             var resBar = AddPanel(canvas, "ResourceBar", new Color(0, 0, 0, 0));
@@ -1080,10 +1086,21 @@ namespace AshenThrone.Editor
             plusShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             // === PLAYER AVATAR BLOCK — same width as build queue (0.01–0.18) ===
-            var avatarBlock = AddPanel(canvas, "AvatarBlock", new Color(0.05f, 0.03f, 0.09f, 0.95f));
+            var avatarBlock = AddPanel(canvas, "AvatarBlock", new Color(0.08f, 0.05f, 0.14f, 0.96f));
             SetAnchors(avatarBlock, 0.01f, 0.875f, 0.18f, 0.955f);
-            // Double gold border — outer + inner with gap for premium frame
-            AddOutlinePanel(avatarBlock, new Color(0.82f, 0.65f, 0.28f, 0.85f));
+            // Use ornate frame for premium look (matches event buttons)
+            var avatarOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
+            if (avatarOrnateSpr != null)
+            {
+                avatarBlock.GetComponent<Image>().sprite = avatarOrnateSpr;
+                avatarBlock.GetComponent<Image>().type = Image.Type.Sliced;
+                avatarBlock.GetComponent<Image>().color = new Color(0.70f, 0.60f, 0.48f, 1f);
+            }
+            else
+            {
+                // Fallback: double gold border
+                AddOutlinePanel(avatarBlock, new Color(0.82f, 0.65f, 0.28f, 0.85f));
+            }
             var avatarInnerBorder = AddPanel(avatarBlock, "InnerBorder", new Color(0, 0, 0, 0));
             SetAnchors(avatarInnerBorder, 0.04f, 0.03f, 0.96f, 0.97f);
             AddOutlinePanel(avatarInnerBorder, new Color(0.55f, 0.42f, 0.18f, 0.50f));
@@ -1112,24 +1129,27 @@ namespace AshenThrone.Editor
             lvlShadow.effectColor = new Color(0, 0, 0, 0.7f);
             lvlShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // === INFO PANEL — right of avatar, premium dark panel with layered depth ===
-            // Background panel with subtle gradient — slightly taller for readability
-            var infoPanelBg = AddPanel(canvas, "InfoPanelBg", new Color(0.04f, 0.03f, 0.08f, 0.92f));
-            SetAnchors(infoPanelBg, 0.19f, 0.903f, 0.84f, 0.955f);
+            // === INFO PANEL — right of avatar, ORNATE premium panel ===
+            var infoPanelBg = AddPanel(canvas, "InfoPanelBg", new Color(0.08f, 0.06f, 0.14f, 0.96f));
+            SetAnchors(infoPanelBg, 0.19f, 0.895f, 0.84f, 0.958f);
+            var ornatePanelSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
+            if (ornatePanelSpr != null)
+            {
+                infoPanelBg.GetComponent<Image>().sprite = ornatePanelSpr;
+                infoPanelBg.GetComponent<Image>().type = Image.Type.Sliced;
+                infoPanelBg.GetComponent<Image>().color = new Color(0.68f, 0.60f, 0.50f, 1f); // warm visible tint matching event buttons
+            }
+            // Inner content fill — covers ornate frame columns so text is clean
+            var infoContentFill = AddPanel(infoPanelBg, "ContentFill", new Color(0.06f, 0.04f, 0.12f, 0.92f));
+            SetAnchors(infoContentFill, 0.04f, 0.06f, 0.96f, 0.94f);
             // Top highlight gradient for glass effect
-            var infoTopGrad = AddPanel(infoPanelBg, "TopGrad", new Color(0.12f, 0.08f, 0.18f, 0.25f));
-            SetAnchors(infoTopGrad, 0f, 0.55f, 1f, 1f);
-            // Left accent strip — thin gold vertical line
-            var infoLeftAccent = AddPanel(infoPanelBg, "LeftAccent", new Color(0.72f, 0.56f, 0.22f, 0.50f));
-            SetAnchors(infoLeftAccent, 0f, 0.08f, 0.008f, 0.92f);
-            // Bottom border — subtle gold
-            var infoBotBorder = AddPanel(infoPanelBg, "BotBorder", new Color(0.55f, 0.42f, 0.18f, 0.30f));
-            SetAnchors(infoBotBorder, 0.02f, 0f, 0.98f, 0.025f);
+            var infoTopGrad = AddPanel(infoContentFill, "TopGrad", new Color(0.18f, 0.12f, 0.25f, 0.30f));
+            SetAnchors(infoTopGrad, 0f, 0.50f, 1f, 1f);
 
             // === TOP ROW: Player Name + VIP Badge ===
             // Player name — warm gold, clean typography with outline for readability
-            var avatarName = AddText(infoPanelBg, "PlayerName", "Commander", 13, TextAnchor.MiddleLeft);
-            SetAnchors(avatarName, 0.04f, 0.52f, 0.52f, 0.96f);
+            var avatarName = AddText(infoContentFill, "PlayerName", "Commander", 13, TextAnchor.MiddleLeft);
+            SetAnchors(avatarName, 0.02f, 0.52f, 0.50f, 0.98f);
             avatarName.GetComponent<Text>().color = new Color(0.92f, 0.78f, 0.38f, 1f);
             avatarName.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var nameShadow = avatarName.AddComponent<Shadow>();
@@ -1139,53 +1159,57 @@ namespace AshenThrone.Editor
             nameOutline.effectColor = new Color(0.15f, 0.10f, 0.05f, 0.5f);
             nameOutline.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // VIP badge — layered purple/gold premium pill
-            var vipOuter = AddPanel(infoPanelBg, "VipOuter", new Color(0.60f, 0.45f, 0.18f, 0.70f));
-            SetAnchors(vipOuter, 0.54f, 0.56f, 0.78f, 0.94f);
+            // VIP badge — wider, layered purple/gold premium pill with glow
+            var vipGlow = AddPanel(infoContentFill, "VipGlow", new Color(0.50f, 0.20f, 0.65f, 0.12f));
+            SetAnchors(vipGlow, 0.48f, 0.48f, 0.82f, 1f);
+            var vipOuter = AddPanel(infoContentFill, "VipOuter", new Color(0.65f, 0.48f, 0.20f, 0.85f));
+            SetAnchors(vipOuter, 0.50f, 0.52f, 0.80f, 0.96f);
             var vipBadge = AddPanel(vipOuter, "VipBadge", new Color(0.42f, 0.12f, 0.55f, 0.95f));
             SetAnchors(vipBadge, 0.04f, 0.06f, 0.96f, 0.94f);
-            // Inner shimmer
-            var vipShimmer = AddPanel(vipBadge, "Shimmer", new Color(0.65f, 0.40f, 0.85f, 0.20f));
-            SetAnchors(vipShimmer, 0f, 0.45f, 1f, 1f);
+            // Inner shimmer — brighter
+            var vipShimmer = AddPanel(vipBadge, "Shimmer", new Color(0.70f, 0.45f, 0.90f, 0.25f));
+            SetAnchors(vipShimmer, 0f, 0.40f, 1f, 1f);
             var vipText = AddText(vipBadge, "Label", "VIP 11", 10, TextAnchor.MiddleCenter);
             StretchToParent(vipText);
             vipText.GetComponent<Text>().color = new Color(1f, 0.95f, 0.75f, 1f);
             vipText.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var vipShadow = vipText.AddComponent<Shadow>();
-            vipShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            vipShadow.effectColor = new Color(0, 0, 0, 0.85f);
             vipShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             // Server tag — small muted tag at right
-            var serverTag = AddText(infoPanelBg, "ServerTag", "S:142", 8, TextAnchor.MiddleRight);
-            SetAnchors(serverTag, 0.80f, 0.58f, 0.98f, 0.94f);
-            serverTag.GetComponent<Text>().color = new Color(0.40f, 0.38f, 0.35f, 0.65f);
+            var serverTag = AddText(infoContentFill, "ServerTag", "S:142", 9, TextAnchor.MiddleRight);
+            SetAnchors(serverTag, 0.82f, 0.56f, 0.98f, 0.96f);
+            serverTag.GetComponent<Text>().color = new Color(0.50f, 0.48f, 0.42f, 0.75f);
 
             // === BOTTOM ROW: Power + Coordinates ===
             // Power icon — golden swords with glow
-            var powerIconText = AddText(infoPanelBg, "PowerIcon", "\u2694", 11, TextAnchor.MiddleCenter);
-            SetAnchors(powerIconText, 0.03f, 0.06f, 0.10f, 0.50f);
+            var powerIconText = AddText(infoContentFill, "PowerIcon", "\u2694", 12, TextAnchor.MiddleCenter);
+            SetAnchors(powerIconText, 0.01f, 0.04f, 0.09f, 0.50f);
             powerIconText.GetComponent<Text>().color = new Color(0.92f, 0.75f, 0.32f, 1f);
             var piShadow = powerIconText.AddComponent<Shadow>();
             piShadow.effectColor = new Color(0.50f, 0.35f, 0.10f, 0.5f);
             piShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Power value — bright white, larger, prominent (shortened like P&C)
-            var powerVal = AddText(infoPanelBg, "PowerValue", "355.6M", 13, TextAnchor.MiddleLeft);
-            SetAnchors(powerVal, 0.10f, 0.04f, 0.50f, 0.52f);
-            powerVal.GetComponent<Text>().color = new Color(0.95f, 0.93f, 0.88f, 1f);
+            // Power value — bright white, larger, prominent with subtle glow
+            var powerGlow = AddPanel(infoContentFill, "PowerGlow", new Color(0.85f, 0.65f, 0.25f, 0.08f));
+            SetAnchors(powerGlow, 0f, 0f, 0.55f, 0.52f);
+            var powerVal = AddText(infoContentFill, "PowerValue", "355.6M", 14, TextAnchor.MiddleLeft);
+            SetAnchors(powerVal, 0.09f, 0.02f, 0.50f, 0.50f);
+            powerVal.GetComponent<Text>().color = new Color(0.97f, 0.95f, 0.90f, 1f);
             powerVal.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var pvShadow = powerVal.AddComponent<Shadow>();
             pvShadow.effectColor = new Color(0, 0, 0, 0.85f);
             pvShadow.effectDistance = new Vector2(1f, -1f);
 
             // Thin vertical separator before coords
-            var coordSep = AddPanel(infoPanelBg, "CoordSep", new Color(0.40f, 0.32f, 0.18f, 0.25f));
-            SetAnchors(coordSep, 0.60f, 0.12f, 0.605f, 0.46f);
+            var coordSep = AddPanel(infoContentFill, "CoordSep", new Color(0.55f, 0.42f, 0.20f, 0.40f));
+            SetAnchors(coordSep, 0.56f, 0.08f, 0.565f, 0.46f);
 
-            // Coordinates — clean, muted, right-aligned (P&C format)
-            var coordText = AddText(infoPanelBg, "Coords", "K:12 (482, 317)", 9, TextAnchor.MiddleRight);
-            SetAnchors(coordText, 0.55f, 0.06f, 0.98f, 0.50f);
-            coordText.GetComponent<Text>().color = new Color(0.55f, 0.52f, 0.46f, 0.80f);
+            // Coordinates — clean, right-aligned (P&C format)
+            var coordText = AddText(infoContentFill, "Coords", "K:12 (482, 317)", 11, TextAnchor.MiddleRight);
+            SetAnchors(coordText, 0.57f, 0.02f, 0.98f, 0.50f);
+            coordText.GetComponent<Text>().color = new Color(0.62f, 0.58f, 0.50f, 0.90f);
             var coordShadow = coordText.AddComponent<Shadow>();
             coordShadow.effectColor = new Color(0, 0, 0, 0.6f);
             coordShadow.effectDistance = new Vector2(0.5f, -0.5f);
@@ -1220,15 +1244,15 @@ namespace AshenThrone.Editor
             AddEventButton(canvas, "EventBtn7", "Arena", new Color(0.6f, 0.25f, 0.15f, 1f), rbX0, rbTop - rbH, rbX1, rbTop, "");
 
             // === CHAT BAR — Tappable chat bar with channel tabs, messages, and input (P&C style) ===
-            var chatBar = AddPanel(canvas, "ChatBar", new Color(0.03f, 0.02f, 0.06f, 0.88f));
+            var chatBar = AddPanel(canvas, "ChatBar", new Color(0.08f, 0.06f, 0.12f, 0.92f));
             SetAnchors(chatBar, 0f, 0.142f, 0.84f, 0.225f);
             // Top gold trim
-            var chatTopBorder = AddPanel(chatBar, "TopBorder", new Color(0.68f, 0.52f, 0.20f, 0.55f));
+            var chatTopBorder = AddPanel(chatBar, "TopBorder", new Color(0.78f, 0.62f, 0.24f, 0.70f));
             SetAnchors(chatTopBorder, 0f, 0.96f, 1f, 1f);
-            var chatTopGlow = AddPanel(chatBar, "TopGlow", new Color(0.50f, 0.38f, 0.12f, 0.10f));
+            var chatTopGlow = AddPanel(chatBar, "TopGlow", new Color(0.55f, 0.42f, 0.15f, 0.15f));
             SetAnchors(chatTopGlow, 0f, 0.85f, 1f, 0.96f);
             // Bottom gold trim
-            var chatBotBorder = AddPanel(chatBar, "BottomBorder", new Color(0.55f, 0.42f, 0.15f, 0.35f));
+            var chatBotBorder = AddPanel(chatBar, "BottomBorder", new Color(0.65f, 0.50f, 0.18f, 0.50f));
             SetAnchors(chatBotBorder, 0f, 0f, 1f, 0.04f);
 
             // Channel tabs — left side (World | Alliance | Private)
@@ -1317,10 +1341,10 @@ namespace AshenThrone.Editor
 
             // === BOTTOM NAV BAR — exceeds P&C: layered ornate dark bar with raised center ===
             // Dark strip behind home indicator (outside safe area, full screen)
-            var navBarBg = AddPanel(canvasGo, "NavBarBg", new Color(0.03f, 0.02f, 0.06f, 1f));
+            var navBarBg = AddPanel(canvasGo, "NavBarBg", new Color(0.08f, 0.06f, 0.12f, 1f));
             SetAnchors(navBarBg, 0f, 0f, 1f, 0.06f);
 
-            var navBar = AddPanel(canvas, "BottomNavBar", new Color(0.04f, 0.03f, 0.07f, 0.98f));
+            var navBar = AddPanel(canvas, "BottomNavBar", new Color(0.10f, 0.07f, 0.16f, 0.98f));
             SetAnchors(navBar, 0f, 0f, 1f, 0.10f);
 
             // === Triple-layer top border (P&C uses double — we use triple for premium feel) ===
@@ -1350,9 +1374,9 @@ namespace AshenThrone.Editor
             nllLayout.childForceExpandWidth = true;
             nllLayout.childForceExpandHeight = true;
 
-            AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, true, 0);
-            AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 0);
-            AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17);
+            AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, true, 0, SceneName.WorldMap);
+            AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 0, SceneName.Lobby);
+            AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17, SceneName.Lobby);
 
             // === CENTER BUTTON — raised ornate jewel button (extends above bar like P&C) ===
             // Outer warm glow halo behind the raised button
@@ -1423,6 +1447,7 @@ namespace AshenThrone.Editor
             var centerBotAccent = AddPanel(centerBtn, "BotAccent", new Color(0.72f, 0.56f, 0.22f, 0.50f));
             SetAnchors(centerBotAccent, 0.10f, 0f, 0.90f, 0.025f);
             centerBtn.AddComponent<Button>();
+            AddSceneNav(centerBtn, SceneName.Empire);
 
             // Right nav items
             var navLayoutRight = AddPanel(navBar, "NavRight", new Color(0, 0, 0, 0));
@@ -1433,9 +1458,9 @@ namespace AshenThrone.Editor
             nlrLayout.childForceExpandWidth = true;
             nlrLayout.childForceExpandHeight = true;
 
-            AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3);
-            AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5);
-            AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 0);
+            AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3, SceneName.Lobby);
+            AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5, SceneName.Lobby);
+            AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 0, SceneName.Alliance);
 
             // === RESOURCE DETAIL POPUP (hidden, full screen overlay) ===
             var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.6f));
@@ -2162,13 +2187,21 @@ namespace AshenThrone.Editor
             Color color, bool active, float yMin, float yMax)
         {
             var slot = AddPanel(parent, name, active
-                ? new Color(0.06f, 0.04f, 0.12f, 0.90f)
-                : new Color(0.04f, 0.03f, 0.08f, 0.70f));
+                ? new Color(0.10f, 0.07f, 0.18f, 0.94f)
+                : new Color(0.08f, 0.06f, 0.14f, 0.82f));
             SetAnchors(slot, 0f, yMin, 1f, yMax);
+            // Use ornate panel for active queue slots
+            var queueOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/panel_ornate.png");
+            if (queueOrnateSpr != null && active)
+            {
+                slot.GetComponent<Image>().sprite = queueOrnateSpr;
+                slot.GetComponent<Image>().type = Image.Type.Sliced;
+                slot.GetComponent<Image>().color = new Color(0.60f, 0.52f, 0.42f, 1f);
+            }
             slot.AddComponent<Button>();
 
             // Border — gold for active, dim for idle
-            AddOutlinePanel(slot, active ? new Color(0.60f, 0.48f, 0.20f, 0.6f) : new Color(0.22f, 0.18f, 0.10f, 0.25f));
+            AddOutlinePanel(slot, active ? new Color(0.68f, 0.54f, 0.22f, 0.7f) : new Color(0.30f, 0.25f, 0.15f, 0.35f));
 
             // Left color accent strip
             var strip = AddPanel(slot, "AccentStrip", active ? color : new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.4f));
@@ -2326,11 +2359,13 @@ namespace AshenThrone.Editor
         }
 
         /// <summary>P&C-style nav bar item — real sprite icons, circular badges, premium feel.</summary>
-        static void AddNavItem(GameObject parent, string name, string label, Color color, bool active, int badgeCount)
+        static void AddNavItem(GameObject parent, string name, string label, Color color, bool active, int badgeCount, SceneName? targetScene = null)
         {
             var item = AddPanel(parent, name, new Color(0, 0, 0, 0));
             item.AddComponent<LayoutElement>().flexibleWidth = 1;
             item.AddComponent<Button>();
+            if (targetScene.HasValue)
+                AddSceneNav(item, targetScene.Value);
 
             // Active highlight bg — subtle warm glow
             if (active)
@@ -2859,6 +2894,15 @@ namespace AshenThrone.Editor
             rect.anchorMax = Vector2.one;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>Adds SceneNavigator component and sets target scene via SerializedObject.</summary>
+        static void AddSceneNav(GameObject go, SceneName target)
+        {
+            var nav = go.AddComponent<SceneNavigator>();
+            var so = new SerializedObject(nav);
+            so.FindProperty("targetScene").enumValueIndex = (int)target;
+            so.ApplyModifiedProperties();
         }
 
         static void SaveScene()
