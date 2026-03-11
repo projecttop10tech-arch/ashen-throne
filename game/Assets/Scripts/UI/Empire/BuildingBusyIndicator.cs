@@ -26,9 +26,21 @@ namespace AshenThrone.UI.Empire
             "library", "academy", "laboratory", "observatory", "archive"
         };
 
+        // Military buildings that show troop capacity
+        private static readonly Dictionary<string, (string Label, Color Tint)> MilitaryBuildings = new()
+        {
+            { "barracks", ("\u2694", new Color(0.85f, 0.35f, 0.30f, 1f)) },         // ⚔ red
+            { "training_ground", ("\u2694", new Color(0.85f, 0.55f, 0.25f, 1f)) },   // ⚔ orange
+            { "armory", ("\u2748", new Color(0.60f, 0.65f, 0.75f, 1f)) },            // ❈ steel
+        };
+
         private static readonly Color ProgressBg = new(0.08f, 0.06f, 0.12f, 0.85f);
         private static readonly Color ProgressFill = new(0.30f, 0.75f, 1f, 1f);
         private static readonly Color ResearchGold = new(0.90f, 0.78f, 0.30f, 1f);
+
+        private readonly Dictionary<string, GameObject> _militaryBadges = new();
+        private float _militaryRefreshTimer;
+        private const float MilitaryRefreshInterval = 3f;
 
         private void Start()
         {
@@ -38,8 +50,17 @@ namespace AshenThrone.UI.Empire
 
         private void Update()
         {
-            if (_gridView == null || _researchManager == null) return;
-            UpdateResearchIndicators();
+            if (_gridView == null) return;
+            if (_researchManager != null)
+                UpdateResearchIndicators();
+
+            // Refresh military badges periodically
+            _militaryRefreshTimer += Time.deltaTime;
+            if (_militaryRefreshTimer >= MilitaryRefreshInterval)
+            {
+                _militaryRefreshTimer = 0f;
+                UpdateMilitaryBadges();
+            }
         }
 
         private void UpdateResearchIndicators()
@@ -207,6 +228,103 @@ namespace AshenThrone.UI.Empire
                 return $"{m}:{s:D2}";
             }
             return $"{(int)seconds}s";
+        }
+
+        // ==================================================================
+        // P&C: Military building troop capacity badges
+        // ==================================================================
+
+        private void UpdateMilitaryBadges()
+        {
+            if (_gridView == null) return;
+            var placements = _gridView.GetPlacements();
+            var activeMilIds = new HashSet<string>();
+
+            foreach (var p in placements)
+            {
+                if (!MilitaryBuildings.TryGetValue(p.BuildingId, out var info)) continue;
+                activeMilIds.Add(p.InstanceId);
+                EnsureMilitaryBadge(p, info);
+            }
+
+            // Clean up stale badges
+            var stale = new List<string>();
+            foreach (var kvp in _militaryBadges)
+            {
+                if (!activeMilIds.Contains(kvp.Key))
+                    stale.Add(kvp.Key);
+            }
+            foreach (var key in stale)
+            {
+                if (_militaryBadges.TryGetValue(key, out var go))
+                {
+                    if (go != null) Destroy(go);
+                    _militaryBadges.Remove(key);
+                }
+            }
+        }
+
+        private void EnsureMilitaryBadge(CityBuildingPlacement placement, (string Label, Color Tint) info)
+        {
+            if (placement.VisualGO == null) return;
+
+            if (_militaryBadges.TryGetValue(placement.InstanceId, out var existing))
+            {
+                if (existing != null)
+                {
+                    // Update capacity text based on tier
+                    var capText = existing.transform.Find("CapText")?.GetComponent<Text>();
+                    if (capText != null)
+                    {
+                        int capacity = placement.Tier * 500;
+                        capText.text = $"{info.Label}{capacity}";
+                    }
+                    return;
+                }
+                _militaryBadges.Remove(placement.InstanceId);
+            }
+
+            CreateMilitaryBadge(placement, info);
+        }
+
+        private void CreateMilitaryBadge(CityBuildingPlacement placement, (string Label, Color Tint) info)
+        {
+            var go = new GameObject($"MilBadge_{placement.InstanceId}");
+            go.transform.SetParent(placement.VisualGO.transform, false);
+
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.10f, -0.08f);
+            rect.anchorMax = new Vector2(0.90f, 0.05f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(info.Tint.r * 0.15f, info.Tint.g * 0.15f, info.Tint.b * 0.15f, 0.85f);
+            bg.raycastTarget = false;
+
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(info.Tint.r, info.Tint.g, info.Tint.b, 0.6f);
+            outline.effectDistance = new Vector2(0.7f, -0.7f);
+
+            var textGO = new GameObject("CapText");
+            textGO.transform.SetParent(go.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            int capacity = placement.Tier * 500;
+            var text = textGO.AddComponent<Text>();
+            text.text = $"{info.Label}{capacity}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = info.Tint;
+            text.raycastTarget = false;
+
+            _militaryBadges[placement.InstanceId] = go;
         }
     }
 }

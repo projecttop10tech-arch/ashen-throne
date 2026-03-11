@@ -108,6 +108,7 @@ namespace AshenThrone.Empire
         private static readonly Color FootprintBorder = new(0.83f, 0.66f, 0.26f, 0.45f);
         private readonly List<GameObject> _footprintCells = new();
         private string _footprintInstanceId;
+        private GameObject _selectionRing;
 
         // Pinch-zoom state
         private const float ZoomMin = 0.4f;
@@ -164,9 +165,34 @@ namespace AshenThrone.Empire
         private void CenterOnStronghold()
         {
             if (scrollRect == null || contentContainer == null) return;
-            // Shift content UP so viewport sees more of the building cluster (below center)
-            // and less empty terrain above. Y offset in viewport-local pixels.
             contentContainer.anchoredPosition = Vector2.zero;
+        }
+
+        /// <summary>
+        /// P&C: Smoothly pan the camera to center on a specific building.
+        /// Called from queue HUD slot tap to show the building being upgraded.
+        /// </summary>
+        public void CenterOnBuilding(string placedId)
+        {
+            if (scrollRect == null || contentContainer == null) return;
+            CityBuildingPlacement target = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == placedId) { target = p; break; }
+            }
+            if (target?.VisualGO == null) return;
+
+            var buildingRect = target.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect == null) return;
+
+            // Target: building position in content space, scaled by current zoom
+            Vector2 buildingPos = buildingRect.anchoredPosition * _currentZoom;
+            // Move content so building is at viewport center
+            contentContainer.anchoredPosition = -buildingPos;
+
+            // Also select the building
+            ShowBuildingFootprint(target);
+            StartCoroutine(BounceBuilding(target.VisualGO.transform));
         }
 
         private void Update()
@@ -646,7 +672,119 @@ namespace AshenThrone.Empire
 
                 // Update production label if resource building
                 UpdateProductionLabel(placement.VisualGO, placement.BuildingId, evt.NewTier);
+
+                // P&C: Celebration burst particle effect
+                StartCoroutine(UpgradeCelebrationBurst(placement.VisualGO));
             }
+        }
+
+        /// <summary>
+        /// P&C-style upgrade celebration: expanding light rays + scattered sparkle particles
+        /// that burst outward from the building, then fade. Pure UI-based (no ParticleSystem).
+        /// </summary>
+        private IEnumerator UpgradeCelebrationBurst(GameObject buildingGO)
+        {
+            if (buildingGO == null) yield break;
+
+            var container = buildingGO.transform.parent;
+            if (container == null) yield break;
+
+            var buildingRect = buildingGO.GetComponent<RectTransform>();
+            Vector2 center = buildingRect != null ? buildingRect.anchoredPosition : Vector2.zero;
+            center.y += buildingRect != null ? buildingRect.sizeDelta.y * 0.3f : 0;
+
+            // Spawn 8 light rays radiating outward
+            int rayCount = 8;
+            var rays = new List<(RectTransform rect, CanvasGroup cg)>();
+            for (int i = 0; i < rayCount; i++)
+            {
+                float angle = (i / (float)rayCount) * Mathf.PI * 2f;
+                var rayGO = new GameObject($"Ray_{i}");
+                rayGO.transform.SetParent(container, false);
+                rayGO.transform.SetAsLastSibling();
+
+                var rect = rayGO.AddComponent<RectTransform>();
+                rect.anchoredPosition = center;
+                rect.sizeDelta = new Vector2(6, 30);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.localRotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg);
+
+                var img = rayGO.AddComponent<Image>();
+                img.raycastTarget = false;
+                img.color = new Color(1f, 0.88f, 0.35f, 0.9f); // Gold
+
+                var cg = rayGO.AddComponent<CanvasGroup>();
+                rays.Add((rect, cg));
+            }
+
+            // Spawn 12 sparkle dots
+            int sparkleCount = 12;
+            var sparkles = new List<(RectTransform rect, CanvasGroup cg, Vector2 dir)>();
+            for (int i = 0; i < sparkleCount; i++)
+            {
+                float angle = Random.Range(0f, Mathf.PI * 2f);
+                var sparkGO = new GameObject($"Sparkle_{i}");
+                sparkGO.transform.SetParent(container, false);
+                sparkGO.transform.SetAsLastSibling();
+
+                var rect = sparkGO.AddComponent<RectTransform>();
+                rect.anchoredPosition = center;
+                rect.sizeDelta = new Vector2(Random.Range(4f, 8f), Random.Range(4f, 8f));
+
+                var img = sparkGO.AddComponent<Image>();
+                img.raycastTarget = false;
+                float hue = Random.Range(0.08f, 0.15f); // Gold-orange range
+                img.color = Color.HSVToRGB(hue, 0.6f, 1f);
+
+                // Try radial gradient for soft sparkle
+                var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                #if UNITY_EDITOR
+                if (spr == null)
+                    spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+                #endif
+                if (spr != null) img.sprite = spr;
+
+                var cg = sparkGO.AddComponent<CanvasGroup>();
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Random.Range(60f, 120f);
+                sparkles.Add((rect, cg, dir));
+            }
+
+            // Animate over 0.8 seconds
+            float duration = 0.8f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // Rays expand and fade
+                foreach (var (rect, cg) in rays)
+                {
+                    if (rect == null) continue;
+                    float rayLen = Mathf.Lerp(10f, 80f, t);
+                    rect.sizeDelta = new Vector2(Mathf.Lerp(6f, 2f, t), rayLen);
+                    cg.alpha = 1f - t;
+                }
+
+                // Sparkles fly outward and fade
+                foreach (var (rect, cg, dir) in sparkles)
+                {
+                    if (rect == null) continue;
+                    float ease = t * (2f - t); // EaseOut
+                    rect.anchoredPosition = center + dir * ease;
+                    float scale = Mathf.Lerp(1.5f, 0.3f, t);
+                    rect.localScale = Vector3.one * scale;
+                    cg.alpha = t < 0.2f ? t / 0.2f : 1f - ((t - 0.2f) / 0.8f);
+                }
+
+                yield return null;
+            }
+
+            // Cleanup
+            foreach (var (rect, cg) in rays)
+                if (rect != null) Destroy(rect.gameObject);
+            foreach (var (rect, cg, dir) in sparkles)
+                if (rect != null) Destroy(rect.gameObject);
         }
 
         /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>
@@ -871,6 +1009,46 @@ namespace AshenThrone.Empire
                     _footprintCells.Add(cellGO);
                 }
             }
+
+            // P&C: Glowing selection ring centered under building
+            CreateSelectionRing(placement);
+        }
+
+        private void CreateSelectionRing(CityBuildingPlacement placement)
+        {
+            if (_selectionRing != null) Destroy(_selectionRing);
+            if (placement.VisualGO == null) return;
+
+            var container = buildingContainer != null ? buildingContainer : contentContainer;
+            if (container == null) return;
+
+            _selectionRing = new GameObject("SelectionRing");
+            _selectionRing.transform.SetParent(container, false);
+            _selectionRing.transform.SetAsFirstSibling(); // Behind buildings
+
+            var rect = _selectionRing.AddComponent<RectTransform>();
+            // Center on building's anchor position
+            var buildingRect = placement.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect != null)
+                rect.anchoredPosition = buildingRect.anchoredPosition - new Vector2(0, buildingRect.sizeDelta.y * 0.15f);
+
+            // Oval glow matching building footprint
+            float ringW = placement.Size.x * CellSize * 1.2f;
+            float ringH = placement.Size.y * CellSize * 0.6f;
+            rect.sizeDelta = new Vector2(ringW, ringH);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            var img = _selectionRing.AddComponent<Image>();
+            img.raycastTarget = false;
+            img.color = new Color(0.90f, 0.75f, 0.25f, 0.45f); // Gold glow
+
+            // Use radial gradient for soft edge
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) img.sprite = spr;
         }
 
         /// <summary>P&C: Clear the building footprint highlight.</summary>
@@ -882,6 +1060,7 @@ namespace AshenThrone.Empire
             }
             _footprintCells.Clear();
             _footprintInstanceId = null;
+            if (_selectionRing != null) { Destroy(_selectionRing); _selectionRing = null; }
         }
 
         public void OnDrag(PointerEventData eventData)

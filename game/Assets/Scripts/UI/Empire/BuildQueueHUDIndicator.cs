@@ -182,6 +182,13 @@ namespace AshenThrone.UI.Empire
 
             var bgImg = root.AddComponent<Image>();
             bgImg.color = SlotBg;
+            bgImg.raycastTarget = true;
+
+            // P&C: Tap slot to zoom camera to building
+            var slotBtn = root.AddComponent<Button>();
+            slotBtn.targetGraphic = bgImg;
+            string zoomTargetId = entry.PlacedId;
+            slotBtn.onClick.AddListener(() => OnSlotTapped(zoomTargetId));
 
             // Gold border
             var border = new GameObject("Border");
@@ -459,6 +466,14 @@ namespace AshenThrone.UI.Empire
                 if (result != null) return result;
             }
             return null;
+        }
+
+        /// <summary>P&C: Tap a queue slot to zoom the camera to that building.</summary>
+        private void OnSlotTapped(string placedId)
+        {
+            var gridView = FindFirstObjectByType<CityGridView>();
+            if (gridView != null)
+                gridView.CenterOnBuilding(placedId);
         }
 
         private void OnCancelSlotPressed(string placedId)
