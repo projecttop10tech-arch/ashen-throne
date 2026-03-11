@@ -1319,7 +1319,7 @@ namespace AshenThrone.Editor
                 bool isActive = i == 0;
                 Color tokenBg = i < 3 ? new Color(0.08f, 0.12f, 0.25f, 0.92f) : new Color(0.25f, 0.08f, 0.08f, 0.92f);
                 var token = AddPanel(tokenArea, $"Token_{i}", tokenBg);
-                token.AddComponent<LayoutElement>().preferredHeight = 44;
+                token.AddComponent<LayoutElement>().preferredHeight = 50;
                 // Active token — bright gold border + outer glow
                 if (isActive)
                 {
@@ -1348,14 +1348,14 @@ namespace AshenThrone.Editor
                 }
                 // Name — show 6 chars for readability
                 int nameLen = Mathf.Min(6, heroNames[i].Length);
-                var tName = AddText(token, "Name", heroNames[i][..nameLen], 11, TextAnchor.MiddleLeft);
+                var tName = AddText(token, "Name", heroNames[i][..nameLen], 12, TextAnchor.MiddleLeft);
                 SetAnchors(tName, 0.42f, 0.40f, 1f, 0.96f);
                 tName.GetComponent<Text>().color = isActive ? Gold : TextLight;
                 tName.GetComponent<Text>().fontStyle = isActive ? FontStyle.Bold : FontStyle.Normal;
                 var tnSh = tName.AddComponent<Shadow>(); tnSh.effectColor = new Color(0, 0, 0, 0.7f); tnSh.effectDistance = new Vector2(0.5f, -0.5f);
                 // Mini HP bar in token — wider
                 var miniHpBg = AddPanel(token, "MiniHp", new Color(0.06f, 0.05f, 0.08f, 0.85f));
-                SetAnchors(miniHpBg, 0.42f, 0.06f, 0.96f, 0.32f);
+                SetAnchors(miniHpBg, 0.42f, 0.06f, 0.96f, 0.36f);
                 Color tkHpColor = tokenHp[i] > 0.5f ? BarHpGreen : tokenHp[i] > 0.25f ? Ember : BarHpRed;
                 var miniHpFill = AddPanel(miniHpBg, "Fill", tkHpColor);
                 SetAnchors(miniHpFill, 0f, 0f, tokenHp[i], 1f);
@@ -1614,7 +1614,7 @@ namespace AshenThrone.Editor
             var comboPanel = AddPanel(canvas, "ComboCounter", new Color(0.06f, 0.04f, 0.10f, 0.90f));
             SetAnchors(comboPanel, 0.03f, 0.14f, 0.18f, 0.20f);
             AddOutlinePanel(comboPanel, new Color(0.85f, 0.55f, 0.15f, 0.55f));
-            var comboLabel = AddText(comboPanel, "Label", "\u2B50 COMBO x3", 11, TextAnchor.MiddleCenter);
+            var comboLabel = AddText(comboPanel, "Label", "\u2B50 COMBO x3", 12, TextAnchor.MiddleCenter);
             StretchToParent(comboLabel);
             comboLabel.GetComponent<Text>().color = new Color(1f, 0.85f, 0.35f, 0.95f);
             comboLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
@@ -2865,6 +2865,7 @@ namespace AshenThrone.Editor
             var zoomIn = AddPanel(canvas, "ZoomIn", new Color(0.30f, 0.25f, 0.20f, 0.92f));
             SetAnchors(zoomIn, 0.90f, 0.56f, 0.98f, 0.64f);
             if (btnOrnateSpr != null) { zoomIn.GetComponent<Image>().sprite = btnOrnateSpr; zoomIn.GetComponent<Image>().type = Image.Type.Sliced; zoomIn.GetComponent<Image>().color = new Color(0.55f, 0.48f, 0.40f, 1f); }
+            AddOutlinePanel(zoomIn, new Color(0.78f, 0.60f, 0.24f, 0.50f));
             SetButtonFeedback(zoomIn.AddComponent<Button>());
             AddSceneNav(zoomIn, SceneName.WorldMap);
             var ziLabel = AddText(zoomIn, "Label", "+", 18, TextAnchor.MiddleCenter);
@@ -2878,6 +2879,7 @@ namespace AshenThrone.Editor
             var zoomOut = AddPanel(canvas, "ZoomOut", new Color(0.30f, 0.25f, 0.20f, 0.92f));
             SetAnchors(zoomOut, 0.90f, 0.47f, 0.98f, 0.55f);
             if (btnOrnateSpr != null) { zoomOut.GetComponent<Image>().sprite = btnOrnateSpr; zoomOut.GetComponent<Image>().type = Image.Type.Sliced; zoomOut.GetComponent<Image>().color = new Color(0.55f, 0.48f, 0.40f, 1f); }
+            AddOutlinePanel(zoomOut, new Color(0.78f, 0.60f, 0.24f, 0.50f));
             SetButtonFeedback(zoomOut.AddComponent<Button>());
             AddSceneNav(zoomOut, SceneName.WorldMap);
             var zoLabel = AddText(zoomOut, "Label", "\u2212", 18, TextAnchor.MiddleCenter);
