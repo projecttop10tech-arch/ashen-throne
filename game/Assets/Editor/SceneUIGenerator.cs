@@ -1513,7 +1513,7 @@ namespace AshenThrone.Editor
                 }
             }
             // VS emblem in center neutral column — dramatic with glow
-            var vsOuterGlow = AddPanel(gridContainer, "VsOuterGlow", new Color(0.85f, 0.65f, 0.20f, 0.08f));
+            var vsOuterGlow = AddPanel(gridContainer, "VsOuterGlow", new Color(0.85f, 0.65f, 0.20f, 0.18f));
             SetAnchors(vsOuterGlow, 0.34f, 0.30f, 0.66f, 0.70f);
             vsOuterGlow.GetComponent<Image>().raycastTarget = false;
             var vsBg = AddPanel(gridContainer, "VsBg", new Color(0.06f, 0.04f, 0.10f, 0.75f));
@@ -1601,6 +1601,7 @@ namespace AshenThrone.Editor
                     orb.GetComponent<Image>().color = filled ? new Color(0.30f, 0.72f, 1f, 1f) : new Color(0.10f, 0.10f, 0.18f, 0.60f);
                 }
                 if (filled) { AddOutlinePanel(orb, new Color(0.50f, 0.78f, 1f, 0.50f)); }
+                else { AddOutlinePanel(orb, new Color(0.35f, 0.30f, 0.50f, 0.45f)); }
             }
 
             var enText = AddText(energyPanel, "EnergyCount", "3 / 4", 13, TextAnchor.MiddleCenter);
@@ -2205,7 +2206,7 @@ namespace AshenThrone.Editor
             // Chat message area — shows latest message with chat icon
             var chatIconText = AddText(chatBar, "ChatIcon", "\uD83D\uDCAC", 12, TextAnchor.MiddleCenter);
             SetAnchors(chatIconText, 0.01f, 0.08f, 0.06f, 0.52f);
-            chatIconText.GetComponent<Text>().color = new Color(0.72f, 0.56f, 0.22f, 0.60f);
+            chatIconText.GetComponent<Text>().color = new Color(0.80f, 0.64f, 0.28f, 0.80f);
             var chatMsgArea = AddPanel(chatBar, "MessageArea", new Color(0, 0, 0, 0));
             SetAnchors(chatMsgArea, 0.06f, 0.06f, 0.78f, 0.55f);
             var chatMsg = AddText(chatMsgArea, "Message", "<color=#2EC7A6>NBAHeartless:</color> launched a rally at Lv. 17 Monster...", 11, TextAnchor.MiddleLeft);
@@ -2217,12 +2218,12 @@ namespace AshenThrone.Editor
             chatMsgShadow.effectDistance = new Vector2(1f, -1f);
 
             // Input field area — right side with ornate border
-            var chatInputBg = AddPanel(chatBar, "InputBg", new Color(0.06f, 0.04f, 0.10f, 0.85f));
+            var chatInputBg = AddPanel(chatBar, "InputBg", new Color(0.12f, 0.09f, 0.18f, 0.92f));
             SetAnchors(chatInputBg, 0.78f, 0.10f, 0.99f, 0.90f);
-            AddOutlinePanel(chatInputBg, new Color(0.45f, 0.35f, 0.15f, 0.45f));
+            AddOutlinePanel(chatInputBg, new Color(0.72f, 0.56f, 0.22f, 0.65f));
             var chatInputLabel = AddText(chatInputBg, "Placeholder", "Chat...", 10, TextAnchor.MiddleCenter);
             StretchToParent(chatInputLabel);
-            chatInputLabel.GetComponent<Text>().color = new Color(0.45f, 0.40f, 0.35f, 0.65f);
+            chatInputLabel.GetComponent<Text>().color = new Color(0.62f, 0.56f, 0.48f, 0.80f);
             chatInputLabel.GetComponent<Text>().fontStyle = FontStyle.Italic;
             SetButtonFeedback(chatInputBg.AddComponent<Button>()); // Tappable to open full chat
             AddSceneNav(chatInputBg, SceneName.Alliance);
@@ -2981,6 +2982,7 @@ namespace AshenThrone.Editor
             var tiAttackBtn = AddPanel(infoPanel, "AttackBtn", Blood);
             SetAnchors(tiAttackBtn, 0.06f, 0.06f, 0.48f, 0.32f);
             if (btnOrnateSpr != null) { tiAttackBtn.GetComponent<Image>().sprite = btnOrnateSpr; tiAttackBtn.GetComponent<Image>().type = Image.Type.Sliced; tiAttackBtn.GetComponent<Image>().color = new Color(0.85f, 0.25f, 0.18f, 1f); }
+            AddOutlinePanel(tiAttackBtn, new Color(0.90f, 0.70f, 0.25f, 0.60f));
             SetButtonFeedback(tiAttackBtn.AddComponent<Button>());
             AddSceneNav(tiAttackBtn, SceneName.Combat);
             var atkLabel = AddText(tiAttackBtn, "Label", "\u2694 ATTACK", 13, TextAnchor.MiddleCenter);
@@ -2997,6 +2999,7 @@ namespace AshenThrone.Editor
             var tiScoutBtn = AddPanel(infoPanel, "ScoutBtn", Sky);
             SetAnchors(tiScoutBtn, 0.52f, 0.06f, 0.94f, 0.32f);
             if (btnOrnateSpr != null) { tiScoutBtn.GetComponent<Image>().sprite = btnOrnateSpr; tiScoutBtn.GetComponent<Image>().type = Image.Type.Sliced; tiScoutBtn.GetComponent<Image>().color = new Color(0.28f, 0.58f, 0.75f, 1f); }
+            AddOutlinePanel(tiScoutBtn, new Color(0.90f, 0.70f, 0.25f, 0.55f));
             SetButtonFeedback(tiScoutBtn.AddComponent<Button>());
             AddSceneNav(tiScoutBtn, SceneName.WorldMap);
             var scoutLabel = AddText(tiScoutBtn, "Label", "\uD83D\uDD0D SCOUT", 13, TextAnchor.MiddleCenter);
@@ -4203,7 +4206,8 @@ namespace AshenThrone.Editor
             btn.AddComponent<LayoutElement>().flexibleWidth = 1;
             var ornateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/btn_neutral.png");
             if (ornateSpr != null) { btn.GetComponent<Image>().sprite = ornateSpr; btn.GetComponent<Image>().type = Image.Type.Sliced; btn.GetComponent<Image>().color = new Color(color.r * 0.5f + 0.3f, color.g * 0.5f + 0.2f, color.b * 0.5f + 0.2f, 1f); }
-            else { AddOutlinePanel(btn, new Color(color.r * 0.6f, color.g * 0.6f, color.b * 0.6f, 0.5f)); }
+            // Gold outline border for ornate feel
+            AddOutlinePanel(btn, new Color(0.78f, 0.60f, 0.24f, 0.55f));
             SetButtonFeedback(btn.AddComponent<Button>());
 
             // Inner color glow for warmth
