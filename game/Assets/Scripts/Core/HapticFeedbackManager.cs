@@ -15,6 +15,9 @@ namespace AshenThrone.Core
         private EventSubscription _cardPlayedSub;
         private EventSubscription _heroDiedSub;
         private EventSubscription _buildCompleteSub;
+        private EventSubscription _buildTappedSub;
+        private EventSubscription _speedupSub;
+        private EventSubscription _moveStartedSub;
         private EventSubscription _levelUpSub;
         private EventSubscription _gachaPullSub;
 
@@ -28,6 +31,9 @@ namespace AshenThrone.Core
             _cardPlayedSub = EventBus.Subscribe<Combat.CardPlayedEvent>(_ => TriggerHaptic(HapticIntensity.Light));
             _heroDiedSub = EventBus.Subscribe<Combat.HeroDiedEvent>(_ => TriggerHaptic(HapticIntensity.Heavy));
             _buildCompleteSub = EventBus.Subscribe<Empire.BuildingUpgradeCompletedEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
+            _buildTappedSub = EventBus.Subscribe<Empire.BuildingTappedEvent>(_ => TriggerHaptic(HapticIntensity.Light));
+            _speedupSub = EventBus.Subscribe<Empire.SpeedupAppliedEvent>(_ => TriggerHaptic(HapticIntensity.Light));
+            _moveStartedSub = EventBus.Subscribe<Empire.BuildingMoveStartedEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
             _levelUpSub = EventBus.Subscribe<Heroes.HeroLeveledUpEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
             _gachaPullSub = EventBus.Subscribe<Economy.GachaPullConfirmedEvent>(_ => TriggerHaptic(HapticIntensity.Heavy));
         }
@@ -37,6 +43,9 @@ namespace AshenThrone.Core
             _cardPlayedSub?.Dispose();
             _heroDiedSub?.Dispose();
             _buildCompleteSub?.Dispose();
+            _buildTappedSub?.Dispose();
+            _speedupSub?.Dispose();
+            _moveStartedSub?.Dispose();
             _levelUpSub?.Dispose();
             _gachaPullSub?.Dispose();
         }

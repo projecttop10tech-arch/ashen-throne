@@ -82,6 +82,7 @@ namespace AshenThrone.Empire
         private bool _moveMode;
         private CityBuildingPlacement _movingBuilding;
         private GameObject _dragGhost;
+        private GameObject _dragShadow;
         private float _holdTimer;
         private bool _holdStarted;
         private Vector2 _holdStartPos;
@@ -609,7 +610,19 @@ namespace AshenThrone.Empire
                 if (tapped != null) break;
             }
 
-            if (tapped == null) return;
+            if (tapped == null)
+            {
+                // P&C: Tap on empty ground → publish event for building placement
+                if (buildingContainer != null)
+                {
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        buildingContainer, eventData.position, eventData.pressEventCamera, out var localPt);
+                    var gridPos = SnapToGrid(localPt, new Vector2Int(2, 2));
+                    if (IsInsidePlayableArea(gridPos))
+                        EventBus.Publish(new EmptyCellTappedEvent(gridPos));
+                }
+                return;
+            }
 
             // Bounce animation
             if (tapped.VisualGO != null)
@@ -665,6 +678,10 @@ namespace AshenThrone.Empire
                     buildingContainer, eventData.position, eventData.pressEventCamera, out var localPoint);
                 _dragGhost.GetComponent<RectTransform>().anchoredPosition = localPoint;
 
+                // P&C: Shadow follows ghost with slight offset (below and behind)
+                if (_dragShadow != null)
+                    _dragShadow.GetComponent<RectTransform>().anchoredPosition = localPoint + new Vector2(4f, -6f);
+
                 // Update placement highlight to snapped position
                 UpdateHighlight(localPoint);
             }
@@ -701,10 +718,21 @@ namespace AshenThrone.Empire
             if (scrollRect != null) scrollRect.enabled = false;
             SetGridOverlayVisible(true);
 
+            // P&C: Fade original building in-place
             if (found.VisualGO != null)
-                found.VisualGO.GetComponent<Image>().color = new Color(1, 1, 1, 0.4f);
+                found.VisualGO.GetComponent<Image>().color = new Color(1, 1, 1, 0.3f);
 
-            // Create drag ghost
+            // P&C: Create drop shadow under ghost
+            _dragShadow = new GameObject("DragShadow");
+            _dragShadow.transform.SetParent(buildingContainer, false);
+            var shadowRect = _dragShadow.AddComponent<RectTransform>();
+            var shadowSize = FootprintScreenSize(found.Size);
+            shadowRect.sizeDelta = shadowSize * 1.1f;
+            var shadowImg = _dragShadow.AddComponent<Image>();
+            shadowImg.color = new Color(0, 0, 0, 0.35f);
+            shadowImg.raycastTarget = false;
+
+            // Create drag ghost — P&C "lifted" style
             _dragGhost = new GameObject("DragGhost");
             _dragGhost.transform.SetParent(buildingContainer, false);
             var ghostRect = _dragGhost.AddComponent<RectTransform>();
@@ -717,8 +745,14 @@ namespace AshenThrone.Empire
                 ghostImg.sprite = srcImg.sprite;
                 ghostImg.preserveAspect = true;
             }
-            ghostImg.color = new Color(1, 1, 1, 0.7f);
+            ghostImg.color = new Color(1, 1, 1, 0.85f);
             ghostImg.raycastTarget = false;
+
+            // P&C: Scale up ghost slightly to show "lift"
+            ghostRect.localScale = Vector3.one * 1.12f;
+
+            // Haptic feedback for entering move mode
+            EventBus.Publish(new BuildingMoveStartedEvent(found.InstanceId));
 
             // Create placement highlight
             CreateHighlight();
@@ -748,7 +782,9 @@ namespace AshenThrone.Empire
             }
 
             if (_dragGhost != null) Destroy(_dragGhost);
+            if (_dragShadow != null) Destroy(_dragShadow);
             _dragGhost = null;
+            _dragShadow = null;
             _movingBuilding = null;
             _moveMode = false;
 
@@ -819,6 +855,12 @@ namespace AshenThrone.Empire
             int gy = Mathf.RoundToInt(gcy - buildingSize.y * 0.5f);
             return new Vector2Int(gx, gy);
         }
+
+        private static bool IsInsidePlayableArea(Vector2Int pos)
+        {
+            return pos.x >= PlayableMinX && pos.x < PlayableMaxX
+                && pos.y >= PlayableMinY && pos.y < PlayableMaxY;
+        }
     }
 
     /// <summary>
@@ -850,5 +892,26 @@ namespace AshenThrone.Empire
             GridPosition = p.GridOrigin;
             VisualGO = p.VisualGO;
         }
+
+        public BuildingTappedEvent(string buildingId, string instanceId, int tier, Vector2Int gridPos)
+        {
+            BuildingId = buildingId;
+            InstanceId = instanceId;
+            Tier = tier;
+            GridPosition = gridPos;
+            VisualGO = null;
+        }
+    }
+
+    public readonly struct BuildingMoveStartedEvent
+    {
+        public readonly string InstanceId;
+        public BuildingMoveStartedEvent(string id) { InstanceId = id; }
+    }
+
+    public readonly struct EmptyCellTappedEvent
+    {
+        public readonly Vector2Int GridPosition;
+        public EmptyCellTappedEvent(Vector2Int pos) { GridPosition = pos; }
     }
 }

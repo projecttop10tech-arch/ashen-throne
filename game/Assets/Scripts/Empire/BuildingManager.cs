@@ -158,6 +158,19 @@ namespace AshenThrone.Empire
             EventBus.Publish(new SpeedupAppliedEvent(placedId, speedupSeconds, entry.RemainingSeconds));
         }
 
+        /// <summary>
+        /// Cancel an in-progress upgrade. Removes from queue but does NOT refund resources.
+        /// </summary>
+        public bool CancelUpgrade(string placedId)
+        {
+            int idx = _buildQueue.FindIndex(e => e.PlacedId == placedId);
+            if (idx < 0) return false;
+            _buildQueue.RemoveAt(idx);
+            OnBuildingUpgradeCancelled?.Invoke(placedId);
+            EventBus.Publish(new BuildingUpgradeCancelledEvent(placedId));
+            return true;
+        }
+
         private void TickBuildQueue()
         {
             for (int i = _buildQueue.Count - 1; i >= 0; i--)
@@ -223,4 +236,5 @@ namespace AshenThrone.Empire
     public readonly struct BuildingUpgradeCompletedEvent { public readonly string PlacedId; public readonly int NewTier; public BuildingUpgradeCompletedEvent(string id, int t) { PlacedId = id; NewTier = t; } }
     public readonly struct BuildFailedEvent { public readonly string Target; public readonly string Reason; public BuildFailedEvent(string t, string r) { Target = t; Reason = r; } }
     public readonly struct SpeedupAppliedEvent { public readonly string PlacedId; public readonly int SecondsApplied; public readonly float RemainingSeconds; public SpeedupAppliedEvent(string id, int s, float r) { PlacedId = id; SecondsApplied = s; RemainingSeconds = r; } }
+    public readonly struct BuildingUpgradeCancelledEvent { public readonly string PlacedId; public BuildingUpgradeCancelledEvent(string id) { PlacedId = id; } }
 }

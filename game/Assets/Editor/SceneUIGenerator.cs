@@ -2446,19 +2446,43 @@ namespace AshenThrone.Editor
             infoCostsSh.effectColor = new Color(0, 0, 0, 0.5f);
             infoCostsSh.effectDistance = new Vector2(0.5f, -0.5f);
 
+            // Timer progress bar (shown during upgrade)
+            var timerBarBg = AddPanel(infoInner, "TimerBarBg", new Color(0.05f, 0.04f, 0.08f, 0.90f));
+            SetAnchors(timerBarBg, 0.04f, 0.26f, 0.96f, 0.30f);
+            AddOutlinePanel(timerBarBg, new Color(0.50f, 0.40f, 0.22f, 0.50f));
+            var timerBarFill = AddPanel(timerBarBg, "TimerBarFill", new Color(0.20f, 0.78f, 0.35f, 1f));
+            SetAnchors(timerBarFill, 0f, 0f, 0.5f, 1f); // 50% default
+
             var infoTime = AddText(infoInner, "TimeText", "\u23F1  2h 30m", 13, TextAnchor.MiddleCenter);
-            SetAnchors(infoTime, 0.30f, 0.22f, 0.70f, 0.30f);
+            SetAnchors(infoTime, 0.04f, 0.20f, 0.96f, 0.27f);
             infoTime.GetComponent<Text>().color = Sky;
             var infoTimeSh = infoTime.AddComponent<Shadow>();
             infoTimeSh.effectColor = new Color(0, 0, 0, 0.5f);
             infoTimeSh.effectDistance = new Vector2(0.5f, -0.5f);
 
+            // Idle state: Upgrade + Close buttons
             var infoUpBtn = AddStyledButton(infoInner, "UpgradeBtn", "UPGRADE", new Color(0.20f, 0.72f, 0.35f, 1f), new Color(0.12f, 0.50f, 0.22f, 1f));
             SetAnchors(infoUpBtn, 0.06f, 0.04f, 0.48f, 0.18f);
             var infoClose = AddStyledButton(infoInner, "CloseBtn", "CLOSE", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
             SetAnchors(infoClose, 0.52f, 0.04f, 0.94f, 0.18f);
 
+            // Upgrading state: Speed Up + Cancel buttons (hidden by default)
+            var speedUpBtn = AddStyledButton(infoInner, "SpeedUpBtn", "SPEED UP", new Color(0.30f, 0.75f, 0.95f, 1f), new Color(0.18f, 0.50f, 0.70f, 1f));
+            SetAnchors(speedUpBtn, 0.06f, 0.04f, 0.48f, 0.18f);
+            speedUpBtn.SetActive(false);
+            var cancelBtn = AddStyledButton(infoInner, "CancelBtn", "CANCEL", new Color(0.75f, 0.20f, 0.22f, 1f), new Color(0.50f, 0.12f, 0.14f, 1f));
+            SetAnchors(cancelBtn, 0.52f, 0.04f, 0.72f, 0.18f);
+            cancelBtn.SetActive(false);
+
+            // P&C: Alliance Help button (shown during upgrade, next to cancel)
+            var helpBtn = AddStyledButton(infoInner, "HelpBtn", "HELP", new Color(0.72f, 0.56f, 0.22f, 1f), new Color(0.50f, 0.38f, 0.15f, 1f));
+            SetAnchors(helpBtn, 0.74f, 0.04f, 0.94f, 0.18f);
+            helpBtn.SetActive(false);
+
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingInfoPopupController>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.ResourceFlyToHUD>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.BuildQueueHUDIndicator>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeCompleteToast>();
             infoPopup.SetActive(false);
 
             SaveScene();

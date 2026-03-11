@@ -596,6 +596,9 @@ namespace AshenThrone.Editor
             // ================================================================
             viewport.AddComponent<ConstructionOverlayManager>();
 
+            // 9c2. Notification badges on buildings (P&C-style red dots)
+            viewport.AddComponent<BuildingNotificationBadges>();
+
             // ================================================================
             // 9d. Ambient city effects (sparkles, smoke, etc.)
             // ================================================================

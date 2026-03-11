@@ -37,16 +37,20 @@ namespace AshenThrone.Empire
                 _gridView = FindFirstObjectByType<CityGridView>();
         }
 
+        private EventSubscription _upgradeCancelledSub;
+
         private void OnEnable()
         {
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompleted);
+            _upgradeCancelledSub = EventBus.Subscribe<BuildingUpgradeCancelledEvent>(OnUpgradeCancelled);
         }
 
         private void OnDisable()
         {
             _upgradeStartedSub?.Dispose();
             _upgradeCompletedSub?.Dispose();
+            _upgradeCancelledSub?.Dispose();
         }
 
         private void Update()
@@ -63,7 +67,13 @@ namespace AshenThrone.Empire
                     float progress = total > 0 ? 1f - (remaining / total) : 1f;
 
                     overlay.ProgressFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+                    // Fill turns gold near completion
+                    overlay.ProgressFill.GetComponent<Image>().color = progress > 0.9f
+                        ? new Color(0.83f, 0.66f, 0.26f, 1f) : ProgressFillColor;
                     overlay.TimerText.text = FormatTime(Mathf.CeilToInt(remaining));
+                    // Timer turns red at < 10 seconds
+                    overlay.TimerText.color = remaining < 10f
+                        ? new Color(1f, 0.3f, 0.3f, 1f) : TimerTextColor;
                 }
             }
         }
@@ -94,6 +104,16 @@ namespace AshenThrone.Empire
         }
 
         private void OnUpgradeCompleted(BuildingUpgradeCompletedEvent evt)
+        {
+            // Play completion celebration before removing overlay
+            if (_overlays.TryGetValue(evt.PlacedId, out var overlay) && overlay.Root != null)
+            {
+                PlayCompletionCelebration(overlay.Root.transform.parent);
+            }
+            RemoveOverlay(evt.PlacedId);
+        }
+
+        private void OnUpgradeCancelled(BuildingUpgradeCancelledEvent evt)
         {
             RemoveOverlay(evt.PlacedId);
         }
@@ -200,6 +220,64 @@ namespace AshenThrone.Empire
                 HammerIcon = hammerGO,
                 TotalSeconds = totalSeconds
             };
+        }
+
+        /// <summary>
+        /// P&C-style golden glow burst when upgrade completes.
+        /// Creates a temporary expanding glow that fades out.
+        /// </summary>
+        private void PlayCompletionCelebration(Transform buildingTransform)
+        {
+            if (buildingTransform == null) return;
+
+            var glow = new GameObject("CompletionGlow");
+            glow.transform.SetParent(buildingTransform, false);
+            var rect = glow.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.15f, -0.15f);
+            rect.anchorMax = new Vector2(1.15f, 1.15f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var img = glow.AddComponent<Image>();
+            // Try to load radial gradient for soft glow
+            var gradientSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (gradientSpr == null)
+                gradientSpr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (gradientSpr != null)
+                img.sprite = gradientSpr;
+            img.color = new Color(0.83f, 0.66f, 0.26f, 0.8f); // Gold glow
+            img.raycastTarget = false;
+
+            // Animate: scale up from 0.5 to 1.2 and fade out over 1 second
+            StartCoroutine(AnimateCelebration(glow, rect));
+        }
+
+        private System.Collections.IEnumerator AnimateCelebration(GameObject glow, RectTransform rect)
+        {
+            float duration = 1.0f;
+            float elapsed = 0f;
+            var img = glow.GetComponent<Image>();
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // Scale: 0.5 → 1.3
+                float scale = Mathf.Lerp(0.5f, 1.3f, t);
+                rect.localScale = new Vector3(scale, scale, 1f);
+
+                // Fade: full → 0
+                float alpha = Mathf.Lerp(0.8f, 0f, t * t); // Quadratic ease-out
+                if (img != null)
+                    img.color = new Color(0.83f, 0.66f, 0.26f, alpha);
+
+                yield return null;
+            }
+
+            Destroy(glow);
         }
 
         private static string FormatTime(int seconds)
