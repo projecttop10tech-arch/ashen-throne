@@ -359,8 +359,14 @@ namespace AshenThrone.Empire
             rect.offsetMax = Vector2.zero;
 
             var img = arrowGO.AddComponent<Image>();
-            img.raycastTarget = false;
+            img.raycastTarget = true; // Clickable for quick-upgrade
             img.color = arrowColor;
+
+            // P&C: Quick-upgrade — tapping arrow starts upgrade directly
+            var btn = arrowGO.AddComponent<Button>();
+            btn.targetGraphic = img;
+            string instanceId = placement.InstanceId;
+            btn.onClick.AddListener(() => OnQuickUpgradePressed(instanceId));
 
             // Arrow symbol: ▲ for normal, ★ for recommended
             var textGO = new GameObject("ArrowText");
@@ -392,6 +398,20 @@ namespace AshenThrone.Empire
                 if (arrowGO != null)
                     Destroy(arrowGO);
                 _upgradeArrows.Remove(instanceId);
+            }
+        }
+
+        /// <summary>
+        /// P&C: Quick-upgrade — tapping the arrow directly starts the upgrade.
+        /// </summary>
+        private void OnQuickUpgradePressed(string instanceId)
+        {
+            if (_buildingManager == null) return;
+            bool started = _buildingManager.StartUpgrade(instanceId);
+            if (started)
+            {
+                Debug.Log($"[ConstructionOverlay] Quick-upgrade started for {instanceId}.");
+                HideUpgradeArrow(instanceId);
             }
         }
 

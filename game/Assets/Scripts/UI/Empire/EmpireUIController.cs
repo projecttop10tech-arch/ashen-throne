@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using AshenThrone.Core;
 using AshenThrone.Empire;
+using AshenThrone.Data;
 
 namespace AshenThrone.UI.Empire
 {
@@ -32,6 +33,7 @@ namespace AshenThrone.UI.Empire
         private EventSubscription _buildCompletedSub;
         private EventSubscription _buildStartedSub;
         private EventSubscription _emptyCellSub;
+        private EventSubscription _placementConfirmedSub;
 
         // P&C: Grid position where player tapped empty ground (for building placement)
         private Vector2Int _pendingPlacementPos;
@@ -57,6 +59,7 @@ namespace AshenThrone.UI.Empire
             _buildCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildCompleted);
             _buildStartedSub   = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnBuildStarted);
             _emptyCellSub      = EventBus.Subscribe<EmptyCellTappedEvent>(OnEmptyCellTapped);
+            _placementConfirmedSub = EventBus.Subscribe<PlacementConfirmedEvent>(OnPlacementConfirmed);
         }
 
         private void OnDisable()
@@ -64,6 +67,7 @@ namespace AshenThrone.UI.Empire
             _buildCompletedSub?.Dispose();
             _buildStartedSub?.Dispose();
             _emptyCellSub?.Dispose();
+            _placementConfirmedSub?.Dispose();
         }
 
         /// <summary>
@@ -125,6 +129,54 @@ namespace AshenThrone.UI.Empire
         private void OnBuildStarted(BuildingUpgradeStartedEvent evt)
         {
             _buildQueueOverlay?.OnBuildStarted(evt.PlacedId, evt.TargetTier, evt.BuildTimeSeconds);
+        }
+
+        /// <summary>
+        /// P&C: Handle confirmed building placement from the grid.
+        /// Finds the BuildingData, calls BuildingManager.PlaceBuilding,
+        /// and adds the visual to CityGridView.
+        /// </summary>
+        private void OnPlacementConfirmed(PlacementConfirmedEvent evt)
+        {
+            // Find BuildingData for this building type
+            var allBuildings = Resources.LoadAll<BuildingData>("");
+            BuildingData data = null;
+            foreach (var bd in allBuildings)
+            {
+                if (bd != null && bd.buildingId == evt.BuildingId)
+                {
+                    data = bd;
+                    break;
+                }
+            }
+
+            if (data == null)
+            {
+                Debug.LogWarning($"[EmpireUIController] No BuildingData found for '{evt.BuildingId}'.");
+                return;
+            }
+
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm))
+            {
+                Debug.LogWarning("[EmpireUIController] BuildingManager not available.");
+                return;
+            }
+
+            // Place via BuildingManager (validates cost, deducts resources)
+            string placedId = bm.PlaceBuilding(data, evt.GridOrigin);
+            if (string.IsNullOrEmpty(placedId))
+            {
+                Debug.Log($"[EmpireUIController] PlaceBuilding failed for {evt.BuildingId}.");
+                return;
+            }
+
+            // Add the visual to the city grid
+            var gridView = FindFirstObjectByType<CityGridView>();
+            if (gridView != null)
+                gridView.PlaceBuildingOnGrid(evt.BuildingId, placedId, 0, evt.GridOrigin);
+
+            Debug.Log($"[EmpireUIController] Placed {evt.BuildingId} at {evt.GridOrigin} → {placedId}");
+            CloseAllPanels();
         }
 
         private void ValidateReferences()

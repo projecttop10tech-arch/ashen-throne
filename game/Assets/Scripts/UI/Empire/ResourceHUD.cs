@@ -54,26 +54,51 @@ namespace AshenThrone.UI.Empire
             _resourceChangedSub?.Dispose();
         }
 
+        // P&C: Vault overflow warning colors
+        private static readonly Color NormalColor = Color.white;
+        private static readonly Color WarningColor = new(1f, 0.65f, 0.20f, 1f);  // Orange at 80%
+        private static readonly Color CriticalColor = new(1f, 0.25f, 0.25f, 1f); // Red at 95%
+        private static readonly Color FullColor = new(1f, 0.15f, 0.15f, 1f);     // Bright red at 100%
+
         private void RefreshAll()
         {
-            SetText(_grainAmount, Abbreviate(_resourceManager.Grain));
-            SetText(_ironAmount, Abbreviate(_resourceManager.Iron));
-            SetText(_stoneAmount, Abbreviate(_resourceManager.Stone));
-            SetText(_arcaneAmount, Abbreviate(_resourceManager.ArcaneEssence));
+            UpdateResourceDisplay(_grainAmount, _resourceManager.Grain, _resourceManager.MaxGrain);
+            UpdateResourceDisplay(_ironAmount, _resourceManager.Iron, _resourceManager.MaxIron);
+            UpdateResourceDisplay(_stoneAmount, _resourceManager.Stone, _resourceManager.MaxStone);
+            UpdateResourceDisplay(_arcaneAmount, _resourceManager.ArcaneEssence, _resourceManager.MaxArcaneEssence);
             SetText(_gemsAmount, Abbreviate(_gems));
         }
 
         private void OnResourceChanged(ResourceChangedEvent evt)
         {
-            TextMeshProUGUI label = evt.Type switch
+            TextMeshProUGUI label;
+            long max;
+            switch (evt.Type)
             {
-                ResourceType.Stone => _stoneAmount,
-                ResourceType.Iron => _ironAmount,
-                ResourceType.Grain => _grainAmount,
-                ResourceType.ArcaneEssence => _arcaneAmount,
-                _ => null
-            };
-            SetText(label, Abbreviate(evt.NewValue));
+                case ResourceType.Stone: label = _stoneAmount; max = _resourceManager?.MaxStone ?? long.MaxValue; break;
+                case ResourceType.Iron: label = _ironAmount; max = _resourceManager?.MaxIron ?? long.MaxValue; break;
+                case ResourceType.Grain: label = _grainAmount; max = _resourceManager?.MaxGrain ?? long.MaxValue; break;
+                case ResourceType.ArcaneEssence: label = _arcaneAmount; max = _resourceManager?.MaxArcaneEssence ?? long.MaxValue; break;
+                default: return;
+            }
+            UpdateResourceDisplay(label, evt.NewValue, max);
+        }
+
+        /// <summary>
+        /// P&C: Update resource display with vault overflow color warning.
+        /// Orange at 80%, red at 95%, bright red at 100%.
+        /// </summary>
+        private static void UpdateResourceDisplay(TextMeshProUGUI label, long current, long max)
+        {
+            if (label == null) return;
+            label.text = Abbreviate(current);
+
+            if (max <= 0) { label.color = NormalColor; return; }
+            float ratio = (float)current / max;
+            if (ratio >= 1f) label.color = FullColor;
+            else if (ratio >= 0.95f) label.color = CriticalColor;
+            else if (ratio >= 0.80f) label.color = WarningColor;
+            else label.color = NormalColor;
         }
 
         /// <summary>

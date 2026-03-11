@@ -767,7 +767,7 @@ namespace AshenThrone.Empire
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (_holdStarted && !_moveMode)
+            if (_holdStarted && !_moveMode && !_placementMode)
             {
                 if (Vector2.Distance(eventData.position, _holdStartPos) > DragThreshold)
                 {
@@ -788,6 +788,15 @@ namespace AshenThrone.Empire
 
                 // Update placement highlight to snapped position
                 UpdateHighlight(localPoint);
+            }
+
+            // P&C: Drag ghost in placement mode
+            if (_placementMode && _placementGhost != null && buildingContainer != null)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    buildingContainer, eventData.position, eventData.pressEventCamera, out var localPoint);
+                var snapOrigin = SnapToGrid(localPoint, _placementSize);
+                UpdatePlacementPosition(snapOrigin);
             }
         }
 
