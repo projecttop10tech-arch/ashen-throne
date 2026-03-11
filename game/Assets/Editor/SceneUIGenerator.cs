@@ -2460,11 +2460,13 @@ namespace AshenThrone.Editor
             infoTimeSh.effectColor = new Color(0, 0, 0, 0.5f);
             infoTimeSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Idle state: Upgrade + Close buttons
+            // Idle state: Upgrade + Move + Close buttons (P&C 3-button layout)
             var infoUpBtn = AddStyledButton(infoInner, "UpgradeBtn", "UPGRADE", new Color(0.20f, 0.72f, 0.35f, 1f), new Color(0.12f, 0.50f, 0.22f, 1f));
-            SetAnchors(infoUpBtn, 0.06f, 0.04f, 0.48f, 0.18f);
+            SetAnchors(infoUpBtn, 0.04f, 0.04f, 0.36f, 0.18f);
+            var moveBtn = AddStyledButton(infoInner, "MoveBtn", "MOVE", new Color(0.55f, 0.45f, 0.20f, 1f), new Color(0.38f, 0.30f, 0.12f, 1f));
+            SetAnchors(moveBtn, 0.38f, 0.04f, 0.64f, 0.18f);
             var infoClose = AddStyledButton(infoInner, "CloseBtn", "CLOSE", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
-            SetAnchors(infoClose, 0.52f, 0.04f, 0.94f, 0.18f);
+            SetAnchors(infoClose, 0.66f, 0.04f, 0.96f, 0.18f);
 
             // Upgrading state: Speed Up + Cancel buttons (hidden by default)
             var speedUpBtn = AddStyledButton(infoInner, "SpeedUpBtn", "SPEED UP", new Color(0.30f, 0.75f, 0.95f, 1f), new Color(0.18f, 0.50f, 0.70f, 1f));

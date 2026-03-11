@@ -25,6 +25,7 @@ namespace AshenThrone.UI.Empire
         // Idle state buttons
         private Button _upgradeBtn;
         private Button _closeBtn;
+        private Button _moveBtn; // P&C: Relocate building
 
         // Upgrading state buttons
         private Button _speedUpBtn;
@@ -257,6 +258,10 @@ namespace AshenThrone.UI.Empire
             bool meetsSHReq = requiredSHLevel <= currentSHLevel || evt.BuildingId == "stronghold";
 
             int nextTier = evt.Tier + 1;
+
+            // P&C: Check category-based prerequisites (e.g., "Requires Academy Lv.5")
+            string categoryReq = CheckCategoryPrerequisite(evt.BuildingId, nextTier);
+            bool meetsAllReqs = meetsSHReq && categoryReq == null;
             if (data != null)
             {
                 BuildingTierData tierData = data.GetTier(nextTier);
@@ -270,6 +275,8 @@ namespace AshenThrone.UI.Empire
                         string timeStr = $"\u23F1 {FormatTime(tierData.buildTimeSeconds)}";
                         if (!meetsSHReq)
                             timeStr = $"<color=#FF6644>Requires Stronghold Lv.{requiredSHLevel}</color>";
+                        else if (categoryReq != null)
+                            timeStr = $"<color=#FF6644>{categoryReq}</color>";
                         // P&C: Show production rate for resource buildings
                         string prodRate = GetProductionRateText(tierData);
                         if (!string.IsNullOrEmpty(prodRate))
@@ -279,8 +286,8 @@ namespace AshenThrone.UI.Empire
                     if (_upgradeBtn != null)
                     {
                         _upgradeBtn.gameObject.SetActive(true);
-                        _upgradeBtn.interactable = meetsSHReq;
-                        SetButtonLabel(_upgradeBtn, meetsSHReq ? GetActionLabel(evt.BuildingId) : "LOCKED");
+                        _upgradeBtn.interactable = meetsAllReqs;
+                        SetButtonLabel(_upgradeBtn, meetsAllReqs ? GetActionLabel(evt.BuildingId) : "LOCKED");
                     }
                 }
                 else
@@ -306,12 +313,14 @@ namespace AshenThrone.UI.Empire
                     _timeLabel.text = $"\u23F1 {FormatTime((nextTier + 1) * 1800)}";
                     if (!meetsSHReq)
                         _timeLabel.text = $"<color=#FF6644>Requires Stronghold Lv.{requiredSHLevel}</color>";
+                    else if (categoryReq != null)
+                        _timeLabel.text = $"<color=#FF6644>{categoryReq}</color>";
                 }
                 if (_upgradeBtn != null)
                 {
                     _upgradeBtn.gameObject.SetActive(true);
-                    _upgradeBtn.interactable = meetsSHReq;
-                    SetButtonLabel(_upgradeBtn, meetsSHReq ? GetActionLabel(evt.BuildingId) : "LOCKED");
+                    _upgradeBtn.interactable = meetsAllReqs;
+                    SetButtonLabel(_upgradeBtn, meetsAllReqs ? GetActionLabel(evt.BuildingId) : "LOCKED");
                 }
             }
 
@@ -381,6 +390,68 @@ namespace AshenThrone.UI.Empire
             return 0;
         }
 
+        /// <summary>
+        /// P&C: Get the highest tier of a specific building type across all placed instances.
+        /// Used for category prerequisites (e.g., "Requires Academy Lv.5").
+        /// </summary>
+        private int GetBuildingTypeLevel(string buildingId)
+        {
+            if (_buildingManager == null) return 99;
+            int maxTier = -1;
+            foreach (var kvp in _buildingManager.PlacedBuildings)
+            {
+                if (kvp.Value.Data != null && kvp.Value.Data.buildingId == buildingId)
+                    maxTier = Mathf.Max(maxTier, kvp.Value.CurrentTier);
+            }
+            return maxTier;
+        }
+
+        /// <summary>
+        /// P&C: Check category-based prerequisites for upgrading a building.
+        /// Returns null if met, or a requirement string like "Requires Academy Lv.3".
+        /// </summary>
+        private string CheckCategoryPrerequisite(string buildingId, int targetTier)
+        {
+            if (_buildingManager == null) return null;
+
+            // P&C-style prerequisite rules by category
+            string reqBuilding = null;
+            int reqLevel = 0;
+
+            if (buildingId.Contains("barracks") || buildingId.Contains("training") || buildingId.Contains("armory"))
+            {
+                // Military buildings require Stronghold at matching tier
+                reqBuilding = "stronghold";
+                reqLevel = targetTier;
+            }
+            else if (buildingId.Contains("academy") || buildingId.Contains("library") || buildingId.Contains("laboratory") || buildingId.Contains("observatory"))
+            {
+                // Research buildings require Stronghold - 1
+                reqBuilding = "stronghold";
+                reqLevel = Mathf.Max(0, targetTier - 1);
+            }
+            else if (buildingId.Contains("forge") || buildingId.Contains("enchanting"))
+            {
+                // Crafting buildings require Academy at half tier
+                reqBuilding = "academy";
+                reqLevel = Mathf.Max(0, targetTier / 2);
+            }
+            else if (buildingId.Contains("wall") || buildingId.Contains("watch_tower"))
+            {
+                // Defense buildings require Barracks
+                reqBuilding = "barracks";
+                reqLevel = Mathf.Max(0, targetTier - 1);
+            }
+
+            if (reqBuilding == null) return null;
+
+            int currentLevel = reqBuilding == "stronghold" ? GetStrongholdLevel() : GetBuildingTypeLevel(reqBuilding);
+            if (currentLevel >= reqLevel) return null;
+
+            string displayName = FormatDisplayName(reqBuilding);
+            return $"Requires {displayName} Lv.{reqLevel + 1}";
+        }
+
         private void ShowUpgradingState()
         {
             // Hide upgrade/close, show speedup/cancel
@@ -400,6 +471,7 @@ namespace AshenThrone.UI.Empire
         {
             if (_upgradeBtn != null) _upgradeBtn.gameObject.SetActive(idle);
             if (_closeBtn != null) _closeBtn.gameObject.SetActive(idle);
+            if (_moveBtn != null) _moveBtn.gameObject.SetActive(idle && _currentBuildingId != "stronghold");
             if (_speedUpBtn != null) _speedUpBtn.gameObject.SetActive(!idle);
             if (_cancelBtn != null) _cancelBtn.gameObject.SetActive(!idle);
             if (_helpBtn != null) _helpBtn.gameObject.SetActive(!idle);
@@ -456,6 +528,19 @@ namespace AshenThrone.UI.Empire
                 // Refresh popup to show upgrading state
                 var evt = new BuildingTappedEvent(_currentBuildingId, _currentInstanceId, _currentTier, default);
                 PopulatePopup(evt);
+            }
+        }
+
+        /// <summary>P&C: Enter move/relocate mode for the current building.</summary>
+        private void OnMovePressed()
+        {
+            if (string.IsNullOrEmpty(_currentInstanceId)) return;
+            var cityGrid = Object.FindFirstObjectByType<CityGridView>();
+            if (cityGrid != null)
+            {
+                ClosePopup();
+                cityGrid.EnterMoveModeForBuilding(_currentInstanceId);
+                Debug.Log($"[BuildingInfoPopup] Entering move mode for {_currentBuildingId}.");
             }
         }
 
@@ -626,6 +711,7 @@ namespace AshenThrone.UI.Empire
             // Idle buttons
             WireButton(popupTransform, "UpgradeBtn", ref _upgradeBtn, OnUpgradePressed);
             WireButton(popupTransform, "CloseBtn", ref _closeBtn, ClosePopup);
+            WireButton(popupTransform, "MoveBtn", ref _moveBtn, OnMovePressed);
 
             // Upgrading buttons
             WireButton(popupTransform, "SpeedUpBtn", ref _speedUpBtn, OnSpeedUpPressed);

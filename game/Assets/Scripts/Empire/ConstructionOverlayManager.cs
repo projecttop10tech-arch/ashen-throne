@@ -100,6 +100,13 @@ namespace AshenThrone.Empire
                     // Timer turns red at < 10 seconds
                     overlay.TimerText.color = remaining < 10f
                         ? new Color(1f, 0.3f, 0.3f, 1f) : TimerTextColor;
+
+                    // P&C: Hammer swing animation — oscillating rotation
+                    if (overlay.HammerIcon != null)
+                    {
+                        float swing = Mathf.Sin(Time.time * 4f) * 15f; // ±15° at 4Hz
+                        overlay.HammerIcon.transform.localRotation = Quaternion.Euler(0, 0, swing);
+                    }
                 }
             }
 

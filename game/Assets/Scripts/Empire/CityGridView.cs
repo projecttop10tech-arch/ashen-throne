@@ -937,6 +937,56 @@ namespace AshenThrone.Empire
             CreateHighlight();
         }
 
+        /// <summary>P&C: Enter move mode for a specific building instance (called from info popup Move button).</summary>
+        public void EnterMoveModeForBuilding(string instanceId)
+        {
+            if (_moveMode || _placementMode) return;
+            CityBuildingPlacement found = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == instanceId) { found = p; break; }
+            }
+            if (found == null) return;
+
+            _moveMode = true;
+            _movingBuilding = found;
+
+            if (scrollRect != null) scrollRect.enabled = false;
+            SetGridOverlayVisible(true);
+            ClearBuildingFootprint();
+
+            if (found.VisualGO != null)
+                found.VisualGO.GetComponent<Image>().color = new Color(1, 1, 1, 0.3f);
+
+            // Create ghost + shadow at current position
+            _dragShadow = new GameObject("DragShadow");
+            _dragShadow.transform.SetParent(buildingContainer, false);
+            var shadowRect = _dragShadow.AddComponent<RectTransform>();
+            var shadowSize = FootprintScreenSize(found.Size);
+            shadowRect.sizeDelta = shadowSize;
+            var shadowImg = _dragShadow.AddComponent<Image>();
+            shadowImg.color = new Color(0, 0, 0, 0.25f);
+            shadowImg.raycastTarget = false;
+            shadowRect.anchoredPosition = GridToLocalCenter(found.GridOrigin, found.Size) + new Vector2(4, -4);
+
+            _dragGhost = new GameObject("DragGhost");
+            _dragGhost.transform.SetParent(buildingContainer, false);
+            var ghostRect = _dragGhost.AddComponent<RectTransform>();
+            var ghostSize = FootprintScreenSize(found.Size);
+            ghostSize.y = ghostSize.x * 1.5f;
+            ghostRect.sizeDelta = ghostSize;
+            var ghostImg = _dragGhost.AddComponent<Image>();
+            var srcImg = found.VisualGO?.GetComponent<Image>();
+            if (srcImg != null) ghostImg.sprite = srcImg.sprite;
+            ghostImg.preserveAspect = true;
+            ghostImg.raycastTarget = false;
+            ghostRect.anchoredPosition = GridToLocalCenter(found.GridOrigin, found.Size);
+            ghostRect.localScale = Vector3.one * 1.12f;
+
+            EventBus.Publish(new BuildingMoveStartedEvent(found.InstanceId));
+            CreateHighlight();
+        }
+
         private void ExitMoveMode(PointerEventData eventData)
         {
             if (_dragGhost != null && _movingBuilding != null)
