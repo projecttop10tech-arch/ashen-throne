@@ -195,7 +195,15 @@ namespace AshenThrone.UI.Empire
                 _nameLabel.text = displayName.ToUpper();
 
             if (_levelLabel != null)
-                _levelLabel.text = $"Level {displayLevel}";
+            {
+                // P&C: Show building count for non-unique buildings (e.g., "Level 3 | 2/5")
+                int buildingCount = CountBuildings(evt.BuildingId);
+                bool isUnique = data != null && data.isUniquePerCity;
+                if (!isUnique && buildingCount > 1)
+                    _levelLabel.text = $"Level {displayLevel}  |  {buildingCount} built";
+                else
+                    _levelLabel.text = $"Level {displayLevel}";
+            }
 
             if (_descLabel != null)
             {
@@ -392,13 +400,25 @@ namespace AshenThrone.UI.Empire
 
         private int GetStrongholdLevel()
         {
-            if (_buildingManager == null) return 99; // No manager = demo mode, allow all
+            if (_buildingManager == null) return 99;
             foreach (var kvp in _buildingManager.PlacedBuildings)
             {
                 if (kvp.Value.Data != null && kvp.Value.Data.buildingId == "stronghold")
                     return kvp.Value.CurrentTier;
             }
             return 0;
+        }
+
+        private int CountBuildings(string buildingId)
+        {
+            if (_buildingManager == null) return 1;
+            int count = 0;
+            foreach (var kvp in _buildingManager.PlacedBuildings)
+            {
+                if (kvp.Value.Data != null && kvp.Value.Data.buildingId == buildingId)
+                    count++;
+            }
+            return Mathf.Max(1, count);
         }
 
         /// <summary>

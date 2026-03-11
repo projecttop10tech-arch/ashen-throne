@@ -2487,7 +2487,65 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.ResourceFlyToHUD>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildQueueHUDIndicator>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeCompleteToast>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.BuildCatalogController>();
             infoPopup.SetActive(false);
+
+            // P&C: Building Catalog Popup (shown when tapping empty ground)
+            var catalogPopup = new GameObject("BuildCatalogPopup");
+            catalogPopup.transform.SetParent(canvasGo.transform, false);
+            catalogPopup.AddComponent<RectTransform>();
+            var catBg = catalogPopup.AddComponent<Image>();
+            catBg.color = BgDark;
+            SetAnchors(catalogPopup, 0.05f, 0.15f, 0.95f, 0.85f);
+            // Inner frame
+            var catInner = new GameObject("CatalogInner");
+            catInner.transform.SetParent(catalogPopup.transform, false);
+            catInner.AddComponent<RectTransform>();
+            var catInnerBg = catInner.AddComponent<Image>();
+            catInnerBg.color = BgMid;
+            SetAnchors(catInner, 0.02f, 0.02f, 0.98f, 0.98f);
+            AddOutline(catInner, new Color(0.78f, 0.62f, 0.22f, 0.8f), 1.5f);
+            // Title
+            var catTitle = AddText(catInner, "CatalogTitle", "BUILD", 14, TextAnchor.MiddleCenter);
+            SetAnchors(catTitle, 0.10f, 0.88f, 0.90f, 0.98f);
+            catTitle.GetComponent<Text>().color = new Color(0.83f, 0.66f, 0.26f, 1f);
+            catTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            // Tab container (HorizontalLayoutGroup)
+            var tabContainer = new GameObject("TabContainer");
+            tabContainer.transform.SetParent(catInner.transform, false);
+            tabContainer.AddComponent<RectTransform>();
+            SetAnchors(tabContainer, 0.04f, 0.78f, 0.96f, 0.87f);
+            var tabHLG = tabContainer.AddComponent<HorizontalLayoutGroup>();
+            tabHLG.spacing = 4;
+            tabHLG.childForceExpandWidth = true;
+            tabHLG.childForceExpandHeight = true;
+            // List container (VerticalLayoutGroup)
+            var listContainer = new GameObject("ListContainer");
+            listContainer.transform.SetParent(catInner.transform, false);
+            listContainer.AddComponent<RectTransform>();
+            SetAnchors(listContainer, 0.04f, 0.08f, 0.96f, 0.76f);
+            var listVLG = listContainer.AddComponent<VerticalLayoutGroup>();
+            listVLG.spacing = 4;
+            listVLG.childForceExpandWidth = true;
+            listVLG.childForceExpandHeight = false;
+            listVLG.padding = new RectOffset(2, 2, 2, 2);
+            // Close button
+            var catCloseBtn = AddStyledButton(catInner, "CatalogCloseBtn", "X", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
+            SetAnchors(catCloseBtn, 0.88f, 0.88f, 0.97f, 0.98f);
+            catCloseBtn.transform.Find("Label").GetComponent<Text>().fontSize = 12;
+            // Overlay for tap-to-close
+            var catOverlay = new GameObject("CatalogOverlay");
+            catOverlay.transform.SetParent(catalogPopup.transform, false);
+            catOverlay.transform.SetAsFirstSibling();
+            var catOverlayRect = catOverlay.AddComponent<RectTransform>();
+            catOverlayRect.anchorMin = Vector2.zero;
+            catOverlayRect.anchorMax = Vector2.one;
+            catOverlayRect.offsetMin = Vector2.zero;
+            catOverlayRect.offsetMax = Vector2.zero;
+            var catOverlayImg = catOverlay.AddComponent<Image>();
+            catOverlayImg.color = new Color(0, 0, 0, 0.01f);
+            catOverlay.AddComponent<Button>();
+            catalogPopup.SetActive(false);
 
             SaveScene();
             Debug.Log("[SceneUIGenerator] Empire scene: resource HUD, build queue, toolbar");
