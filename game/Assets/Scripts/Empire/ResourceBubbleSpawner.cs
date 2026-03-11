@@ -121,7 +121,7 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>
-        /// Collect all bubbles for a specific building (e.g., on building tap).
+        /// Collect all bubbles for a specific building instance.
         /// </summary>
         public void CollectAllForBuilding(string instanceId)
         {
@@ -131,6 +131,31 @@ namespace AshenThrone.Empire
                 if (bubble != null)
                     bubble.OnPointerClick(null);
             }
+        }
+
+        /// <summary>
+        /// P&C: Collect all bubbles for ALL instances of a given building type.
+        /// E.g., tapping "COLLECT ALL" on any grain_farm collects from all grain_farms.
+        /// </summary>
+        public void CollectAllForBuildingType(string buildingId)
+        {
+            if (cityGrid == null) return;
+            int collected = 0;
+            foreach (var placement in cityGrid.GetPlacements())
+            {
+                if (placement.BuildingId != buildingId) continue;
+                if (!_activeBubbles.TryGetValue(placement.InstanceId, out var bubbles)) continue;
+                foreach (var bubble in bubbles)
+                {
+                    if (bubble != null)
+                    {
+                        bubble.OnPointerClick(null);
+                        collected++;
+                    }
+                }
+            }
+            if (collected > 0)
+                Debug.Log($"[ResourceBubbleSpawner] Collected {collected} bubbles from all {buildingId} instances.");
         }
     }
 }

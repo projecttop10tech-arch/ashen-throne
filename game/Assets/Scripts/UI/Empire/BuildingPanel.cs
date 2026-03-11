@@ -132,6 +132,58 @@ namespace AshenThrone.UI.Empire
             if (_upgradeButton != null) _upgradeButton.interactable = !isUpgrading;
         }
 
+        /// <summary>
+        /// P&C: Show building catalog for placing a new building at the given grid position.
+        /// Lists available building types by category, checks Stronghold level requirements.
+        /// </summary>
+        public void ShowCatalog(Vector2Int gridPos)
+        {
+            _currentPlacedId = null;
+            gameObject.SetActive(true);
+
+            SetText(_buildingNameLabel, "BUILD");
+            SetText(_tierLabel, $"Location: ({gridPos.x}, {gridPos.y})");
+
+            // Load all building data to show available options
+            var allBuildings = Resources.LoadAll<BuildingData>("");
+            int available = 0;
+            int shLevel = GetStrongholdLevel();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Available buildings:");
+            foreach (var data in allBuildings)
+            {
+                if (data == null || string.IsNullOrEmpty(data.buildingId)) continue;
+                bool unlocked = data.strongholdLevelRequired <= shLevel;
+                string status = unlocked ? "<color=#44FF66>\u2713</color>" : $"<color=#FF4444>SH Lv.{data.strongholdLevelRequired}</color>";
+                sb.AppendLine($"  {status} {data.displayName} ({data.category})");
+                if (unlocked) available++;
+            }
+
+            SetText(_upgradeDescriptionLabel, sb.ToString());
+            SetText(_stoneCostLabel, "");
+            SetText(_ironCostLabel, "");
+            SetText(_grainCostLabel, "");
+            SetText(_arcaneCostLabel, "");
+            SetText(_buildTimeLabel, $"{available} buildings available");
+
+            if (_progressSection != null) _progressSection.SetActive(false);
+            if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
+
+            Debug.Log($"[BuildingPanel] ShowCatalog at {gridPos}: {available} buildings available.");
+        }
+
+        private int GetStrongholdLevel()
+        {
+            if (_buildingManager == null) return 0;
+            foreach (var kvp in _buildingManager.PlacedBuildings)
+            {
+                if (kvp.Value.Data != null && kvp.Value.Data.buildingId == "stronghold")
+                    return kvp.Value.CurrentTier;
+            }
+            return 0;
+        }
+
         private void Close()
         {
             _currentPlacedId = null;

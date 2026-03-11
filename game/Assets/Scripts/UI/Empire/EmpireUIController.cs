@@ -31,6 +31,10 @@ namespace AshenThrone.UI.Empire
 
         private EventSubscription _buildCompletedSub;
         private EventSubscription _buildStartedSub;
+        private EventSubscription _emptyCellSub;
+
+        // P&C: Grid position where player tapped empty ground (for building placement)
+        private Vector2Int _pendingPlacementPos;
 
         private void Awake()
         {
@@ -52,12 +56,14 @@ namespace AshenThrone.UI.Empire
         {
             _buildCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildCompleted);
             _buildStartedSub   = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnBuildStarted);
+            _emptyCellSub      = EventBus.Subscribe<EmptyCellTappedEvent>(OnEmptyCellTapped);
         }
 
         private void OnDisable()
         {
             _buildCompletedSub?.Dispose();
             _buildStartedSub?.Dispose();
+            _emptyCellSub?.Dispose();
         }
 
         /// <summary>
@@ -82,9 +88,27 @@ namespace AshenThrone.UI.Empire
 
         private void ShowBuildMenu()
         {
-            // Phase 2: opens a building placement browser.
-            // Currently a stub — log intent for Phase 3 implementation.
-            Debug.Log("[EmpireUIController] ShowBuildMenu — stub (Phase 3).");
+            ShowBuildMenuAtPosition(default);
+        }
+
+        /// <summary>
+        /// P&C: Open the building placement panel at a specific grid position.
+        /// Called when player taps empty ground or uses the build button.
+        /// </summary>
+        private void ShowBuildMenuAtPosition(Vector2Int gridPos)
+        {
+            _pendingPlacementPos = gridPos;
+            CloseAllPanels();
+            if (_buildingPanel != null)
+            {
+                _buildingPanel.gameObject.SetActive(true);
+                _buildingPanel.ShowCatalog(gridPos);
+            }
+        }
+
+        private void OnEmptyCellTapped(EmptyCellTappedEvent evt)
+        {
+            ShowBuildMenuAtPosition(evt.GridPosition);
         }
 
         private void CloseAllPanels()

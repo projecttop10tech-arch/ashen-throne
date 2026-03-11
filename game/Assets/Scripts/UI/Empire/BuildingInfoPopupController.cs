@@ -82,6 +82,15 @@ namespace AshenThrone.UI.Empire
         private void Update()
         {
             if (_popup == null || !_popup.activeSelf) return;
+
+            // P&C: Cancel confirm timeout — revert to normal after 3s
+            if (_cancelConfirmPending)
+            {
+                _cancelConfirmTimer -= Time.deltaTime;
+                if (_cancelConfirmTimer <= 0f)
+                    ResetCancelConfirm();
+            }
+
             if (!_isUpgrading || _buildingManager == null) return;
 
             // Find the active queue entry and update timer in real-time
@@ -182,10 +191,27 @@ namespace AshenThrone.UI.Empire
                 int powerIncrease = EstimatePowerIncrease(evt.BuildingId, evt.Tier + 1);
                 string powerPreview = $"\n<color=#44FF66>+{FormatNumber(powerIncrease)} Power</color>";
 
+                // P&C: Show bonus description from next tier's BuildingTierData
+                string bonusLine = "";
+                if (data != null)
+                {
+                    int nextTier = evt.Tier + 1;
+                    BuildingTierData nextTierData = data.GetTier(nextTier);
+                    if (nextTierData != null && !string.IsNullOrEmpty(nextTierData.bonusDescription))
+                        bonusLine = $"\n<color=#FFD966>{nextTierData.bonusDescription}</color>";
+                    else
+                    {
+                        // Show current tier bonus if at max level
+                        BuildingTierData currentTierData = data.GetTier(evt.Tier);
+                        if (currentTierData != null && !string.IsNullOrEmpty(currentTierData.bonusDescription))
+                            bonusLine = $"\n<color=#FFD966>{currentTierData.bonusDescription}</color>";
+                    }
+                }
+
                 if (data != null && !string.IsNullOrEmpty(data.description))
-                    _descLabel.text = data.description + powerPreview;
+                    _descLabel.text = data.description + bonusLine + powerPreview;
                 else
-                    _descLabel.text = GetCategoryDescription(evt.BuildingId) + powerPreview;
+                    _descLabel.text = GetCategoryDescription(evt.BuildingId) + bonusLine + powerPreview;
             }
 
             // Check if currently upgrading
@@ -398,18 +424,19 @@ namespace AshenThrone.UI.Empire
             _currentBuildingId = null;
             _currentInstanceId = null;
             _isUpgrading = false;
+            ResetCancelConfirm();
         }
 
         private void OnUpgradePressed()
         {
-            // P&C: COLLECT ALL for resource buildings triggers bubble collection
+            // P&C: COLLECT ALL for resource buildings — collects from ALL instances of the same type
             if (IsResourceBuilding(_currentBuildingId))
             {
                 var spawner = FindFirstObjectByType<ResourceBubbleSpawner>();
                 if (spawner != null)
                 {
-                    spawner.CollectAllForBuilding(_currentInstanceId);
-                    Debug.Log($"[BuildingInfoPopup] Collected all resources for {_currentBuildingId}.");
+                    spawner.CollectAllForBuildingType(_currentBuildingId);
+                    Debug.Log($"[BuildingInfoPopup] Collected all resources from all {_currentBuildingId} instances.");
                 }
                 ClosePopup();
                 return;
@@ -485,16 +512,44 @@ namespace AshenThrone.UI.Empire
             }
         }
 
+        private bool _cancelConfirmPending;
+        private float _cancelConfirmTimer;
+        private const float CancelConfirmTimeout = 3f;
+
         private void OnCancelPressed()
         {
             if (_buildingManager == null || string.IsNullOrEmpty(_currentInstanceId)) return;
 
+            if (!_cancelConfirmPending)
+            {
+                // P&C: First tap — show confirmation state
+                _cancelConfirmPending = true;
+                _cancelConfirmTimer = CancelConfirmTimeout;
+                SetButtonLabel(_cancelBtn, "CONFIRM?");
+                var btnImg = _cancelBtn?.GetComponent<Image>();
+                if (btnImg != null)
+                    btnImg.color = new Color(0.95f, 0.20f, 0.20f, 1f); // Bright red
+                return;
+            }
+
+            // Second tap — actually cancel
+            _cancelConfirmPending = false;
             bool cancelled = _buildingManager.CancelUpgrade(_currentInstanceId);
             if (cancelled)
             {
                 Debug.Log($"[BuildingInfoPopup] Upgrade cancelled for {_currentBuildingId}.");
                 ClosePopup();
             }
+        }
+
+        private void ResetCancelConfirm()
+        {
+            if (!_cancelConfirmPending) return;
+            _cancelConfirmPending = false;
+            SetButtonLabel(_cancelBtn, "CANCEL");
+            var btnImg = _cancelBtn?.GetComponent<Image>();
+            if (btnImg != null)
+                btnImg.color = new Color(0.85f, 0.25f, 0.25f, 1f); // Normal red
         }
 
         /// <summary>

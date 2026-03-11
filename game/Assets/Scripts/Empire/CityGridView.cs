@@ -109,6 +109,18 @@ namespace AshenThrone.Empire
         private float _lastPinchDistance;
         private int _touchCount;
 
+        private EventSubscription _upgradeCompletedSub;
+
+        private void OnEnable()
+        {
+            _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildingUpgradeCompleted);
+        }
+
+        private void OnDisable()
+        {
+            _upgradeCompletedSub?.Dispose();
+        }
+
         private void Start()
         {
             SetGridOverlayVisible(false);
@@ -558,6 +570,80 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Update building visual on upgrade completion
+        // ====================================================================
+
+        private void OnBuildingUpgradeCompleted(BuildingUpgradeCompletedEvent evt)
+        {
+            CityBuildingPlacement placement = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == evt.PlacedId)
+                {
+                    placement = p;
+                    break;
+                }
+            }
+            if (placement == null) return;
+
+            // Update tier on the placement data
+            placement.Tier = evt.NewTier;
+
+            // Swap the sprite to the new tier
+            if (placement.VisualGO != null)
+            {
+                var img = placement.VisualGO.GetComponent<Image>();
+                if (img != null)
+                {
+                    string spriteName = $"{placement.BuildingId}_t{evt.NewTier}";
+                    var sprite = Resources.Load<Sprite>($"Buildings/{spriteName}");
+                    #if UNITY_EDITOR
+                    if (sprite == null)
+                        sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+                            $"Assets/Art/Buildings/{placement.BuildingId}_t{evt.NewTier}.png");
+                    #endif
+                    if (sprite != null)
+                    {
+                        img.sprite = sprite;
+                        img.preserveAspect = true;
+                    }
+                }
+
+                // Update level badge text
+                var badgeText = FindLevelBadgeText(placement.VisualGO.transform);
+                if (badgeText != null)
+                    badgeText.text = evt.NewTier > 1 ? $"\u2605{evt.NewTier}" : $"{evt.NewTier}";
+
+                // Update production label if resource building
+                UpdateProductionLabel(placement.VisualGO, placement.BuildingId, evt.NewTier);
+            }
+        }
+
+        private static Text FindLevelBadgeText(Transform parent)
+        {
+            var badge = parent.Find("LevelBadge");
+            if (badge == null) return null;
+            var lvlText = badge.Find("LvlText");
+            return lvlText != null ? lvlText.GetComponent<Text>() : null;
+        }
+
+        private void UpdateProductionLabel(GameObject building, string buildingId, int tier)
+        {
+            if (!ResourceBuildingTypes.TryGetValue(buildingId, out string resName)) return;
+
+            var existing = building.transform.Find("ProductionRate");
+            if (existing != null)
+            {
+                var rateText = existing.GetComponentInChildren<Text>();
+                if (rateText != null)
+                {
+                    int rate = (tier + 1) * 250;
+                    rateText.text = rate >= 1000 ? $"+{rate / 1000f:F1}K/hr" : $"+{rate}/hr";
+                }
+            }
+        }
+
+        // ====================================================================
         // Long press / move mode
         // ====================================================================
 
@@ -592,6 +678,24 @@ namespace AshenThrone.Empire
 
         private void HandleBuildingTap(PointerEventData eventData)
         {
+            // P&C: If in placement mode, tap confirms or repositions
+            if (_placementMode && buildingContainer != null)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    buildingContainer, eventData.position, eventData.pressEventCamera, out var localPt);
+                var gridPos = SnapToGrid(localPt, _placementSize);
+                if (CanPlaceAt(gridPos, _placementSize, null))
+                {
+                    _placementSnapOrigin = gridPos;
+                    ExitPlacementMode(true); // Confirm placement
+                }
+                else
+                {
+                    UpdatePlacementPosition(gridPos); // Show invalid position
+                }
+                return;
+            }
+
             var results = new List<RaycastResult>();
             EventSystem.current.RaycastAll(eventData, results);
 
@@ -861,6 +965,129 @@ namespace AshenThrone.Empire
             return pos.x >= PlayableMinX && pos.x < PlayableMaxX
                 && pos.y >= PlayableMinY && pos.y < PlayableMaxY;
         }
+
+        // ====================================================================
+        // P&C: Building placement mode — select from catalog, tap to place
+        // ====================================================================
+
+        private bool _placementMode;
+        private string _placementBuildingId;
+        private Vector2Int _placementSize;
+        private GameObject _placementGhost;
+        private GameObject _placementHighlight;
+        private Image _placementHighlightImg;
+        private Outline _placementHighlightOutline;
+        private Vector2Int _placementSnapOrigin;
+        private EventSubscription _placementRequestSub;
+
+        /// <summary>
+        /// Enter placement mode: shows a ghost building that snaps to grid.
+        /// Called when player selects a building type from the catalog.
+        /// </summary>
+        public void EnterPlacementMode(string buildingId, Vector2Int preferredOrigin)
+        {
+            if (_placementMode) ExitPlacementMode(false);
+            if (_moveMode) return; // Don't allow placement while moving
+
+            if (!BuildingSizes.TryGetValue(buildingId, out var size))
+                size = new Vector2Int(2, 2);
+
+            _placementMode = true;
+            _placementBuildingId = buildingId;
+            _placementSize = size;
+            _placementSnapOrigin = preferredOrigin;
+
+            SetGridOverlayVisible(true);
+            if (scrollRect != null) scrollRect.enabled = false;
+
+            // Create placement ghost
+            if (buildingContainer != null)
+            {
+                _placementGhost = new GameObject("PlacementGhost");
+                _placementGhost.transform.SetParent(buildingContainer, false);
+                var ghostRect = _placementGhost.AddComponent<RectTransform>();
+                ghostRect.sizeDelta = FootprintScreenSize(size);
+                ghostRect.localScale = Vector3.one * 1.05f;
+
+                var ghostImg = _placementGhost.AddComponent<Image>();
+                // Try to load tier 1 sprite
+                var sprite = Resources.Load<Sprite>($"Buildings/{buildingId}_t1");
+                #if UNITY_EDITOR
+                if (sprite == null)
+                    sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+                        $"Assets/Art/Buildings/{buildingId}_t1.png");
+                #endif
+                if (sprite != null)
+                {
+                    ghostImg.sprite = sprite;
+                    ghostImg.preserveAspect = true;
+                }
+                ghostImg.color = new Color(1, 1, 1, 0.6f);
+                ghostImg.raycastTarget = false;
+
+                // Create highlight
+                _placementHighlight = new GameObject("PlacementHighlightNew");
+                _placementHighlight.transform.SetParent(buildingContainer, false);
+                _placementHighlight.transform.SetAsFirstSibling();
+                var hlRect = _placementHighlight.AddComponent<RectTransform>();
+                hlRect.sizeDelta = FootprintScreenSize(size);
+                _placementHighlightImg = _placementHighlight.AddComponent<Image>();
+                _placementHighlightImg.raycastTarget = false;
+                _placementHighlightOutline = _placementHighlight.AddComponent<Outline>();
+                _placementHighlightOutline.effectDistance = new Vector2(3, 3);
+
+                // Position at preferred origin
+                UpdatePlacementPosition(preferredOrigin);
+            }
+
+            EventBus.Publish(new PlacementModeEnteredEvent(buildingId));
+        }
+
+        /// <summary>
+        /// Exit placement mode. If confirmed, publishes PlacementConfirmedEvent.
+        /// </summary>
+        public void ExitPlacementMode(bool confirm)
+        {
+            if (!_placementMode) return;
+
+            if (confirm && CanPlaceAt(_placementSnapOrigin, _placementSize, null))
+            {
+                EventBus.Publish(new PlacementConfirmedEvent(
+                    _placementBuildingId, _placementSnapOrigin, _placementSize));
+            }
+
+            if (_placementGhost != null) Destroy(_placementGhost);
+            if (_placementHighlight != null) Destroy(_placementHighlight);
+            _placementGhost = null;
+            _placementHighlight = null;
+            _placementHighlightImg = null;
+            _placementHighlightOutline = null;
+            _placementMode = false;
+            _placementBuildingId = null;
+
+            SetGridOverlayVisible(false);
+            if (scrollRect != null) scrollRect.enabled = true;
+        }
+
+        private void UpdatePlacementPosition(Vector2Int origin)
+        {
+            _placementSnapOrigin = origin;
+            var center = GridToLocalCenter(origin, _placementSize);
+
+            if (_placementGhost != null)
+                _placementGhost.GetComponent<RectTransform>().anchoredPosition = center;
+
+            if (_placementHighlight != null)
+            {
+                _placementHighlight.GetComponent<RectTransform>().anchoredPosition = center;
+                bool valid = CanPlaceAt(origin, _placementSize, null);
+                _placementHighlightImg.color = valid ? HighlightValid : HighlightInvalid;
+                _placementHighlightOutline.effectColor = valid ? BorderValid : BorderInvalid;
+            }
+        }
+
+        /// <summary>Whether we are currently in placement mode.</summary>
+        public bool IsInPlacementMode => _placementMode;
     }
 
     /// <summary>
@@ -913,5 +1140,19 @@ namespace AshenThrone.Empire
     {
         public readonly Vector2Int GridPosition;
         public EmptyCellTappedEvent(Vector2Int pos) { GridPosition = pos; }
+    }
+
+    public readonly struct PlacementModeEnteredEvent
+    {
+        public readonly string BuildingId;
+        public PlacementModeEnteredEvent(string id) { BuildingId = id; }
+    }
+
+    public readonly struct PlacementConfirmedEvent
+    {
+        public readonly string BuildingId;
+        public readonly Vector2Int GridOrigin;
+        public readonly Vector2Int Size;
+        public PlacementConfirmedEvent(string id, Vector2Int origin, Vector2Int size) { BuildingId = id; GridOrigin = origin; Size = size; }
     }
 }

@@ -2,23 +2,31 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using AshenThrone.Core;
+using AshenThrone.Data;
 
 namespace AshenThrone.Empire
 {
     /// <summary>
     /// Creates and manages construction progress overlays on buildings during upgrades.
     /// P&C-style: shows timer countdown + progress bar directly on the building sprite.
-    /// Also shows "upgrade available" indicators on idle buildings.
+    /// Also shows "upgrade available" green arrow indicators on idle buildings.
     /// </summary>
     public class ConstructionOverlayManager : MonoBehaviour
     {
         private CityGridView _gridView;
         private BuildingManager _buildingManager;
+        private ResourceManager _resourceManager;
 
         private readonly Dictionary<string, ConstructionOverlay> _overlays = new();
+        private readonly Dictionary<string, GameObject> _upgradeArrows = new();
+        private readonly Dictionary<string, BuildingData> _buildingDataCache = new();
 
         private EventSubscription _upgradeStartedSub;
         private EventSubscription _upgradeCompletedSub;
+
+        private float _arrowRefreshTimer;
+        private const float ArrowRefreshInterval = 2f;
+        private float _arrowPulsePhase;
 
         private static readonly Color ProgressBgColor = new(0f, 0f, 0f, 0.75f);
         private static readonly Color ProgressFillColor = new(0.20f, 0.78f, 0.35f, 1f);
@@ -28,6 +36,8 @@ namespace AshenThrone.Empire
         private void Awake()
         {
             ServiceLocator.TryGet(out _buildingManager);
+            ServiceLocator.TryGet(out _resourceManager);
+            CacheBuildingData();
         }
 
         private void Start()
@@ -35,6 +45,18 @@ namespace AshenThrone.Empire
             _gridView = GetComponent<CityGridView>();
             if (_gridView == null)
                 _gridView = FindFirstObjectByType<CityGridView>();
+            // Initial arrow refresh after a short delay
+            _arrowRefreshTimer = ArrowRefreshInterval - 0.5f;
+        }
+
+        private void CacheBuildingData()
+        {
+            var allData = Resources.LoadAll<BuildingData>("");
+            foreach (var d in allData)
+            {
+                if (d != null && !string.IsNullOrEmpty(d.buildingId))
+                    _buildingDataCache[d.buildingId] = d;
+            }
         }
 
         private EventSubscription _upgradeCancelledSub;
@@ -55,9 +77,9 @@ namespace AshenThrone.Empire
 
         private void Update()
         {
-            // Update active construction overlays
             if (_buildingManager == null) return;
 
+            // Update active construction overlays
             foreach (var entry in _buildingManager.BuildQueue)
             {
                 if (_overlays.TryGetValue(entry.PlacedId, out var overlay))
@@ -74,6 +96,27 @@ namespace AshenThrone.Empire
                     // Timer turns red at < 10 seconds
                     overlay.TimerText.color = remaining < 10f
                         ? new Color(1f, 0.3f, 0.3f, 1f) : TimerTextColor;
+                }
+            }
+
+            // P&C: Refresh upgrade-available arrows periodically
+            _arrowRefreshTimer += Time.deltaTime;
+            if (_arrowRefreshTimer >= ArrowRefreshInterval)
+            {
+                _arrowRefreshTimer = 0f;
+                RefreshUpgradeArrows();
+            }
+
+            // Pulse animation on all visible arrows
+            _arrowPulsePhase += Time.deltaTime * 3f;
+            float pulse = 0.7f + 0.3f * Mathf.Sin(_arrowPulsePhase);
+            foreach (var kvp in _upgradeArrows)
+            {
+                if (kvp.Value != null)
+                {
+                    var img = kvp.Value.GetComponent<Image>();
+                    if (img != null)
+                        img.color = new Color(UpgradeArrowColor.r, UpgradeArrowColor.g, UpgradeArrowColor.b, pulse);
                 }
             }
         }
@@ -220,6 +263,146 @@ namespace AshenThrone.Empire
                 HammerIcon = hammerGO,
                 TotalSeconds = totalSeconds
             };
+        }
+
+        // ====================================================================
+        // P&C: Upgrade-available arrows on idle buildings
+        // ====================================================================
+
+        private static readonly Color RecommendedArrowColor = new(0.95f, 0.78f, 0.20f, 1f); // Gold
+
+        private void RefreshUpgradeArrows()
+        {
+            if (_gridView == null) return;
+
+            // Build a set of currently upgrading building IDs
+            var upgrading = new HashSet<string>();
+            foreach (var entry in _buildingManager.BuildQueue)
+                upgrading.Add(entry.PlacedId);
+
+            // P&C: Find recommended building — Stronghold is always priority if upgradeable
+            string recommendedId = null;
+            int lowestStrongholdTier = int.MaxValue;
+
+            var upgradeable = new List<(CityBuildingPlacement placement, bool canAfford)>();
+
+            foreach (var placement in _gridView.GetPlacements())
+            {
+                if (upgrading.Contains(placement.InstanceId)) continue;
+                if (!_buildingDataCache.TryGetValue(placement.BuildingId, out var data)) continue;
+
+                var nextTier = data.GetTier(placement.Tier + 1);
+                if (nextTier == null) continue;
+
+                bool canAfford = _resourceManager != null && _resourceManager.CanAfford(
+                    nextTier.stoneCost, nextTier.ironCost,
+                    nextTier.grainCost, nextTier.arcaneEssenceCost);
+                bool queueFree = _buildingManager.BuildQueue.Count < BuildingManager.FreeQueueSlots;
+
+                if (canAfford && queueFree)
+                    upgradeable.Add((placement, true));
+
+                // Track Stronghold as recommended
+                if (placement.BuildingId == "stronghold" && placement.Tier < lowestStrongholdTier)
+                {
+                    lowestStrongholdTier = placement.Tier;
+                    if (canAfford && queueFree)
+                        recommendedId = placement.InstanceId;
+                }
+            }
+
+            // Show/hide arrows
+            var shown = new HashSet<string>();
+            foreach (var (placement, _) in upgradeable)
+            {
+                bool isRecommended = placement.InstanceId == recommendedId;
+                ShowUpgradeArrow(placement, isRecommended);
+                shown.Add(placement.InstanceId);
+            }
+
+            // Hide arrows for buildings that are no longer upgradeable
+            var toHide = new List<string>();
+            foreach (var kvp in _upgradeArrows)
+            {
+                if (!shown.Contains(kvp.Key))
+                    toHide.Add(kvp.Key);
+            }
+            foreach (var id in toHide)
+                HideUpgradeArrow(id);
+        }
+
+        private void ShowUpgradeArrow(CityBuildingPlacement placement, bool recommended)
+        {
+            if (placement.VisualGO == null) return;
+
+            // If already shown, check if recommended state changed
+            if (_upgradeArrows.TryGetValue(placement.InstanceId, out var existing))
+            {
+                if (existing != null)
+                {
+                    // Update color based on recommended state
+                    var existingImg = existing.GetComponent<Image>();
+                    if (existingImg != null)
+                        existingImg.color = recommended ? RecommendedArrowColor : UpgradeArrowColor;
+                }
+                return;
+            }
+
+            Color arrowColor = recommended ? RecommendedArrowColor : UpgradeArrowColor;
+
+            var arrowGO = new GameObject("UpgradeArrow");
+            arrowGO.transform.SetParent(placement.VisualGO.transform, false);
+            var rect = arrowGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.30f, 0.90f);
+            rect.anchorMax = new Vector2(0.70f, 1.15f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var img = arrowGO.AddComponent<Image>();
+            img.raycastTarget = false;
+            img.color = arrowColor;
+
+            // Arrow symbol: ▲ for normal, ★ for recommended
+            var textGO = new GameObject("ArrowText");
+            textGO.transform.SetParent(arrowGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = recommended ? "\u2605" : "\u25B2"; // ★ or ▲
+            text.fontSize = recommended ? 16 : 14;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.fontStyle = FontStyle.Bold;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.8f, -0.8f);
+
+            _upgradeArrows[placement.InstanceId] = arrowGO;
+        }
+
+        private void HideUpgradeArrow(string instanceId)
+        {
+            if (_upgradeArrows.TryGetValue(instanceId, out var arrowGO))
+            {
+                if (arrowGO != null)
+                    Destroy(arrowGO);
+                _upgradeArrows.Remove(instanceId);
+            }
+        }
+
+        private void ClearAllArrows()
+        {
+            foreach (var kvp in _upgradeArrows)
+            {
+                if (kvp.Value != null)
+                    Destroy(kvp.Value);
+            }
+            _upgradeArrows.Clear();
         }
 
         /// <summary>
