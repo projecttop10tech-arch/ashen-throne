@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.26.0] — 2026-03-11 (Ralph Loop Iteration 21: Soft-Center, Audio SFX, Production Labels)
+
+### ADDED
+- **Single-tap soft-center** — tapping a building gently nudges the viewport 60% toward centering on it (ease-out quadratic, 0.25s). P&C-style subtle focus without jarring snaps.
+- **Audio SFX integration** — building tap plays `sfx_btn_click`, resource collection plays `sfx_collect_resource`, upgrade completion plays `sfx_building_complete`, all via AudioManager pool
+- **Production rate labels** — verified all resource buildings (grain_farm, iron_mine, stone_quarry, arcane_tower) show persistent "+X/hr" labels in city view, color-coded by resource type
+
+### CHANGED
+- CityGridView now subscribes to ResourceCollectedEvent and BuildingUpgradeCompletedEvent for audio feedback
+- Tap handler integrates soft-center after footprint highlight, before event publish
+
+---
+
 ## [0.25.0] — 2026-03-11 (Ralph Loop Iteration 20: Double-Tap Zoom, Category Icons, Haptics)
 
 ### ADDED

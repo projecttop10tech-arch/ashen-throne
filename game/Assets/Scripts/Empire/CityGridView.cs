@@ -143,11 +143,25 @@ namespace AshenThrone.Empire
         };
         private static readonly Color CategoryIconColor = new(1f, 0.92f, 0.72f, 0.85f);
 
+        // P&C: Soft-center on single tap
+        private Coroutine _softCenterCoroutine;
+        private const float SoftCenterDuration = 0.25f;
+        private const float SoftCenterStrength = 0.6f; // 60% toward center (subtle)
+
+        // P&C: Audio feedback
+        private AudioClip _sfxTap;
+        private AudioClip _sfxCollect;
+        private AudioClip _sfxBuildComplete;
+        private EventSubscription _collectSub;
+        private EventSubscription _buildCompleteSfxSub;
+
         private void OnEnable()
         {
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildingUpgradeCompleted);
             _demolishedSub = EventBus.Subscribe<BuildingDemolishedEvent>(OnBuildingDemolished);
             _doubleTapZoomSub = EventBus.Subscribe<BuildingDoubleTappedEvent>(OnDoubleTapZoom);
+            _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(_ => PlaySfx(_sfxCollect));
+            _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(_ => PlaySfx(_sfxBuildComplete));
         }
 
         private void OnDisable()
@@ -155,12 +169,18 @@ namespace AshenThrone.Empire
             _upgradeCompletedSub?.Dispose();
             _demolishedSub?.Dispose();
             _doubleTapZoomSub?.Dispose();
+            _collectSub?.Dispose();
+            _buildCompleteSfxSub?.Dispose();
         }
 
         private void Start()
         {
             SetGridOverlayVisible(false);
             RegisterSceneBuildings();
+            // P&C: Load SFX clips
+            _sfxTap = Resources.Load<AudioClip>("Audio/SFX/sfx_btn_click");
+            _sfxCollect = Resources.Load<AudioClip>("Audio/SFX/sfx_collect_resource");
+            _sfxBuildComplete = Resources.Load<AudioClip>("Audio/SFX/sfx_building_complete");
             // Read initial zoom from content scale (set by generator, persisted in scene)
             if (contentContainer != null)
             {
@@ -428,6 +448,45 @@ namespace AshenThrone.Empire
             // Start hidden — UpdateZoomDetailVisibility controls visibility
             bool visible = _currentZoom >= 0.6f && _currentZoom < 1.3f;
             iconGO.SetActive(visible);
+        }
+
+        /// <summary>P&C: Gently nudge viewport toward tapped building without zoom change.</summary>
+        private void SoftCenterOnBuilding(CityBuildingPlacement target)
+        {
+            if (target?.VisualGO == null || contentContainer == null) return;
+            if (_softCenterCoroutine != null) StopCoroutine(_softCenterCoroutine);
+            _softCenterCoroutine = StartCoroutine(SoftCenterRoutine(target));
+        }
+
+        private IEnumerator SoftCenterRoutine(CityBuildingPlacement target)
+        {
+            var buildingRect = target.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect == null) yield break;
+
+            Vector2 startPos = contentContainer.anchoredPosition;
+            Vector2 fullCenter = -(buildingRect.anchoredPosition * _currentZoom);
+            // Only move SoftCenterStrength (60%) toward center — subtle nudge
+            Vector2 endPos = Vector2.Lerp(startPos, fullCenter, SoftCenterStrength);
+
+            float elapsed = 0f;
+            while (elapsed < SoftCenterDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / SoftCenterDuration;
+                float ease = 1f - (1f - t) * (1f - t); // ease-out quadratic
+                contentContainer.anchoredPosition = Vector2.Lerp(startPos, endPos, ease);
+                yield return null;
+            }
+            contentContainer.anchoredPosition = endPos;
+            _softCenterCoroutine = null;
+        }
+
+        /// <summary>P&C: Play SFX clip via AudioManager.</summary>
+        private void PlaySfx(AudioClip clip)
+        {
+            if (clip == null) return;
+            if (ServiceLocator.TryGet<AudioManager>(out var audio))
+                audio.PlaySfx(clip);
         }
 
         /// <summary>Current zoom level (1.0 = default).</summary>
@@ -1109,7 +1168,8 @@ namespace AshenThrone.Empire
             // P&C: Show footprint highlight on tapped building
             ShowBuildingFootprint(tapped);
 
-            // P&C: Haptic feedback on building tap
+            // P&C: Audio + haptic feedback on building tap
+            PlaySfx(_sfxTap);
             #if UNITY_IOS || UNITY_ANDROID
             Handheld.Vibrate();
             #endif
@@ -1127,6 +1187,10 @@ namespace AshenThrone.Empire
             }
             _lastTappedInstanceId = tapped.InstanceId;
             _lastTapTime = Time.time;
+
+            // P&C: Soft-center viewport on tapped building
+            if (tapped.VisualGO != null)
+                SoftCenterOnBuilding(tapped);
 
             // Publish tap event for UI systems
             EventBus.Publish(new BuildingTappedEvent(tapped));
