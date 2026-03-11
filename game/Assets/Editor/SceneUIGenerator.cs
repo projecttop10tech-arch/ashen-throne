@@ -2497,6 +2497,8 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingBusyIndicator>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.QuickUpgradeHandler>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildFailedToast>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.DemolishConfirmDialog>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.AutoUpgradeToggle>();
             infoPopup.SetActive(false);
 
             // P&C: Building Catalog Popup (shown when tapping empty ground)

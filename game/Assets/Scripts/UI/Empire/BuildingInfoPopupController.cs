@@ -645,31 +645,15 @@ namespace AshenThrone.UI.Empire
             }
         }
 
-        /// <summary>P&C: Demolish building with double-tap confirmation.</summary>
+        /// <summary>P&C: Demolish building via confirmation dialog.</summary>
         private void OnDemolishPressed()
         {
             if (_buildingManager == null || string.IsNullOrEmpty(_currentInstanceId)) return;
             if (_currentBuildingId == "stronghold") return;
 
-            if (!_demolishConfirmPending)
-            {
-                _demolishConfirmPending = true;
-                _demolishConfirmTimer = CancelConfirmTimeout;
-                SetButtonLabel(_demolishBtn, "CONFIRM?");
-                var btnImg = _demolishBtn?.GetComponent<Image>();
-                if (btnImg != null)
-                    btnImg.color = new Color(0.95f, 0.15f, 0.15f, 1f);
-                return;
-            }
-
-            // Second tap — actually demolish
-            _demolishConfirmPending = false;
-            bool demolished = _buildingManager.DemolishBuilding(_currentInstanceId);
-            if (demolished)
-            {
-                Debug.Log($"[BuildingInfoPopup] Demolished {_currentBuildingId}.");
-                ClosePopup();
-            }
+            // Publish event to open the demolish confirmation dialog
+            EventBus.Publish(new DemolishRequestedEvent(_currentInstanceId, _currentBuildingId, _currentTier));
+            ClosePopup();
         }
 
         private void OnSpeedUpPressed()

@@ -94,14 +94,11 @@ namespace AshenThrone.Empire
         private const float LongPressTime = 0.5f;
         private const float DragThreshold = 10f;
 
-        // Placement highlight (shows snap target during drag)
-        private GameObject _highlightGO;
-        private Image _highlightImg;
+        // Placement highlight (shows snap target during drag) — iso diamond cells
         private static readonly Color HighlightValid = new(0.15f, 0.9f, 0.3f, 0.25f);
         private static readonly Color HighlightInvalid = new(0.95f, 0.15f, 0.15f, 0.25f);
         private static readonly Color BorderValid = new(0.2f, 1f, 0.4f, 0.55f);
         private static readonly Color BorderInvalid = new(1f, 0.2f, 0.2f, 0.55f);
-        private Outline _highlightOutline;
 
         // P&C: Building footprint highlight on tap
         private static readonly Color FootprintColor = new(0.78f, 0.62f, 0.22f, 0.18f);
@@ -631,7 +628,28 @@ namespace AshenThrone.Empire
                     VisualGO = child.gameObject,
                 };
 
-                MarkCells(placement.GridOrigin, size, instanceId);
+                // Only mark cells that aren't already occupied (handles overlapping layout)
+                bool hasOverlap = false;
+                for (int cx = placement.GridOrigin.x; cx < placement.GridOrigin.x + size.x; cx++)
+                {
+                    for (int cy = placement.GridOrigin.y; cy < placement.GridOrigin.y + size.y; cy++)
+                    {
+                        var cell = new Vector2Int(cx, cy);
+                        if (_occupancy.ContainsKey(cell))
+                        {
+                            if (!hasOverlap)
+                            {
+                                Debug.LogWarning($"[CityGrid] Building {instanceId} overlaps at cell {cell} " +
+                                    $"(occupied by {_occupancy[cell]}). Registering without claiming overlapping cells.");
+                                hasOverlap = true;
+                            }
+                        }
+                        else
+                        {
+                            _occupancy[cell] = instanceId;
+                        }
+                    }
+                }
                 _placements.Add(placement);
             }
         }
@@ -979,6 +997,9 @@ namespace AshenThrone.Empire
             building.localScale = original;
         }
 
+        // Side length for iso diamond cell: square of this size rotated 45° = diamond CellSize wide
+        private static readonly float IsoDiamondSide = CellSize / Mathf.Sqrt(2f); // ~45.25
+
         /// <summary>P&C: Show gold footprint highlight under a tapped building.</summary>
         public void ShowBuildingFootprint(CityBuildingPlacement placement)
         {
@@ -991,38 +1012,53 @@ namespace AshenThrone.Empire
             var container = buildingContainer != null ? buildingContainer : contentContainer;
             if (container == null) return;
 
-            // Create a highlight cell for each grid position in the building's footprint
+            // Create an isometric diamond cell for each grid position in the building's footprint
             for (int gx = 0; gx < placement.Size.x; gx++)
             {
                 for (int gy = 0; gy < placement.Size.y; gy++)
                 {
-                    var cellPos = new Vector2Int(placement.GridOrigin.x + gx, placement.GridOrigin.y + gy);
-                    var localPos = GridToLocal(cellPos);
-
-                    var cellGO = new GameObject($"Footprint_{gx}_{gy}");
-                    cellGO.transform.SetParent(container, false);
-                    cellGO.transform.SetAsFirstSibling(); // behind buildings
-
-                    var rect = cellGO.AddComponent<RectTransform>();
-                    rect.anchoredPosition = localPos;
-                    // Isometric diamond shape approximated by cell size
-                    rect.sizeDelta = new Vector2(CellSize, CellSize * 0.5f);
-                    rect.pivot = new Vector2(0.5f, 0.5f);
-
-                    var img = cellGO.AddComponent<Image>();
-                    img.color = FootprintColor;
-                    img.raycastTarget = false;
-
-                    var outline = cellGO.AddComponent<Outline>();
-                    outline.effectColor = FootprintBorder;
-                    outline.effectDistance = new Vector2(0.8f, -0.8f);
-
+                    var cellGO = CreateIsoDiamondCell(container,
+                        placement.GridOrigin.x + gx, placement.GridOrigin.y + gy,
+                        FootprintColor, FootprintBorder);
                     _footprintCells.Add(cellGO);
                 }
             }
 
             // P&C: Glowing selection ring centered under building
             CreateSelectionRing(placement);
+        }
+
+        /// <summary>
+        /// Create a single isometric diamond cell at the given grid position.
+        /// A square rotated 45° becomes a diamond. Scale Y by 0.5 for 2:1 iso ratio.
+        /// Diamond width = CellSize (64), diamond height = CellSize/2 (32).
+        /// </summary>
+        private static GameObject CreateIsoDiamondCell(Transform parent, int gridX, int gridY,
+            Color fillColor, Color borderColor)
+        {
+            // Cell center in local space (GridToLocalCenter with size 1x1 = center of that cell)
+            var cellCenter = GridToLocalCenter(new Vector2Int(gridX, gridY), Vector2Int.one);
+
+            var cellGO = new GameObject($"IsoCell_{gridX}_{gridY}");
+            cellGO.transform.SetParent(parent, false);
+            cellGO.transform.SetAsFirstSibling(); // behind buildings
+
+            var rect = cellGO.AddComponent<RectTransform>();
+            rect.anchoredPosition = cellCenter;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(IsoDiamondSide, IsoDiamondSide);
+            rect.localRotation = Quaternion.Euler(0, 0, 45f);
+            rect.localScale = new Vector3(1f, 0.5f, 1f);
+
+            var img = cellGO.AddComponent<Image>();
+            img.color = fillColor;
+            img.raycastTarget = false;
+
+            var outline = cellGO.AddComponent<Outline>();
+            outline.effectColor = borderColor;
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            return cellGO;
         }
 
         private void CreateSelectionRing(CityBuildingPlacement placement)
@@ -1230,6 +1266,21 @@ namespace AshenThrone.Empire
             CreateHighlight();
         }
 
+        /// <summary>
+        /// Safely clear only cells that belong to a specific building instance.
+        /// Handles partial occupancy from overlapping layout gracefully.
+        /// </summary>
+        private void ClearCellsForInstance(Vector2Int origin, Vector2Int size, string instanceId)
+        {
+            for (int x = origin.x; x < origin.x + size.x; x++)
+                for (int y = origin.y; y < origin.y + size.y; y++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    if (_occupancy.TryGetValue(pos, out var occupant) && occupant == instanceId)
+                        _occupancy.Remove(pos);
+                }
+        }
+
         private void ExitMoveMode(PointerEventData eventData)
         {
             if (_dragGhost != null && _movingBuilding != null)
@@ -1239,8 +1290,8 @@ namespace AshenThrone.Empire
 
                 if (CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding))
                 {
-                    // Normal move — target cells are empty
-                    ClearCells(_movingBuilding.GridOrigin, _movingBuilding.Size);
+                    // Normal move — clear only cells owned by this building, then mark new position
+                    ClearCellsForInstance(_movingBuilding.GridOrigin, _movingBuilding.Size, _movingBuilding.InstanceId);
                     _movingBuilding.GridOrigin = snapOrigin;
                     MarkCells(snapOrigin, _movingBuilding.Size, _movingBuilding.InstanceId);
 
@@ -1306,8 +1357,8 @@ namespace AshenThrone.Empire
             var originA = _movingBuilding.GridOrigin;
             var originB = targetBuilding.GridOrigin;
 
-            ClearCells(originA, _movingBuilding.Size);
-            ClearCells(originB, targetBuilding.Size);
+            ClearCellsForInstance(originA, _movingBuilding.Size, _movingBuilding.InstanceId);
+            ClearCellsForInstance(originB, targetBuilding.Size, targetBuilding.InstanceId);
 
             _movingBuilding.GridOrigin = originB;
             targetBuilding.GridOrigin = originA;
@@ -1327,48 +1378,45 @@ namespace AshenThrone.Empire
         // Placement highlight — shows where building will snap during drag
         // ====================================================================
 
+        private readonly List<GameObject> _highlightCells = new();
+
         private void CreateHighlight()
         {
             if (_movingBuilding == null || buildingContainer == null) return;
-
-            _highlightGO = new GameObject("PlacementHighlight");
-            _highlightGO.transform.SetParent(buildingContainer, false);
-            // Render behind buildings
-            _highlightGO.transform.SetAsFirstSibling();
-
-            var rect = _highlightGO.AddComponent<RectTransform>();
-            rect.sizeDelta = FootprintScreenSize(_movingBuilding.Size);
-
-            _highlightImg = _highlightGO.AddComponent<Image>();
-            _highlightImg.color = HighlightValid;
-            _highlightImg.raycastTarget = false;
-
-            // Add outline for a nice border glow
-            _highlightOutline = _highlightGO.AddComponent<Outline>();
-            _highlightOutline.effectColor = BorderValid;
-            _highlightOutline.effectDistance = new Vector2(3, 3);
+            DestroyHighlight();
+            // Create iso diamond cells for the highlight at the current position
+            UpdateHighlight(GridToLocalCenter(_movingBuilding.GridOrigin, _movingBuilding.Size));
         }
 
         private void UpdateHighlight(Vector2 dragLocalPos)
         {
-            if (_highlightGO == null || _movingBuilding == null) return;
+            if (_movingBuilding == null || buildingContainer == null) return;
 
             var snapOrigin = SnapToGrid(dragLocalPos, _movingBuilding.Size);
-            var snapCenter = GridToLocalCenter(snapOrigin, _movingBuilding.Size);
-
-            _highlightGO.GetComponent<RectTransform>().anchoredPosition = snapCenter;
-
             bool valid = CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding);
-            _highlightImg.color = valid ? HighlightValid : HighlightInvalid;
-            _highlightOutline.effectColor = valid ? BorderValid : BorderInvalid;
+
+            // Rebuild iso cells at new snap position
+            foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
+            _highlightCells.Clear();
+
+            var fill = valid ? HighlightValid : HighlightInvalid;
+            var border = valid ? BorderValid : BorderInvalid;
+
+            for (int gx = 0; gx < _movingBuilding.Size.x; gx++)
+            {
+                for (int gy = 0; gy < _movingBuilding.Size.y; gy++)
+                {
+                    var cellGO = CreateIsoDiamondCell(buildingContainer,
+                        snapOrigin.x + gx, snapOrigin.y + gy, fill, border);
+                    _highlightCells.Add(cellGO);
+                }
+            }
         }
 
         private void DestroyHighlight()
         {
-            if (_highlightGO != null) Destroy(_highlightGO);
-            _highlightGO = null;
-            _highlightImg = null;
-            _highlightOutline = null;
+            foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
+            _highlightCells.Clear();
         }
 
         /// <summary>
@@ -1400,9 +1448,7 @@ namespace AshenThrone.Empire
         private string _placementBuildingId;
         private Vector2Int _placementSize;
         private GameObject _placementGhost;
-        private GameObject _placementHighlight;
-        private Image _placementHighlightImg;
-        private Outline _placementHighlightOutline;
+        private readonly List<GameObject> _placementHighlightCells = new();
         private Vector2Int _placementSnapOrigin;
         private EventSubscription _placementRequestSub;
         private GameObject _placementButtons; // P&C: Confirm/Cancel floating buttons
@@ -1452,16 +1498,7 @@ namespace AshenThrone.Empire
                 ghostImg.color = new Color(1, 1, 1, 0.6f);
                 ghostImg.raycastTarget = false;
 
-                // Create highlight
-                _placementHighlight = new GameObject("PlacementHighlightNew");
-                _placementHighlight.transform.SetParent(buildingContainer, false);
-                _placementHighlight.transform.SetAsFirstSibling();
-                var hlRect = _placementHighlight.AddComponent<RectTransform>();
-                hlRect.sizeDelta = FootprintScreenSize(size);
-                _placementHighlightImg = _placementHighlight.AddComponent<Image>();
-                _placementHighlightImg.raycastTarget = false;
-                _placementHighlightOutline = _placementHighlight.AddComponent<Outline>();
-                _placementHighlightOutline.effectDistance = new Vector2(3, 3);
+                // Iso diamond highlight cells will be created by UpdatePlacementPosition
 
                 // Position at preferred origin
                 UpdatePlacementPosition(preferredOrigin);
@@ -1578,12 +1615,10 @@ namespace AshenThrone.Empire
             }
 
             if (_placementGhost != null) Destroy(_placementGhost);
-            if (_placementHighlight != null) Destroy(_placementHighlight);
             if (_placementButtons != null) Destroy(_placementButtons);
+            foreach (var go in _placementHighlightCells) { if (go != null) Destroy(go); }
+            _placementHighlightCells.Clear();
             _placementGhost = null;
-            _placementHighlight = null;
-            _placementHighlightImg = null;
-            _placementHighlightOutline = null;
             _placementButtons = null;
             _placementMode = false;
             _placementBuildingId = null;
@@ -1600,12 +1635,25 @@ namespace AshenThrone.Empire
             if (_placementGhost != null)
                 _placementGhost.GetComponent<RectTransform>().anchoredPosition = center;
 
-            if (_placementHighlight != null)
+            // Rebuild iso diamond highlight cells at new position
+            foreach (var go in _placementHighlightCells) { if (go != null) Destroy(go); }
+            _placementHighlightCells.Clear();
+
+            if (buildingContainer != null)
             {
-                _placementHighlight.GetComponent<RectTransform>().anchoredPosition = center;
                 bool valid = CanPlaceAt(origin, _placementSize, null);
-                _placementHighlightImg.color = valid ? HighlightValid : HighlightInvalid;
-                _placementHighlightOutline.effectColor = valid ? BorderValid : BorderInvalid;
+                var fill = valid ? HighlightValid : HighlightInvalid;
+                var border = valid ? BorderValid : BorderInvalid;
+
+                for (int gx = 0; gx < _placementSize.x; gx++)
+                {
+                    for (int gy = 0; gy < _placementSize.y; gy++)
+                    {
+                        var cellGO = CreateIsoDiamondCell(buildingContainer,
+                            origin.x + gx, origin.y + gy, fill, border);
+                        _placementHighlightCells.Add(cellGO);
+                    }
+                }
             }
         }
 

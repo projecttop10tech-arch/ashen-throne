@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -492,6 +493,9 @@ namespace AshenThrone.Editor
                 // Level badge (bottom-right corner)
                 CreateLevelBadge(bldgGO, tier);
 
+                // P&C: Category icon (top-left corner)
+                CreateCategoryIcon(bldgGO, id);
+
                 // Action indicator (top-right corner)
                 CreateActionIndicator(bldgGO, inst);
 
@@ -712,6 +716,70 @@ namespace AshenThrone.Editor
             lvlText.color = new Color(1f, 0.92f, 0.55f, 1f);
             lvlText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             lvlText.raycastTarget = false;
+        }
+
+        // ================================================================
+        // P&C: Category icon in top-left corner of building
+        // ================================================================
+        static readonly Dictionary<string, (string Symbol, Color Tint)> CategoryIcons = new()
+        {
+            // Core
+            { "stronghold", ("\u265B", new Color(1f, 0.85f, 0.30f)) },       // ♛ gold
+            // Military
+            { "barracks", ("\u2694", new Color(0.85f, 0.35f, 0.30f)) },       // ⚔ red
+            { "training_ground", ("\u2694", new Color(0.85f, 0.55f, 0.25f)) },// ⚔ orange
+            { "armory", ("\u2748", new Color(0.60f, 0.65f, 0.75f)) },         // ❈ steel
+            { "wall", ("\u2616", new Color(0.55f, 0.55f, 0.55f)) },           // ☖ grey
+            { "watch_tower", ("\u25B2", new Color(0.55f, 0.55f, 0.55f)) },    // ▲ grey
+            // Resource
+            { "grain_farm", ("\u2740", new Color(0.90f, 0.82f, 0.30f)) },     // ❀ gold
+            { "iron_mine", ("\u2666", new Color(0.60f, 0.65f, 0.80f)) },      // ♦ steel blue
+            { "stone_quarry", ("\u25C8", new Color(0.75f, 0.72f, 0.65f)) },   // ◈ tan
+            { "arcane_tower", ("\u2726", new Color(0.65f, 0.35f, 0.90f)) },   // ✦ purple
+            { "marketplace", ("\u2617", new Color(0.85f, 0.68f, 0.25f)) },    // ☗ gold
+            // Research
+            { "library", ("\u2697", new Color(0.30f, 0.70f, 0.90f)) },        // ⚗ blue
+            { "academy", ("\u2697", new Color(0.30f, 0.70f, 0.90f)) },        // ⚗ blue
+            { "laboratory", ("\u2697", new Color(0.30f, 0.70f, 0.90f)) },     // ⚗ blue
+            { "observatory", ("\u2729", new Color(0.40f, 0.60f, 0.90f)) },    // ✩ light blue
+            { "archive", ("\u2710", new Color(0.40f, 0.60f, 0.90f)) },        // ✐ light blue
+            // Hero
+            { "guild_hall", ("\u2655", new Color(0.85f, 0.55f, 0.20f)) },     // ♕ amber
+            { "hero_shrine", ("\u2606", new Color(0.90f, 0.70f, 0.25f)) },    // ☆ gold
+            { "forge", ("\u2692", new Color(0.80f, 0.45f, 0.20f)) },          // ⚒ copper
+            { "enchanting_tower", ("\u2735", new Color(0.70f, 0.40f, 0.90f)) }, // ✵ purple
+            { "embassy", ("\u2691", new Color(0.30f, 0.65f, 0.85f)) },        // ⚑ blue
+        };
+
+        static void CreateCategoryIcon(GameObject parent, string buildingId)
+        {
+            if (!CategoryIcons.TryGetValue(buildingId, out var info)) return;
+
+            var iconGO = CreateChild(parent, "CategoryIcon");
+            var rect = iconGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.02f, 0.88f);
+            rect.anchorMax = new Vector2(0.18f, 0.98f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = iconGO.AddComponent<Image>();
+            bg.color = new Color(info.Tint.r * 0.2f, info.Tint.g * 0.2f, info.Tint.b * 0.2f, 0.7f);
+            bg.raycastTarget = false;
+
+            var textGO = CreateChild(iconGO, "Symbol");
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = info.Symbol;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = info.Tint;
+            text.raycastTarget = false;
         }
 
         // ================================================================

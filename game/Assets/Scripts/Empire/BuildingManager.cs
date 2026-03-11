@@ -20,6 +20,7 @@ namespace AshenThrone.Empire
 
         private readonly Dictionary<string, PlacedBuilding> _placedBuildings = new(); // placedId → building
         private readonly List<BuildQueueEntry> _buildQueue = new(FreeQueueSlots);
+        private readonly HashSet<string> _autoUpgradeQueue = new(); // placedIds that auto-upgrade on completion
         private ResourceManager _resourceManager;
 
         public IReadOnlyList<BuildQueueEntry> BuildQueue => _buildQueue;
@@ -189,7 +190,33 @@ namespace AshenThrone.Empire
             placed.CurrentTier = entry.TargetTier;
             OnBuildingUpgradeCompleted?.Invoke(entry.PlacedId);
             EventBus.Publish(new BuildingUpgradeCompletedEvent(entry.PlacedId, entry.TargetTier));
+
+            // P&C: Auto-upgrade — immediately start next tier if queued
+            if (_autoUpgradeQueue.Contains(entry.PlacedId))
+            {
+                _autoUpgradeQueue.Remove(entry.PlacedId);
+                bool started = StartUpgrade(entry.PlacedId);
+                if (started)
+                    Debug.Log($"[BuildingManager] Auto-upgrade started for {entry.PlacedId} to tier {entry.TargetTier + 1}.");
+            }
         }
+
+        /// <summary>P&C: Toggle auto-upgrade for a building. When current upgrade finishes, next starts automatically.</summary>
+        public bool ToggleAutoUpgrade(string placedId)
+        {
+            if (_autoUpgradeQueue.Contains(placedId))
+            {
+                _autoUpgradeQueue.Remove(placedId);
+                EventBus.Publish(new AutoUpgradeToggledEvent(placedId, false));
+                return false;
+            }
+            _autoUpgradeQueue.Add(placedId);
+            EventBus.Publish(new AutoUpgradeToggledEvent(placedId, true));
+            return true;
+        }
+
+        /// <summary>Check if a building has auto-upgrade enabled.</summary>
+        public bool IsAutoUpgradeEnabled(string placedId) => _autoUpgradeQueue.Contains(placedId);
 
         /// <summary>
         /// P&C: Demolish a placed building. Removes from map. Cannot demolish Stronghold.
@@ -259,4 +286,5 @@ namespace AshenThrone.Empire
     public readonly struct BuildingDemolishedEvent { public readonly string PlacedId; public readonly string BuildingId; public BuildingDemolishedEvent(string pid, string bid) { PlacedId = pid; BuildingId = bid; } }
     public readonly struct SpeedupRequestedEvent { public readonly string PlacedId; public readonly int GemCost; public readonly float RemainingSeconds; public SpeedupRequestedEvent(string id, int g, float r) { PlacedId = id; GemCost = g; RemainingSeconds = r; } }
     public readonly struct AllianceHelpRequestedEvent { public readonly string PlacedId; public AllianceHelpRequestedEvent(string id) { PlacedId = id; } }
+    public readonly struct AutoUpgradeToggledEvent { public readonly string PlacedId; public readonly bool Enabled; public AutoUpgradeToggledEvent(string id, bool e) { PlacedId = id; Enabled = e; } }
 }
