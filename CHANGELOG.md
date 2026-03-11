@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.30.0] — 2026-03-11 (Ralph Loop Iteration 25: Cascade Collect, Selection Outline, Move Dim)
+
+### ADDED
+- **Collect-all cascade** — "Collect All" button now triggers staggered collection (0.08s per bubble) for a satisfying P&C-style cascade instead of instant batch
+- **Golden selection outline** — tapped building gets a golden Outline component (2px, 85% alpha) for clear visual selection, removed on deselect
+- **Move mode dim overlay** — all non-moving buildings dim to 50% alpha with grey tint during move mode, restoring to full brightness on exit
+
+### CHANGED
+- CollectAll() now uses coroutine-based cascade instead of synchronous loop
+- ClearBuildingFootprint removes Outline components from all buildings on deselect
+
+---
+
 ## [0.29.0] — 2026-03-11 (Ralph Loop Iteration 24: Shadows, Depth Sort, Zoom Toggle)
 
 ### ADDED

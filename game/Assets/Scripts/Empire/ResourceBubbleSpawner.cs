@@ -203,23 +203,37 @@ namespace AshenThrone.Empire
             shadow.effectDistance = new Vector2(0.8f, -0.8f);
         }
 
-        /// <summary>P&C: Collect ALL active bubbles from every resource building.</summary>
+        /// <summary>P&C: Collect ALL active bubbles with staggered cascade animation.</summary>
         public void CollectAll()
         {
-            int collected = 0;
+            StartCoroutine(CollectAllCascade());
+        }
+
+        private System.Collections.IEnumerator CollectAllCascade()
+        {
+            var toCollect = new List<ResourceCollectBubble>();
             foreach (var kvp in _activeBubbles)
             {
                 foreach (var bubble in kvp.Value)
                 {
-                    if (bubble != null)
-                    {
-                        bubble.OnPointerClick(null);
-                        collected++;
-                    }
+                    if (bubble != null) toCollect.Add(bubble);
+                }
+            }
+            if (toCollect.Count == 0) yield break;
+
+            // P&C: Stagger collection with 0.08s delay per bubble for cascade feel
+            int collected = 0;
+            foreach (var bubble in toCollect)
+            {
+                if (bubble != null)
+                {
+                    bubble.OnPointerClick(null);
+                    collected++;
+                    yield return new UnityEngine.WaitForSeconds(0.08f);
                 }
             }
             if (collected > 0)
-                Debug.Log($"[ResourceBubbleSpawner] Collected ALL {collected} bubbles.");
+                Debug.Log($"[ResourceBubbleSpawner] Cascade-collected {collected} bubbles.");
         }
 
         /// <summary>Total number of active (uncollected) bubbles across all buildings.</summary>

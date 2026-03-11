@@ -1454,6 +1454,18 @@ namespace AshenThrone.Empire
 
             // P&C: Glowing selection ring centered under building
             CreateSelectionRing(placement);
+
+            // P&C: Golden outline on selected building sprite
+            if (placement.VisualGO != null)
+            {
+                var existingOutline = placement.VisualGO.GetComponent<Outline>();
+                if (existingOutline == null)
+                {
+                    var outline = placement.VisualGO.AddComponent<Outline>();
+                    outline.effectColor = new Color(0.92f, 0.78f, 0.28f, 0.85f);
+                    outline.effectDistance = new Vector2(2f, -2f);
+                }
+            }
         }
 
         /// <summary>
@@ -1534,6 +1546,15 @@ namespace AshenThrone.Empire
                 if (go != null) Destroy(go);
             }
             _footprintCells.Clear();
+            // P&C: Remove golden outline from previously selected building
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO != null)
+                {
+                    var outline = p.VisualGO.GetComponent<Outline>();
+                    if (outline != null) Destroy(outline);
+                }
+            }
             _footprintInstanceId = null;
             if (_selectionRing != null) { Destroy(_selectionRing); _selectionRing = null; }
         }
@@ -1610,6 +1631,14 @@ namespace AshenThrone.Empire
 
             if (scrollRect != null) scrollRect.enabled = false;
             SetGridOverlayVisible(true);
+
+            // P&C: Dim all non-moving buildings for visual focus
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null || p.InstanceId == found.InstanceId) continue;
+                var pImg = p.VisualGO.GetComponent<Image>();
+                if (pImg != null) pImg.color = new Color(0.6f, 0.6f, 0.6f, 0.5f);
+            }
 
             // P&C: Fade original building in-place
             if (found.VisualGO != null)
@@ -1752,6 +1781,13 @@ namespace AshenThrone.Empire
 
                 if (_movingBuilding.VisualGO != null)
                     _movingBuilding.VisualGO.GetComponent<Image>().color = Color.white;
+            }
+
+            // P&C: Restore all buildings to full brightness on exit move mode
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO != null)
+                    p.VisualGO.GetComponent<Image>().color = Color.white;
             }
 
             if (_dragGhost != null) Destroy(_dragGhost);
