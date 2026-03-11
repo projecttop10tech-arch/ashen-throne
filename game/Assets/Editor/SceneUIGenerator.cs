@@ -2494,6 +2494,8 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeRecommendationBanner>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingNotificationBadge>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.OfflineEarningsPopup>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingBusyIndicator>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.QuickUpgradeHandler>();
             infoPopup.SetActive(false);
 
             // P&C: Building Catalog Popup (shown when tapping empty ground)

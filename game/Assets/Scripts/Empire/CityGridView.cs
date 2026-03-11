@@ -85,6 +85,11 @@ namespace AshenThrone.Empire
         private GameObject _dragShadow;
         private float _holdTimer;
         private bool _holdStarted;
+
+        // P&C: Double-tap quick-upgrade detection
+        private string _lastTappedInstanceId;
+        private float _lastTapTime;
+        private const float DoubleTapWindow = 0.4f;
         private Vector2 _holdStartPos;
         private const float LongPressTime = 0.5f;
         private const float DragThreshold = 10f;
@@ -782,6 +787,16 @@ namespace AshenThrone.Empire
             if (tapped.VisualGO != null)
                 StartCoroutine(BounceBuilding(tapped.VisualGO.transform));
 
+            // P&C: Double-tap quick-upgrade detection
+            if (tapped.InstanceId == _lastTappedInstanceId && (Time.time - _lastTapTime) < DoubleTapWindow)
+            {
+                _lastTappedInstanceId = null;
+                EventBus.Publish(new BuildingDoubleTappedEvent(tapped.InstanceId, tapped.BuildingId, tapped.Tier));
+                return;
+            }
+            _lastTappedInstanceId = tapped.InstanceId;
+            _lastTapTime = Time.time;
+
             // Publish tap event for UI systems
             EventBus.Publish(new BuildingTappedEvent(tapped));
         }
@@ -1452,6 +1467,14 @@ namespace AshenThrone.Empire
     {
         public readonly string InstanceId;
         public BuildingMoveStartedEvent(string id) { InstanceId = id; }
+    }
+
+    public readonly struct BuildingDoubleTappedEvent
+    {
+        public readonly string InstanceId;
+        public readonly string BuildingId;
+        public readonly int Tier;
+        public BuildingDoubleTappedEvent(string id, string bid, int t) { InstanceId = id; BuildingId = bid; Tier = t; }
     }
 
     public readonly struct EmptyCellTappedEvent

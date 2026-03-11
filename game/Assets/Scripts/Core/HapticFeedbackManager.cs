@@ -20,6 +20,8 @@ namespace AshenThrone.Core
         private EventSubscription _moveStartedSub;
         private EventSubscription _levelUpSub;
         private EventSubscription _gachaPullSub;
+        private EventSubscription _collectSub;
+        private EventSubscription _placeSub;
 
         private void Awake()
         {
@@ -36,6 +38,8 @@ namespace AshenThrone.Core
             _moveStartedSub = EventBus.Subscribe<Empire.BuildingMoveStartedEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
             _levelUpSub = EventBus.Subscribe<Heroes.HeroLeveledUpEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
             _gachaPullSub = EventBus.Subscribe<Economy.GachaPullConfirmedEvent>(_ => TriggerHaptic(HapticIntensity.Heavy));
+            _collectSub = EventBus.Subscribe<Empire.ResourceCollectedEvent>(_ => TriggerHaptic(HapticIntensity.Light));
+            _placeSub = EventBus.Subscribe<Empire.BuildingPlacedEvent>(_ => TriggerHaptic(HapticIntensity.Medium));
         }
 
         private void OnDisable()
@@ -48,6 +52,8 @@ namespace AshenThrone.Core
             _moveStartedSub?.Dispose();
             _levelUpSub?.Dispose();
             _gachaPullSub?.Dispose();
+            _collectSub?.Dispose();
+            _placeSub?.Dispose();
         }
 
         private void OnDestroy()
