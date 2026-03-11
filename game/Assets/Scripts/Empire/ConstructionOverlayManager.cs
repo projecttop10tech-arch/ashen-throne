@@ -60,12 +60,15 @@ namespace AshenThrone.Empire
         }
 
         private EventSubscription _upgradeCancelledSub;
+        private EventSubscription _speedupAppliedSub;
+        private readonly HashSet<string> _instantCompletePending = new();
 
         private void OnEnable()
         {
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompleted);
             _upgradeCancelledSub = EventBus.Subscribe<BuildingUpgradeCancelledEvent>(OnUpgradeCancelled);
+            _speedupAppliedSub = EventBus.Subscribe<SpeedupAppliedEvent>(OnSpeedupApplied);
         }
 
         private void OnDisable()
@@ -73,6 +76,7 @@ namespace AshenThrone.Empire
             _upgradeStartedSub?.Dispose();
             _upgradeCompletedSub?.Dispose();
             _upgradeCancelledSub?.Dispose();
+            _speedupAppliedSub?.Dispose();
         }
 
         private void Update()
@@ -148,17 +152,30 @@ namespace AshenThrone.Empire
 
         private void OnUpgradeCompleted(BuildingUpgradeCompletedEvent evt)
         {
-            // Play completion celebration before removing overlay
+            // P&C: Check if this was an instant-complete (free speedup)
+            bool isInstant = _instantCompletePending.Remove(evt.PlacedId);
+
             if (_overlays.TryGetValue(evt.PlacedId, out var overlay) && overlay.Root != null)
             {
-                PlayCompletionCelebration(overlay.Root.transform.parent);
+                PlayCompletionCelebration(overlay.Root.transform.parent, isInstant);
             }
             RemoveOverlay(evt.PlacedId);
+        }
+
+        /// <summary>
+        /// P&C: Track speedup events. When remaining hits 0, mark as instant complete
+        /// so the celebration uses a white flash instead of gold glow.
+        /// </summary>
+        private void OnSpeedupApplied(SpeedupAppliedEvent evt)
+        {
+            if (evt.RemainingSeconds <= 0f)
+                _instantCompletePending.Add(evt.PlacedId);
         }
 
         private void OnUpgradeCancelled(BuildingUpgradeCancelledEvent evt)
         {
             RemoveOverlay(evt.PlacedId);
+            _instantCompletePending.Remove(evt.PlacedId);
         }
 
         private void RemoveOverlay(string placedId)
@@ -426,23 +443,27 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>
-        /// P&C-style golden glow burst when upgrade completes.
-        /// Creates a temporary expanding glow that fades out.
+        /// P&C-style celebration when upgrade completes.
+        /// Normal: golden glow burst. Instant (free speedup): bright white flash.
         /// </summary>
-        private void PlayCompletionCelebration(Transform buildingTransform)
+        private void PlayCompletionCelebration(Transform buildingTransform, bool instant = false)
         {
             if (buildingTransform == null) return;
+
+            Color glowColor = instant
+                ? new Color(1f, 1f, 1f, 0.95f)       // White flash for instant
+                : new Color(0.83f, 0.66f, 0.26f, 0.8f); // Gold glow for normal
 
             var glow = new GameObject("CompletionGlow");
             glow.transform.SetParent(buildingTransform, false);
             var rect = glow.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(-0.15f, -0.15f);
-            rect.anchorMax = new Vector2(1.15f, 1.15f);
+            float spread = instant ? 0.25f : 0.15f;
+            rect.anchorMin = new Vector2(-spread, -spread);
+            rect.anchorMax = new Vector2(1f + spread, 1f + spread);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
             var img = glow.AddComponent<Image>();
-            // Try to load radial gradient for soft glow
             var gradientSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             #if UNITY_EDITOR
             if (gradientSpr == null)
@@ -450,32 +471,32 @@ namespace AshenThrone.Empire
             #endif
             if (gradientSpr != null)
                 img.sprite = gradientSpr;
-            img.color = new Color(0.83f, 0.66f, 0.26f, 0.8f); // Gold glow
+            img.color = glowColor;
             img.raycastTarget = false;
 
-            // Animate: scale up from 0.5 to 1.2 and fade out over 1 second
-            StartCoroutine(AnimateCelebration(glow, rect));
+            float duration = instant ? 0.6f : 1.0f;
+            StartCoroutine(AnimateCelebration(glow, rect, glowColor, duration, instant));
         }
 
-        private System.Collections.IEnumerator AnimateCelebration(GameObject glow, RectTransform rect)
+        private System.Collections.IEnumerator AnimateCelebration(
+            GameObject glow, RectTransform rect, Color baseColor, float duration, bool instant)
         {
-            float duration = 1.0f;
             float elapsed = 0f;
             var img = glow.GetComponent<Image>();
+            float startScale = instant ? 0.3f : 0.5f;
+            float endScale = instant ? 1.6f : 1.3f;
 
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
 
-                // Scale: 0.5 → 1.3
-                float scale = Mathf.Lerp(0.5f, 1.3f, t);
+                float scale = Mathf.Lerp(startScale, endScale, t);
                 rect.localScale = new Vector3(scale, scale, 1f);
 
-                // Fade: full → 0
-                float alpha = Mathf.Lerp(0.8f, 0f, t * t); // Quadratic ease-out
+                float alpha = Mathf.Lerp(baseColor.a, 0f, t * t);
                 if (img != null)
-                    img.color = new Color(0.83f, 0.66f, 0.26f, alpha);
+                    img.color = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
 
                 yield return null;
             }

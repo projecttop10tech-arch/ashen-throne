@@ -98,6 +98,12 @@ namespace AshenThrone.Empire
         private static readonly Color BorderInvalid = new(1f, 0.2f, 0.2f, 0.55f);
         private Outline _highlightOutline;
 
+        // P&C: Building footprint highlight on tap
+        private static readonly Color FootprintColor = new(0.78f, 0.62f, 0.22f, 0.18f);
+        private static readonly Color FootprintBorder = new(0.83f, 0.66f, 0.26f, 0.45f);
+        private readonly List<GameObject> _footprintCells = new();
+        private string _footprintInstanceId;
+
         // Pinch-zoom state
         private const float ZoomMin = 0.4f;
         private const float ZoomMax = 2.5f;
@@ -716,6 +722,9 @@ namespace AshenThrone.Empire
 
             if (tapped == null)
             {
+                // Clear footprint when tapping empty ground
+                ClearBuildingFootprint();
+
                 // P&C: Tap on empty ground → publish event for building placement
                 if (buildingContainer != null)
                 {
@@ -727,6 +736,9 @@ namespace AshenThrone.Empire
                 }
                 return;
             }
+
+            // P&C: Show footprint highlight on tapped building
+            ShowBuildingFootprint(tapped);
 
             // Bounce animation
             if (tapped.VisualGO != null)
@@ -763,6 +775,60 @@ namespace AshenThrone.Empire
             }
 
             building.localScale = original;
+        }
+
+        /// <summary>P&C: Show gold footprint highlight under a tapped building.</summary>
+        public void ShowBuildingFootprint(CityBuildingPlacement placement)
+        {
+            if (placement == null) return;
+            // Clear previous
+            if (_footprintInstanceId == placement.InstanceId) return; // already shown
+            ClearBuildingFootprint();
+
+            _footprintInstanceId = placement.InstanceId;
+            var container = buildingContainer != null ? buildingContainer : contentContainer;
+            if (container == null) return;
+
+            // Create a highlight cell for each grid position in the building's footprint
+            for (int gx = 0; gx < placement.Size.x; gx++)
+            {
+                for (int gy = 0; gy < placement.Size.y; gy++)
+                {
+                    var cellPos = new Vector2Int(placement.GridOrigin.x + gx, placement.GridOrigin.y + gy);
+                    var localPos = GridToLocal(cellPos);
+
+                    var cellGO = new GameObject($"Footprint_{gx}_{gy}");
+                    cellGO.transform.SetParent(container, false);
+                    cellGO.transform.SetAsFirstSibling(); // behind buildings
+
+                    var rect = cellGO.AddComponent<RectTransform>();
+                    rect.anchoredPosition = localPos;
+                    // Isometric diamond shape approximated by cell size
+                    rect.sizeDelta = new Vector2(CellSize, CellSize * 0.5f);
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+
+                    var img = cellGO.AddComponent<Image>();
+                    img.color = FootprintColor;
+                    img.raycastTarget = false;
+
+                    var outline = cellGO.AddComponent<Outline>();
+                    outline.effectColor = FootprintBorder;
+                    outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+                    _footprintCells.Add(cellGO);
+                }
+            }
+        }
+
+        /// <summary>P&C: Clear the building footprint highlight.</summary>
+        public void ClearBuildingFootprint()
+        {
+            foreach (var go in _footprintCells)
+            {
+                if (go != null) Destroy(go);
+            }
+            _footprintCells.Clear();
+            _footprintInstanceId = null;
         }
 
         public void OnDrag(PointerEventData eventData)

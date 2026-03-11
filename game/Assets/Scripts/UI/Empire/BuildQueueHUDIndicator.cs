@@ -20,10 +20,15 @@ namespace AshenThrone.UI.Empire
         private EventSubscription _completedSub;
         private EventSubscription _cancelledSub;
 
+        private const int TotalSlots = 2; // P&C: always show 2 builder slots
+
         private static readonly Color SlotBg = new(0.06f, 0.04f, 0.10f, 0.90f);
         private static readonly Color SlotBorder = new(0.55f, 0.43f, 0.18f, 0.70f);
+        private static readonly Color EmptySlotBg = new(0.04f, 0.03f, 0.08f, 0.65f);
+        private static readonly Color EmptySlotBorder = new(0.35f, 0.28f, 0.14f, 0.45f);
         private static readonly Color FillColor = new(0.20f, 0.78f, 0.35f, 1f);
         private static readonly Color TimerColor = new(0.95f, 0.93f, 0.88f, 1f);
+        private static readonly Color HeaderColor = new(0.83f, 0.66f, 0.26f, 1f);
 
         private void Awake()
         {
@@ -56,8 +61,10 @@ namespace AshenThrone.UI.Empire
 
             for (int i = 0; i < _slots.Count && i < _buildingManager.BuildQueue.Count; i++)
             {
-                var entry = _buildingManager.BuildQueue[i];
                 var slot = _slots[i];
+                if (slot.TimerText == null || slot.FillRect == null) continue; // empty slot
+
+                var entry = _buildingManager.BuildQueue[i];
                 float total = slot.TotalSeconds;
                 float remaining = entry.RemainingSeconds;
                 float progress = total > 0 ? 1f - (remaining / total) : 1f;
@@ -94,6 +101,8 @@ namespace AshenThrone.UI.Empire
             }
         }
 
+        private GameObject _headerLabel;
+
         private void RebuildSlots()
         {
             // Clear existing
@@ -103,38 +112,64 @@ namespace AshenThrone.UI.Empire
                     Destroy(slot.Root);
             }
             _slots.Clear();
+            if (_headerLabel != null) { Destroy(_headerLabel); _headerLabel = null; }
 
             if (_buildingManager == null || _container == null) return;
 
-            int count = _buildingManager.BuildQueue.Count;
-            if (count == 0)
-            {
-                _container.gameObject.SetActive(false);
-                return;
-            }
-
+            // P&C: always show the HUD (even with 0 active builds)
             _container.gameObject.SetActive(true);
 
-            for (int i = 0; i < count; i++)
+            int activeCount = _buildingManager.BuildQueue.Count;
+
+            // Header: "Builder X/2"
+            _headerLabel = new GameObject("BuilderHeader");
+            _headerLabel.transform.SetParent(_container, false);
+            var headerRect = _headerLabel.AddComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0f, 0.78f);
+            headerRect.anchorMax = new Vector2(1f, 1f);
+            headerRect.offsetMin = Vector2.zero;
+            headerRect.offsetMax = Vector2.zero;
+            var headerText = _headerLabel.AddComponent<Text>();
+            headerText.text = $"Builder {activeCount}/{TotalSlots}";
+            headerText.fontSize = 9;
+            headerText.fontStyle = FontStyle.Bold;
+            headerText.alignment = TextAnchor.MiddleCenter;
+            headerText.color = HeaderColor;
+            headerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            headerText.raycastTarget = false;
+            var headerShadow = _headerLabel.AddComponent<Shadow>();
+            headerShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            headerShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Always create TotalSlots (2) — active entries get real slots, rest get empty
+            float slotWidth = 1f / TotalSlots;
+            for (int i = 0; i < TotalSlots; i++)
             {
-                var entry = _buildingManager.BuildQueue[i];
-                float slotWidth = 1f / Mathf.Max(count, 1);
                 float xMin = i * slotWidth;
                 float xMax = (i + 1) * slotWidth - 0.01f;
 
-                var slot = CreateSlot(entry, xMin, xMax);
-                _slots.Add(slot);
+                if (i < activeCount)
+                {
+                    var entry = _buildingManager.BuildQueue[i];
+                    var slot = CreateSlot(entry, xMin, xMax);
+                    _slots.Add(slot);
+                }
+                else
+                {
+                    var slot = CreateEmptySlot(i, xMin, xMax);
+                    _slots.Add(slot);
+                }
             }
         }
 
         private QueueSlotUI CreateSlot(BuildQueueEntry entry, float xMin, float xMax)
         {
-            // Slot background
+            // Slot background (below header)
             var root = new GameObject($"QueueSlot_{entry.PlacedId}");
             root.transform.SetParent(_container, false);
             var rootRect = root.AddComponent<RectTransform>();
             rootRect.anchorMin = new Vector2(xMin, 0f);
-            rootRect.anchorMax = new Vector2(xMax, 1f);
+            rootRect.anchorMax = new Vector2(xMax, 0.76f);
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
@@ -230,6 +265,60 @@ namespace AshenThrone.UI.Empire
                 FillRect = fillRect,
                 TimerText = timerText,
                 TotalSeconds = total
+            };
+        }
+
+        private QueueSlotUI CreateEmptySlot(int index, float xMin, float xMax)
+        {
+            var root = new GameObject($"QueueSlot_Empty_{index}");
+            root.transform.SetParent(_container, false);
+            var rootRect = root.AddComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(xMin, 0f);
+            rootRect.anchorMax = new Vector2(xMax, 0.76f);
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            var bgImg = root.AddComponent<Image>();
+            bgImg.color = EmptySlotBg;
+
+            // Dimmer border
+            var border = new GameObject("Border");
+            border.transform.SetParent(root.transform, false);
+            var borderRect = border.AddComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.offsetMin = Vector2.zero;
+            borderRect.offsetMax = Vector2.zero;
+            var borderOutline = border.AddComponent<Outline>();
+            borderOutline.effectColor = EmptySlotBorder;
+            borderOutline.effectDistance = new Vector2(1f, -1f);
+            var borderImg = border.AddComponent<Image>();
+            borderImg.color = new Color(0, 0, 0, 0);
+            borderImg.raycastTarget = false;
+
+            // "IDLE" label
+            var labelGO = new GameObject("IdleLabel");
+            labelGO.transform.SetParent(root.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            var labelText = labelGO.AddComponent<Text>();
+            labelText.text = "IDLE";
+            labelText.fontSize = 10;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.color = new Color(0.45f, 0.40f, 0.35f, 0.7f);
+            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            labelText.fontStyle = FontStyle.Italic;
+            labelText.raycastTarget = false;
+
+            return new QueueSlotUI
+            {
+                Root = root,
+                FillRect = null,
+                TimerText = null,
+                TotalSeconds = 0f
             };
         }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using AshenThrone.Core;
 
 namespace AshenThrone.Empire
@@ -8,6 +9,7 @@ namespace AshenThrone.Empire
     /// Spawns collectible resource bubbles above resource-producing buildings.
     /// Bubbles appear at intervals and accumulate until tapped.
     /// Integrates with CityGridView to position bubbles above building visuals.
+    /// P&C: Manages a floating "Collect All" button that appears when bubbles exist.
     /// </summary>
     public class ResourceBubbleSpawner : MonoBehaviour
     {
@@ -110,6 +112,128 @@ namespace AshenThrone.Empire
             if (!_activeBubbles.ContainsKey(placement.InstanceId))
                 _activeBubbles[placement.InstanceId] = new List<ResourceCollectBubble>();
             _activeBubbles[placement.InstanceId].Add(bubble);
+        }
+
+        // P&C: Floating "Collect All" button
+        private GameObject _collectAllButton;
+        private float _collectAllCheckTimer;
+        private const float CollectAllCheckInterval = 1f;
+
+        private void LateUpdate()
+        {
+            // Show/hide Collect All button based on active bubble count
+            _collectAllCheckTimer += Time.deltaTime;
+            if (_collectAllCheckTimer >= CollectAllCheckInterval)
+            {
+                _collectAllCheckTimer = 0f;
+                UpdateCollectAllButton();
+            }
+        }
+
+        private void UpdateCollectAllButton()
+        {
+            int totalBubbles = GetTotalActiveBubbleCount();
+            bool shouldShow = totalBubbles > 0;
+
+            if (shouldShow && _collectAllButton == null)
+                CreateCollectAllButton();
+            else if (!shouldShow && _collectAllButton != null)
+            {
+                Destroy(_collectAllButton);
+                _collectAllButton = null;
+            }
+
+            // Update count label
+            if (_collectAllButton != null && totalBubbles > 0)
+            {
+                var label = _collectAllButton.GetComponentInChildren<Text>();
+                if (label != null)
+                    label.text = $"COLLECT ALL ({totalBubbles})";
+            }
+        }
+
+        private void CreateCollectAllButton()
+        {
+            // Find the Canvas to parent to (above building container)
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _collectAllButton = new GameObject("CollectAllButton");
+            _collectAllButton.transform.SetParent(canvas.transform, false);
+            var rect = _collectAllButton.AddComponent<RectTransform>();
+            // Position: bottom-right, above nav bar
+            rect.anchorMin = new Vector2(0.60f, 0.12f);
+            rect.anchorMax = new Vector2(0.95f, 0.17f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Background
+            var bg = _collectAllButton.AddComponent<Image>();
+            bg.color = new Color(0.15f, 0.65f, 0.30f, 0.92f);
+            bg.raycastTarget = true;
+
+            // Gold border
+            var outline = _collectAllButton.AddComponent<Outline>();
+            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.9f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Button
+            var btn = _collectAllButton.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(CollectAll);
+
+            // Label
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_collectAllButton.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            var text = labelGO.AddComponent<Text>();
+            text.text = "COLLECT ALL";
+            text.fontSize = 13;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = labelGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.8f, -0.8f);
+        }
+
+        /// <summary>P&C: Collect ALL active bubbles from every resource building.</summary>
+        public void CollectAll()
+        {
+            int collected = 0;
+            foreach (var kvp in _activeBubbles)
+            {
+                foreach (var bubble in kvp.Value)
+                {
+                    if (bubble != null)
+                    {
+                        bubble.OnPointerClick(null);
+                        collected++;
+                    }
+                }
+            }
+            if (collected > 0)
+                Debug.Log($"[ResourceBubbleSpawner] Collected ALL {collected} bubbles.");
+        }
+
+        /// <summary>Total number of active (uncollected) bubbles across all buildings.</summary>
+        public int GetTotalActiveBubbleCount()
+        {
+            int count = 0;
+            foreach (var kvp in _activeBubbles)
+            {
+                foreach (var bubble in kvp.Value)
+                {
+                    if (bubble != null) count++;
+                }
+            }
+            return count;
         }
 
         private void CleanupDestroyedBubbles()
