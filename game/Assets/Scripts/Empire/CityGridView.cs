@@ -116,15 +116,18 @@ namespace AshenThrone.Empire
         private int _touchCount;
 
         private EventSubscription _upgradeCompletedSub;
+        private EventSubscription _demolishedSub;
 
         private void OnEnable()
         {
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildingUpgradeCompleted);
+            _demolishedSub = EventBus.Subscribe<BuildingDemolishedEvent>(OnBuildingDemolished);
         }
 
         private void OnDisable()
         {
             _upgradeCompletedSub?.Dispose();
+            _demolishedSub?.Dispose();
         }
 
         private void Start()
@@ -622,6 +625,24 @@ namespace AshenThrone.Empire
 
                 // Update production label if resource building
                 UpdateProductionLabel(placement.VisualGO, placement.BuildingId, evt.NewTier);
+            }
+        }
+
+        /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>
+        private void OnBuildingDemolished(BuildingDemolishedEvent evt)
+        {
+            ClearBuildingFootprint();
+            for (int i = _placements.Count - 1; i >= 0; i--)
+            {
+                if (_placements[i].InstanceId == evt.PlacedId)
+                {
+                    var p = _placements[i];
+                    ClearCells(p.GridOrigin, p.Size);
+                    if (p.VisualGO != null) Destroy(p.VisualGO);
+                    _placements.RemoveAt(i);
+                    Debug.Log($"[CityGridView] Demolished visual for {evt.BuildingId} ({evt.PlacedId}).");
+                    break;
+                }
             }
         }
 

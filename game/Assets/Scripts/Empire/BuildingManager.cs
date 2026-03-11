@@ -191,6 +191,25 @@ namespace AshenThrone.Empire
             EventBus.Publish(new BuildingUpgradeCompletedEvent(entry.PlacedId, entry.TargetTier));
         }
 
+        /// <summary>
+        /// P&C: Demolish a placed building. Removes from map. Cannot demolish Stronghold.
+        /// Does NOT refund resources (P&C style — demolish is free but irreversible).
+        /// </summary>
+        public bool DemolishBuilding(string placedId)
+        {
+            if (!_placedBuildings.TryGetValue(placedId, out PlacedBuilding placed))
+                return false;
+            if (placed.Data != null && placed.Data.buildingId == "stronghold")
+                return false; // Cannot demolish Stronghold
+
+            // Cancel any active upgrade first
+            CancelUpgrade(placedId);
+
+            _placedBuildings.Remove(placedId);
+            EventBus.Publish(new BuildingDemolishedEvent(placedId, placed.Data?.buildingId ?? ""));
+            return true;
+        }
+
         private int GetAvailableQueueSlots() => FreeQueueSlots; // Extended to 3 via season progression (not purchase)
 
         private bool IsBuilt(string buildingId)
@@ -237,4 +256,5 @@ namespace AshenThrone.Empire
     public readonly struct BuildFailedEvent { public readonly string Target; public readonly string Reason; public BuildFailedEvent(string t, string r) { Target = t; Reason = r; } }
     public readonly struct SpeedupAppliedEvent { public readonly string PlacedId; public readonly int SecondsApplied; public readonly float RemainingSeconds; public SpeedupAppliedEvent(string id, int s, float r) { PlacedId = id; SecondsApplied = s; RemainingSeconds = r; } }
     public readonly struct BuildingUpgradeCancelledEvent { public readonly string PlacedId; public BuildingUpgradeCancelledEvent(string id) { PlacedId = id; } }
+    public readonly struct BuildingDemolishedEvent { public readonly string PlacedId; public readonly string BuildingId; public BuildingDemolishedEvent(string pid, string bid) { PlacedId = pid; BuildingId = bid; } }
 }

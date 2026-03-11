@@ -96,7 +96,9 @@ namespace AshenThrone.Empire
                     // Fill turns gold near completion
                     overlay.ProgressFill.GetComponent<Image>().color = progress > 0.9f
                         ? new Color(0.83f, 0.66f, 0.26f, 1f) : ProgressFillColor;
-                    overlay.TimerText.text = FormatTime(Mathf.CeilToInt(remaining));
+                    // P&C: Show timer + percentage
+                    int pct = Mathf.RoundToInt(Mathf.Clamp01(progress) * 100f);
+                    overlay.TimerText.text = $"{FormatTime(Mathf.CeilToInt(remaining))} ({pct}%)";
                     // Timer turns red at < 10 seconds
                     overlay.TimerText.color = remaining < 10f
                         ? new Color(1f, 0.3f, 0.3f, 1f) : TimerTextColor;

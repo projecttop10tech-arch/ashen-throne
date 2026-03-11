@@ -141,9 +141,10 @@ namespace AshenThrone.UI.Empire
             headerShadow.effectColor = new Color(0, 0, 0, 0.9f);
             headerShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Always create TotalSlots (2) — active entries get real slots, rest get empty
-            float slotWidth = 1f / TotalSlots;
-            for (int i = 0; i < TotalSlots; i++)
+            // Always create TotalSlots (2) + 1 locked premium slot
+            int displaySlots = TotalSlots + 1; // 2 free + 1 locked
+            float slotWidth = 1f / displaySlots;
+            for (int i = 0; i < displaySlots; i++)
             {
                 float xMin = i * slotWidth;
                 float xMax = (i + 1) * slotWidth - 0.01f;
@@ -154,9 +155,15 @@ namespace AshenThrone.UI.Empire
                     var slot = CreateSlot(entry, xMin, xMax);
                     _slots.Add(slot);
                 }
-                else
+                else if (i < TotalSlots)
                 {
                     var slot = CreateEmptySlot(i, xMin, xMax);
+                    _slots.Add(slot);
+                }
+                else
+                {
+                    // P&C: Locked premium 3rd builder slot
+                    var slot = CreateLockedSlot(xMin, xMax);
                     _slots.Add(slot);
                 }
             }
@@ -320,6 +327,71 @@ namespace AshenThrone.UI.Empire
                 TimerText = null,
                 TotalSeconds = 0f
             };
+        }
+
+        /// <summary>P&C: Locked premium builder slot with "+" icon.</summary>
+        private QueueSlotUI CreateLockedSlot(float xMin, float xMax)
+        {
+            var root = new GameObject("QueueSlot_Locked");
+            root.transform.SetParent(_container, false);
+            var rootRect = root.AddComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(xMin, 0f);
+            rootRect.anchorMax = new Vector2(xMax, 0.76f);
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            var bgImg = root.AddComponent<Image>();
+            bgImg.color = new Color(0.03f, 0.02f, 0.06f, 0.55f);
+
+            // Lock border (dimmer gold)
+            var border = new GameObject("Border");
+            border.transform.SetParent(root.transform, false);
+            var borderRect = border.AddComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.offsetMin = Vector2.zero;
+            borderRect.offsetMax = Vector2.zero;
+            var borderOutline = border.AddComponent<Outline>();
+            borderOutline.effectColor = new Color(0.40f, 0.30f, 0.12f, 0.35f);
+            borderOutline.effectDistance = new Vector2(1f, -1f);
+            var borderImg = border.AddComponent<Image>();
+            borderImg.color = new Color(0, 0, 0, 0);
+            borderImg.raycastTarget = false;
+
+            // "+" label
+            var labelGO = new GameObject("PlusLabel");
+            labelGO.transform.SetParent(root.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            var labelText = labelGO.AddComponent<Text>();
+            labelText.text = "+";
+            labelText.fontSize = 16;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.color = new Color(0.78f, 0.62f, 0.22f, 0.5f);
+            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            labelText.fontStyle = FontStyle.Bold;
+            labelText.raycastTarget = false;
+
+            // Tap to show unlock prompt
+            var btn = root.AddComponent<Button>();
+            btn.targetGraphic = bgImg;
+            btn.onClick.AddListener(OnLockedSlotTapped);
+
+            return new QueueSlotUI
+            {
+                Root = root,
+                FillRect = null,
+                TimerText = null,
+                TotalSeconds = 0f
+            };
+        }
+
+        private void OnLockedSlotTapped()
+        {
+            Debug.Log("[BuildQueueHUD] Premium 3rd builder slot tapped — unlock via Battle Pass Season progression.");
         }
 
         private string GetBuildingName(string placedId)

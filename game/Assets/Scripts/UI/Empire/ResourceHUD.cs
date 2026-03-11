@@ -60,6 +60,33 @@ namespace AshenThrone.UI.Empire
         private static readonly Color CriticalColor = new(1f, 0.25f, 0.25f, 1f); // Red at 95%
         private static readonly Color FullColor = new(1f, 0.15f, 0.15f, 1f);     // Bright red at 100%
 
+        // P&C: Flashing icon pulse for vault overflow
+        private float _flashPhase;
+
+        private void Update()
+        {
+            if (_resourceManager == null) return;
+            _flashPhase += Time.deltaTime * 3.5f;
+            float flash = 0.5f + 0.5f * Mathf.Sin(_flashPhase);
+
+            PulseIfFull(_grainAmount, _resourceManager.Grain, _resourceManager.MaxGrain, flash);
+            PulseIfFull(_ironAmount, _resourceManager.Iron, _resourceManager.MaxIron, flash);
+            PulseIfFull(_stoneAmount, _resourceManager.Stone, _resourceManager.MaxStone, flash);
+            PulseIfFull(_arcaneAmount, _resourceManager.ArcaneEssence, _resourceManager.MaxArcaneEssence, flash);
+        }
+
+        private static void PulseIfFull(TextMeshProUGUI label, long current, long max, float flash)
+        {
+            if (label == null || max <= 0) return;
+            float ratio = (float)current / max;
+            if (ratio >= 0.95f)
+            {
+                // Pulse alpha between 0.5 and 1.0 for critical/full state
+                var c = label.color;
+                label.color = new Color(c.r, c.g, c.b, 0.5f + 0.5f * flash);
+            }
+        }
+
         private void RefreshAll()
         {
             UpdateResourceDisplay(_grainAmount, _resourceManager.Grain, _resourceManager.MaxGrain);

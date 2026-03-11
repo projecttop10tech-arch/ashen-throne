@@ -26,6 +26,9 @@ namespace AshenThrone.UI.Empire
         private Button _upgradeBtn;
         private Button _closeBtn;
         private Button _moveBtn; // P&C: Relocate building
+        private Button _demolishBtn; // P&C: Remove building
+        private bool _demolishConfirmPending;
+        private float _demolishConfirmTimer;
 
         // Upgrading state buttons
         private Button _speedUpBtn;
@@ -90,6 +93,14 @@ namespace AshenThrone.UI.Empire
                 _cancelConfirmTimer -= Time.deltaTime;
                 if (_cancelConfirmTimer <= 0f)
                     ResetCancelConfirm();
+            }
+
+            // P&C: Demolish confirm timeout
+            if (_demolishConfirmPending)
+            {
+                _demolishConfirmTimer -= Time.deltaTime;
+                if (_demolishConfirmTimer <= 0f)
+                    ResetDemolishConfirm();
             }
 
             if (!_isUpgrading || _buildingManager == null) return;
@@ -471,7 +482,9 @@ namespace AshenThrone.UI.Empire
         {
             if (_upgradeBtn != null) _upgradeBtn.gameObject.SetActive(idle);
             if (_closeBtn != null) _closeBtn.gameObject.SetActive(idle);
-            if (_moveBtn != null) _moveBtn.gameObject.SetActive(idle && _currentBuildingId != "stronghold");
+            bool canRelocate = idle && _currentBuildingId != "stronghold";
+            if (_moveBtn != null) _moveBtn.gameObject.SetActive(canRelocate);
+            if (_demolishBtn != null) _demolishBtn.gameObject.SetActive(canRelocate);
             if (_speedUpBtn != null) _speedUpBtn.gameObject.SetActive(!idle);
             if (_cancelBtn != null) _cancelBtn.gameObject.SetActive(!idle);
             if (_helpBtn != null) _helpBtn.gameObject.SetActive(!idle);
@@ -497,6 +510,17 @@ namespace AshenThrone.UI.Empire
             _currentInstanceId = null;
             _isUpgrading = false;
             ResetCancelConfirm();
+            ResetDemolishConfirm();
+        }
+
+        private void ResetDemolishConfirm()
+        {
+            if (!_demolishConfirmPending) return;
+            _demolishConfirmPending = false;
+            SetButtonLabel(_demolishBtn, "DEMOLISH");
+            var btnImg = _demolishBtn?.GetComponent<Image>();
+            if (btnImg != null)
+                btnImg.color = new Color(0.50f, 0.18f, 0.18f, 1f);
         }
 
         private void OnUpgradePressed()
@@ -541,6 +565,33 @@ namespace AshenThrone.UI.Empire
                 ClosePopup();
                 cityGrid.EnterMoveModeForBuilding(_currentInstanceId);
                 Debug.Log($"[BuildingInfoPopup] Entering move mode for {_currentBuildingId}.");
+            }
+        }
+
+        /// <summary>P&C: Demolish building with double-tap confirmation.</summary>
+        private void OnDemolishPressed()
+        {
+            if (_buildingManager == null || string.IsNullOrEmpty(_currentInstanceId)) return;
+            if (_currentBuildingId == "stronghold") return;
+
+            if (!_demolishConfirmPending)
+            {
+                _demolishConfirmPending = true;
+                _demolishConfirmTimer = CancelConfirmTimeout;
+                SetButtonLabel(_demolishBtn, "CONFIRM?");
+                var btnImg = _demolishBtn?.GetComponent<Image>();
+                if (btnImg != null)
+                    btnImg.color = new Color(0.95f, 0.15f, 0.15f, 1f);
+                return;
+            }
+
+            // Second tap — actually demolish
+            _demolishConfirmPending = false;
+            bool demolished = _buildingManager.DemolishBuilding(_currentInstanceId);
+            if (demolished)
+            {
+                Debug.Log($"[BuildingInfoPopup] Demolished {_currentBuildingId}.");
+                ClosePopup();
             }
         }
 
@@ -712,6 +763,7 @@ namespace AshenThrone.UI.Empire
             WireButton(popupTransform, "UpgradeBtn", ref _upgradeBtn, OnUpgradePressed);
             WireButton(popupTransform, "CloseBtn", ref _closeBtn, ClosePopup);
             WireButton(popupTransform, "MoveBtn", ref _moveBtn, OnMovePressed);
+            WireButton(popupTransform, "DemolishBtn", ref _demolishBtn, OnDemolishPressed);
 
             // Upgrading buttons
             WireButton(popupTransform, "SpeedUpBtn", ref _speedUpBtn, OnSpeedUpPressed);
