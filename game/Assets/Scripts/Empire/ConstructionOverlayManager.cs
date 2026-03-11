@@ -403,8 +403,36 @@ namespace AshenThrone.Empire
             string helpId = placedId;
             helpBtnComp.onClick.AddListener(() => OnAllianceHelpPressed(helpId));
 
-            // Root includes the button row as a child of buildingGO, not root
-            // So we track it in the overlay for cleanup
+            // P&C: Alliance help counter badge ("Help 0/5")
+            var helpCountGO = new GameObject("HelpCount");
+            helpCountGO.transform.SetParent(root.transform, false);
+            var helpCountRect = helpCountGO.AddComponent<RectTransform>();
+            helpCountRect.anchorMin = new Vector2(0.55f, 0.0f);
+            helpCountRect.anchorMax = new Vector2(1.0f, 0.18f);
+            helpCountRect.offsetMin = Vector2.zero;
+            helpCountRect.offsetMax = Vector2.zero;
+            var helpCountBg = helpCountGO.AddComponent<Image>();
+            helpCountBg.color = new Color(0.15f, 0.45f, 0.65f, 0.85f);
+            helpCountBg.raycastTarget = false;
+            var helpCountOutline = helpCountGO.AddComponent<Outline>();
+            helpCountOutline.effectColor = HelpBtnColor;
+            helpCountOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var helpTextGO = new GameObject("Text");
+            helpTextGO.transform.SetParent(helpCountGO.transform, false);
+            var htRect = helpTextGO.AddComponent<RectTransform>();
+            htRect.anchorMin = Vector2.zero;
+            htRect.anchorMax = Vector2.one;
+            htRect.offsetMin = Vector2.zero;
+            htRect.offsetMax = Vector2.zero;
+            var helpText = helpTextGO.AddComponent<Text>();
+            helpText.text = "\u270B 0/5"; // ✋ 0/5
+            helpText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            helpText.fontSize = 8;
+            helpText.fontStyle = FontStyle.Bold;
+            helpText.alignment = TextAnchor.MiddleCenter;
+            helpText.color = Color.white;
+            helpText.raycastTarget = false;
+
             return new ConstructionOverlay
             {
                 Root = root,
@@ -415,6 +443,7 @@ namespace AshenThrone.Empire
                 FreeSpeedupBtn = freeBtn,
                 GemSpeedupBtn = gemBtn,
                 HelpBtn = helpBtn,
+                HelpCountText = helpText,
                 TotalSeconds = totalSeconds
             };
         }
@@ -731,6 +760,8 @@ namespace AshenThrone.Empire
             public GameObject FreeSpeedupBtn;
             public GameObject GemSpeedupBtn;
             public GameObject HelpBtn;
+            public Text HelpCountText;
+            public int HelpReceived;
             public float TotalSeconds;
         }
     }

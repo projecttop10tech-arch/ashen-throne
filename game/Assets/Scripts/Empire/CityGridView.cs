@@ -205,6 +205,17 @@ namespace AshenThrone.Empire
                     TryEnterMoveMode();
             }
 
+            // P&C: Pulse placement ghost transparency
+            if (_placementMode && _placementGhost != null)
+            {
+                var gImg = _placementGhost.GetComponent<Image>();
+                if (gImg != null)
+                {
+                    float pulse = 0.45f + 0.20f * Mathf.Sin(Time.time * 3f);
+                    gImg.color = new Color(gImg.color.r, gImg.color.g, gImg.color.b, pulse);
+                }
+            }
+
             // Pinch-zoom (mobile multi-touch)
             _touchCount = Input.touchCount;
             if (_touchCount == 2 && !_moveMode)
