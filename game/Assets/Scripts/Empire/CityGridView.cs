@@ -1317,6 +1317,7 @@ namespace AshenThrone.Empire
             _movingBuilding = null;
             _moveMode = false;
 
+            HideMoveGridCells();
             DestroyHighlight();
             SetGridOverlayVisible(false);
             if (scrollRect != null) scrollRect.enabled = true;
@@ -1379,6 +1380,9 @@ namespace AshenThrone.Empire
         // ====================================================================
 
         private readonly List<GameObject> _highlightCells = new();
+        private readonly List<GameObject> _moveGridCells = new();
+        private Vector2Int _lastMoveGridCenter = new(-999, -999);
+        private const int MoveGridRadius = 8;
 
         private void CreateHighlight()
         {
@@ -1394,6 +1398,9 @@ namespace AshenThrone.Empire
 
             var snapOrigin = SnapToGrid(dragLocalPos, _movingBuilding.Size);
             bool valid = CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding);
+
+            // P&C: Show nearby grid cells with occupancy coloring
+            ShowMoveGridCells(snapOrigin);
 
             // Rebuild iso cells at new snap position
             foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
@@ -1417,6 +1424,61 @@ namespace AshenThrone.Empire
         {
             foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
             _highlightCells.Clear();
+        }
+
+        // ====================================================================
+        // Move-mode grid cells (P&C: diamond grid with occupancy coloring)
+        // ====================================================================
+
+        private void ShowMoveGridCells(Vector2Int snapOrigin)
+        {
+            // Only rebuild if snap position changed
+            if (snapOrigin == _lastMoveGridCenter) return;
+            _lastMoveGridCenter = snapOrigin;
+
+            HideMoveGridCells();
+
+            string movingId = _movingBuilding?.InstanceId;
+            var movingSize = _movingBuilding?.Size ?? Vector2Int.one;
+
+            for (int gx = snapOrigin.x - MoveGridRadius; gx <= snapOrigin.x + movingSize.x + MoveGridRadius; gx++)
+            {
+                for (int gy = snapOrigin.y - MoveGridRadius; gy <= snapOrigin.y + movingSize.y + MoveGridRadius; gy++)
+                {
+                    if (gx < PlayableMinX || gx >= PlayableMaxX || gy < PlayableMinY || gy >= PlayableMaxY)
+                        continue;
+
+                    var cell = new Vector2Int(gx, gy);
+                    bool occupied = _occupancy.TryGetValue(cell, out var occupant);
+                    bool ownCell = occupied && occupant == movingId;
+
+                    // Skip the moving building's own cells — highlight handles those
+                    if (ownCell) continue;
+
+                    Color fill, border;
+                    if (occupied)
+                    {
+                        fill = new Color(0.8f, 0.2f, 0.15f, 0.07f);
+                        border = new Color(0.7f, 0.25f, 0.2f, 0.18f);
+                    }
+                    else
+                    {
+                        fill = new Color(0.2f, 0.65f, 0.3f, 0.05f);
+                        border = new Color(0.3f, 0.75f, 0.4f, 0.15f);
+                    }
+
+                    var cellGO = CreateIsoDiamondCell(buildingContainer, gx, gy, fill, border);
+                    cellGO.transform.SetAsFirstSibling();
+                    _moveGridCells.Add(cellGO);
+                }
+            }
+        }
+
+        private void HideMoveGridCells()
+        {
+            foreach (var go in _moveGridCells) { if (go != null) Destroy(go); }
+            _moveGridCells.Clear();
+            _lastMoveGridCenter = new Vector2Int(-999, -999);
         }
 
         /// <summary>

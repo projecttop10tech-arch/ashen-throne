@@ -43,18 +43,18 @@ namespace AshenThrone.Editor
             // === Inner Ring — Administration (touching stronghold) ===
             ("guild_hall",        "guild_hall_0",        19, 22, 2),  // west
             ("embassy",           "embassy_0",           19, 19, 2),  // southwest
-            ("marketplace",       "marketplace_0",       26, 22, 2),  // east
-            ("academy",           "academy_0",           26, 19, 2),  // southeast
+            ("marketplace",       "marketplace_0",       24, 20, 2),  // east
+            ("academy",           "academy_0",           27, 18, 2),  // southeast
             ("library",           "library_0",           22, 18, 1),  // south of stronghold
             ("archive",           "archive_0",           24, 18, 1),  // south of stronghold
 
             // === North of Stronghold — Military ===
             ("barracks",          "barracks_0",          19, 26, 2),  // NW tight
-            ("barracks",          "barracks_1",          22, 26, 2),  // N tight
-            ("barracks",          "barracks_2",          25, 26, 2),  // NE tight
-            ("training_ground",   "training_ground_0",   19, 29, 1),
-            ("training_ground",   "training_ground_1",   21, 29, 1),
-            ("armory",            "armory_0",            23, 29, 1),
+            ("barracks",          "barracks_1",          20, 28, 2),  // N tight
+            ("barracks",          "barracks_2",          23, 28, 2),  // NE tight
+            ("training_ground",   "training_ground_0",   18, 28, 1),
+            ("training_ground",   "training_ground_1",   20, 30, 1),
+            ("armory",            "armory_0",            23, 30, 1),
             ("armory",            "armory_1",            25, 29, 1),
             ("barracks",          "barracks_3",          27, 29, 2),
 
@@ -66,7 +66,7 @@ namespace AshenThrone.Editor
             ("arcane_tower",      "arcane_tower_1",      34, 22, 1),
             ("enchanting_tower",  "enchanting_tower_1",  34, 19, 1),
             ("library",           "library_1",           32, 18, 1),
-            ("archive",           "archive_1",           34, 18, 1),
+            ("archive",           "archive_1",           34, 17, 1),
 
             // === West — Support District ===
             ("hero_shrine",       "hero_shrine_0",       16, 22, 2),
@@ -99,17 +99,17 @@ namespace AshenThrone.Editor
             ("grain_farm",        "grain_farm_7",        28, 12, 1),
 
             // === Outer North — More Military ===
-            ("barracks",          "barracks_4",          16, 29, 1),
+            ("barracks",          "barracks_4",          15, 28, 1),
             ("barracks",          "barracks_5",          30, 26, 1),
             ("armory",            "armory_2",            30, 29, 1),
-            ("training_ground",   "training_ground_2",   32, 26, 1),
+            ("training_ground",   "training_ground_2",   33, 25, 1),
             ("barracks",          "barracks_6",          14, 26, 1),
 
             // === Outer East — More Magic ===
             ("laboratory",        "laboratory_1",        36, 22, 1),
             ("observatory",       "observatory_1",       36, 20, 1),
-            ("enchanting_tower",  "enchanting_tower_2",  36, 18, 1),
-            ("arcane_tower",      "arcane_tower_2",      29, 26, 1),
+            ("enchanting_tower",  "enchanting_tower_2",  36, 17, 1),
+            ("arcane_tower",      "arcane_tower_2",      28, 25, 1),
 
             // === Outer West — More Support ===
             ("forge",             "forge_3",             10, 22, 1),
@@ -132,45 +132,45 @@ namespace AshenThrone.Editor
             ("academy",           "academy_1",           12, 26, 1),
             ("laboratory",        "laboratory_2",        14, 16, 1),
             ("academy",           "academy_2",           32, 29, 1),
-            ("marketplace",       "marketplace_2",       10, 26, 1),
+            ("marketplace",       "marketplace_2",       9, 25, 1),
             ("library",           "library_2",           20, 14, 1),
             ("archive",           "archive_2",           18, 12, 1),
             ("observatory",       "observatory_2",       22, 12, 1),
 
             // === Watch Tower Neighbors — fill gaps around perimeter towers ===
             ("grain_farm",        "grain_farm_8",        10, 28, 1),  // near NW tower
-            ("barracks",          "barracks_7",          34, 28, 1),  // near NE tower
+            ("barracks",          "barracks_7",          33, 27, 1),  // near NE tower
             ("stone_quarry",      "stone_quarry_5",      10, 14, 1),  // near SW tower
             ("iron_mine",         "iron_mine_5",         34, 14, 1),  // near SE tower
             ("armory",            "armory_3",            20, 32, 1),  // near N tower
             ("training_ground",   "training_ground_3",   24, 32, 1),  // near N tower
             ("grain_farm",        "grain_farm_9",        20, 10, 1),  // near S tower
             ("stone_quarry",      "stone_quarry_6",      24, 10, 1),  // near S tower
-            ("forge",             "forge_5",             36, 16, 1),  // near E tower gap
-            ("hero_shrine",       "hero_shrine_5",        8, 26, 1),  // near W tower gap
+            ("forge",             "forge_5",             38, 14, 1),  // near E tower gap
+            ("hero_shrine",       "hero_shrine_5",        7, 25, 1),  // near W tower gap
 
             // === Deep outer ring — close off remaining holes ===
             ("iron_mine",         "iron_mine_6",         12, 12, 1),
             ("grain_farm",        "grain_farm_10",       30, 12, 1),
-            ("enchanting_tower",  "enchanting_tower_3",  34, 26, 1),
+            ("enchanting_tower",  "enchanting_tower_3",  36, 24, 1),
             ("laboratory",        "laboratory_3",        10, 12, 1),
             ("archive",           "archive_3",           26, 12, 1),
-            ("library",           "library_3",           32, 16, 1),
+            ("library",           "library_3",           30, 14, 1),
             ("barracks",          "barracks_8",          16, 32, 1),
             ("barracks",          "barracks_9",          28, 32, 1),
 
             // === Ultra-dense infill — eliminate ALL visible gaps ===
-            ("forge",             "forge_6",             14, 29, 1),   // between W support and N military
-            ("grain_farm",        "grain_farm_11",       12, 29, 1),   // W outer gap
-            ("observatory",       "observatory_3",       30, 19, 1),   // between E magic and inner
+            ("forge",             "forge_6",             13, 29, 1),   // between W support and N military
+            ("grain_farm",        "grain_farm_11",       11, 30, 1),   // W outer gap
+            ("observatory",       "observatory_3",       31, 24, 1),   // between E magic and inner
             ("laboratory",        "laboratory_4",        38, 19, 1),   // far E
             ("grain_farm",        "grain_farm_12",       14, 12, 1),   // SW corner
             ("stone_quarry",      "stone_quarry_7",      26, 10, 1),   // S gap
-            ("iron_mine",         "iron_mine_7",         30, 14, 1),   // SE gap
+            ("iron_mine",         "iron_mine_7",         32, 12, 1),   // SE gap
             ("hero_shrine",       "hero_shrine_6",        8, 19, 1),   // far W
-            ("forge",             "forge_7",             36, 26, 1),   // far NE
-            ("academy",           "academy_3",           18, 29, 1),   // N inner
-            ("marketplace",       "marketplace_3",       27, 12, 1),   // S outer
+            ("forge",             "forge_7",             38, 24, 1),   // far NE
+            ("academy",           "academy_3",           14, 31, 1),   // N inner
+            ("marketplace",       "marketplace_3",       28, 10, 1),   // S outer
             ("enchanting_tower",  "enchanting_tower_4",  38, 16, 1),   // far SE
         };
 
@@ -1097,22 +1097,28 @@ namespace AshenThrone.Editor
         {
             string path = "Assets/Art/UI/Production/grid_overlay_tile.png";
 
-            var tex = new Texture2D((int)CellSize, (int)CellSize, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
+            // Isometric diamond tile: CellSize wide × CellSize/2 tall (2:1 ratio)
+            int tw = (int)CellSize;     // 64
+            int th = (int)(CellSize / 2); // 32
+            var tex = new Texture2D(tw, th, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Repeat;
 
             Color clear = new Color(0, 0, 0, 0);
-            Color line = new Color(0.5f, 1f, 0.4f, 0.4f);
+            Color line = new Color(0.5f, 1f, 0.4f, 0.5f);
 
-            int sz = (int)CellSize;
-            for (int y = 0; y < sz; y++)
+            int hw = tw / 2; // 32
+            int hh = th / 2; // 16
+            for (int y = 0; y < th; y++)
             {
-                for (int x = 0; x < sz; x++)
+                for (int x = 0; x < tw; x++)
                 {
-                    int d1 = (x + y) % sz;
-                    int d2 = ((x - y) % sz + sz) % sz;
-                    bool onDiag = d1 < 2 || d1 >= sz - 1 || d2 < 2 || d2 >= sz - 1;
-                    tex.SetPixel(x, y, onDiag ? line : clear);
+                    // Diamond edge: |x - hw| / hw + |y - hh| / hh == 1
+                    // Scaled: |x - hw| * hh + |y - hh| * hw == hw * hh
+                    int dist = Mathf.Abs(x - hw) * hh + Mathf.Abs(y - hh) * hw;
+                    int target = hw * hh;
+                    bool onEdge = Mathf.Abs(dist - target) < hw; // ~1px line
+                    tex.SetPixel(x, y, onEdge ? line : clear);
                 }
             }
 

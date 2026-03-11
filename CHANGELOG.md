@@ -4,6 +4,26 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.22.0] — 2026-03-11 (Ralph Loop Iteration 17: Grid Fix, Overlap Fix, Construction Overlay)
+
+### ADDED
+- **Isometric diamond move-mode grid** — during building move mode, nearby cells render as proper isometric diamonds colored by occupancy (green=empty, red=occupied)
+- **BuildingConstructionOverlay** — P&C-style progress bar, timer countdown, and animated hammer icon directly on buildings during upgrade. Flashes gold when <10s remaining.
+- **Level-up burst animation** — golden radial flash with "LEVEL UP" text on upgrade completion
+- **ClearCellsForInstance** — safe occupancy clearing that only removes cells belonging to the specific building instance (prevents corrupting adjacent buildings)
+- **Isometric diamond grid overlay texture** — proper 2:1 ratio diamond tile for the background grid
+
+### FIXED
+- **28 overlapping building positions** in EmpireCityLayoutGenerator — all 106 buildings now have clean, non-overlapping footprints
+- **Occupancy corruption during move mode** — ClearCells no longer removes cells owned by other buildings
+- **RegisterSceneBuildings overlap detection** — logs warnings and gracefully handles overlapping placements (first-come-first-served)
+
+### CHANGED
+- Grid overlay texture generates proper isometric diamond pattern (64x32 tile) instead of 45-degree diagonal lines
+- Move mode highlight cells rebuilt as individual isometric diamonds instead of a single flat rectangle
+
+---
+
 ## [0.21.0] — 2026-03-11 (Ralph Loop Iteration 16: Swap, Recommendation, Queue Cancel)
 
 ### ADDED
