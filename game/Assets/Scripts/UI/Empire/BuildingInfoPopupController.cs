@@ -213,25 +213,25 @@ namespace AshenThrone.UI.Empire
 
                 // P&C: Show bonus description from next tier's BuildingTierData
                 string bonusLine = "";
+                string statsPreview = "";
                 if (data != null)
                 {
                     int nextTier = evt.Tier + 1;
                     BuildingTierData nextTierData = data.GetTier(nextTier);
+                    BuildingTierData currentTierData = data.GetTier(evt.Tier);
+
                     if (nextTierData != null && !string.IsNullOrEmpty(nextTierData.bonusDescription))
                         bonusLine = $"\n<color=#FFD966>{nextTierData.bonusDescription}</color>";
-                    else
-                    {
-                        // Show current tier bonus if at max level
-                        BuildingTierData currentTierData = data.GetTier(evt.Tier);
-                        if (currentTierData != null && !string.IsNullOrEmpty(currentTierData.bonusDescription))
-                            bonusLine = $"\n<color=#FFD966>{currentTierData.bonusDescription}</color>";
-                    }
+                    else if (currentTierData != null && !string.IsNullOrEmpty(currentTierData.bonusDescription))
+                        bonusLine = $"\n<color=#FFD966>{currentTierData.bonusDescription}</color>";
+
+                    // P&C: Before -> After stat comparison
+                    statsPreview = BuildStatsPreview(currentTierData, nextTierData);
                 }
 
-                if (data != null && !string.IsNullOrEmpty(data.description))
-                    _descLabel.text = data.description + bonusLine + powerPreview;
-                else
-                    _descLabel.text = GetCategoryDescription(evt.BuildingId) + bonusLine + powerPreview;
+                string baseDesc = (data != null && !string.IsNullOrEmpty(data.description))
+                    ? data.description : GetCategoryDescription(evt.BuildingId);
+                _descLabel.text = baseDesc + bonusLine + statsPreview + powerPreview;
             }
 
             // Check if currently upgrading
@@ -396,6 +396,63 @@ namespace AshenThrone.UI.Empire
             if (tier.grainProduction > 0) return $"<color=#FFE844>+{tier.grainProduction:F0} Grain/hr</color>";
             if (tier.arcaneEssenceProduction > 0) return $"<color=#CC88FF>+{tier.arcaneEssenceProduction:F0} Arcane/hr</color>";
             return null;
+        }
+
+        /// <summary>P&C: Build a before→after stat comparison string for upgrade preview.</summary>
+        private static string BuildStatsPreview(BuildingTierData current, BuildingTierData next)
+        {
+            if (current == null || next == null) return "";
+            var lines = new System.Collections.Generic.List<string>();
+
+            // Production rate comparison
+            AddStatLine(lines, "Stone/hr", current.stoneProduction, next.stoneProduction, "#D4C8B4");
+            AddStatLine(lines, "Iron/hr", current.ironProduction, next.ironProduction, "#C8CCE6");
+            AddStatLine(lines, "Grain/hr", current.grainProduction, next.grainProduction, "#FFE844");
+            AddStatLine(lines, "Arcane/hr", current.arcaneEssenceProduction, next.arcaneEssenceProduction, "#CC88FF");
+
+            // Bonus comparison
+            if (next.bonuses != null)
+            {
+                foreach (var bonus in next.bonuses)
+                {
+                    float prevVal = 0f;
+                    if (current.bonuses != null)
+                    {
+                        foreach (var cb in current.bonuses)
+                            if (cb.bonusType == bonus.bonusType) { prevVal = cb.bonusPercent; break; }
+                    }
+                    if (bonus.bonusPercent != prevVal)
+                    {
+                        string bName = FormatBonusName(bonus.bonusType);
+                        lines.Add($"<color=#AAAAAA>{bName}:</color> {prevVal:F0}% <color=#44FF66>→ {bonus.bonusPercent:F0}%</color>");
+                    }
+                }
+            }
+
+            if (lines.Count == 0) return "";
+            return "\n" + string.Join("  |  ", lines);
+        }
+
+        private static void AddStatLine(System.Collections.Generic.List<string> lines, string name, float current, float next, string color)
+        {
+            if (next <= 0 && current <= 0) return;
+            if (next != current)
+                lines.Add($"<color={color}>{name}:</color> {current:F0} <color=#44FF66>→ {next:F0}</color>");
+            else if (current > 0)
+                lines.Add($"<color={color}>{name}: {current:F0}</color>");
+        }
+
+        private static string FormatBonusName(BuildingBonusType type)
+        {
+            switch (type)
+            {
+                case BuildingBonusType.TroopTrainingSpeed: return "Train Speed";
+                case BuildingBonusType.ResearchSpeed: return "Research Speed";
+                case BuildingBonusType.VaultCapacity: return "Vault Capacity";
+                case BuildingBonusType.TroopCapacity: return "Troop Cap";
+                case BuildingBonusType.HeroXpBonus: return "Hero XP";
+                default: return type.ToString();
+            }
         }
 
         private int GetStrongholdLevel()

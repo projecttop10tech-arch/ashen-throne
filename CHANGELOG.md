@@ -4,6 +4,23 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.19.0] — 2026-03-11 (Ralph Loop Iteration 14: P&C Speedups & Stat Preview)
+
+### ADDED
+- **Free speedup button** on construction overlay — appears when upgrade has <5 minutes remaining, pulsing green, instant complete
+- **Gem speedup button** ("BOOST") on construction overlay — calculates gem cost (1 gem/min), publishes `SpeedupRequestedEvent` for confirmation dialog
+- **Alliance help button** ("HELP") on construction overlay — publishes `AllianceHelpRequestedEvent`
+- **Before→After stat preview** in building info popup — shows production rate and bonus changes with color-coded arrows (e.g., "Stone/hr: 250 → 500")
+- **SpeedupRequestedEvent** and **AllianceHelpRequestedEvent** event structs in BuildingManager
+- **FindQueueEntry** helper in ConstructionOverlayManager (avoids IReadOnlyList.Find() which doesn't exist)
+
+### CHANGED
+- Construction overlay now shows 3 action buttons (FREE/BOOST/HELP) below progress bar in horizontal row
+- Free button auto-hides when >5min remaining; gem button auto-hides when free is available
+- Building info description now shows stat comparison lines with color-coded resource names
+
+---
+
 ## [0.18.0] — 2026-03-11 (Ralph Loop Iteration 13: P&C Building Interactions)
 
 ### ADDED

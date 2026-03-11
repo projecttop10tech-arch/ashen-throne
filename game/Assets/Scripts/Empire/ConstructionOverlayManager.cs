@@ -111,6 +111,26 @@ namespace AshenThrone.Empire
                         float swing = Mathf.Sin(Time.time * 4f) * 15f; // ±15° at 4Hz
                         overlay.HammerIcon.transform.localRotation = Quaternion.Euler(0, 0, swing);
                     }
+
+                    // P&C: Show FREE button when under 5 min remaining
+                    if (overlay.FreeSpeedupBtn != null)
+                    {
+                        bool showFree = remaining <= FreeSpeedupThreshold && remaining > 0;
+                        overlay.FreeSpeedupBtn.SetActive(showFree);
+                        // Pulse the free button green when visible
+                        if (showFree)
+                        {
+                            var freeImg = overlay.FreeSpeedupBtn.GetComponent<Image>();
+                            if (freeImg != null)
+                            {
+                                float fp = 0.8f + 0.2f * Mathf.Sin(Time.time * 5f);
+                                freeImg.color = new Color(FreeSpeedupColor.r * fp, FreeSpeedupColor.g * fp, FreeSpeedupColor.b, 1f);
+                            }
+                        }
+                    }
+                    // Hide gem speedup when free is available
+                    if (overlay.GemSpeedupBtn != null)
+                        overlay.GemSpeedupBtn.SetActive(remaining > FreeSpeedupThreshold);
                 }
             }
 
@@ -157,7 +177,7 @@ namespace AshenThrone.Empire
             RemoveOverlay(evt.PlacedId);
 
             // Create construction overlay on the building
-            var overlay = CreateConstructionOverlay(placement.VisualGO, evt.BuildTimeSeconds);
+            var overlay = CreateConstructionOverlay(placement.VisualGO, evt.BuildTimeSeconds, evt.PlacedId);
             _overlays[evt.PlacedId] = overlay;
         }
 
@@ -199,11 +219,14 @@ namespace AshenThrone.Empire
                     Destroy(overlay.ScaffoldOverlay);
                 if (overlay.HammerIcon != null)
                     Destroy(overlay.HammerIcon);
+                // Clean up button row (parent of FreeSpeedup/GemSpeedup/Help)
+                if (overlay.FreeSpeedupBtn != null && overlay.FreeSpeedupBtn.transform.parent != null)
+                    Destroy(overlay.FreeSpeedupBtn.transform.parent.gameObject);
                 _overlays.Remove(placedId);
             }
         }
 
-        private ConstructionOverlay CreateConstructionOverlay(GameObject buildingGO, float totalSeconds)
+        private ConstructionOverlay CreateConstructionOverlay(GameObject buildingGO, float totalSeconds, string placedId)
         {
             // Root container positioned at bottom of building
             var root = new GameObject("ConstructionOverlay");
@@ -347,6 +370,41 @@ namespace AshenThrone.Empire
             upgLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             upgLabel.raycastTarget = false;
 
+            // P&C: Action buttons row below progress bar
+            var btnRow = new GameObject("ActionButtons");
+            btnRow.transform.SetParent(buildingGO.transform, false);
+            var btnRowRect = btnRow.AddComponent<RectTransform>();
+            btnRowRect.anchorMin = new Vector2(0.02f, 0.18f);
+            btnRowRect.anchorMax = new Vector2(0.98f, 0.32f);
+            btnRowRect.offsetMin = Vector2.zero;
+            btnRowRect.offsetMax = Vector2.zero;
+            var hlg = btnRow.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 2f;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+
+            // Free speedup button (hidden initially, shown when < 5min)
+            var freeBtn = CreateOverlayButton(btnRow.transform, "FreeSpeedup", "FREE", FreeSpeedupColor);
+            freeBtn.SetActive(false);
+            var freeBtnComp = freeBtn.GetComponent<Button>();
+            string freeId = placedId;
+            freeBtnComp.onClick.AddListener(() => OnFreeSpeedupPressed(freeId));
+
+            // Gem speedup button
+            var gemBtn = CreateOverlayButton(btnRow.transform, "GemSpeedup", "BOOST", GemSpeedupColor);
+            var gemBtnComp = gemBtn.GetComponent<Button>();
+            string gemId = placedId;
+            gemBtnComp.onClick.AddListener(() => OnGemSpeedupPressed(gemId));
+
+            // Alliance help button
+            var helpBtn = CreateOverlayButton(btnRow.transform, "Help", "HELP", HelpBtnColor);
+            var helpBtnComp = helpBtn.GetComponent<Button>();
+            string helpId = placedId;
+            helpBtnComp.onClick.AddListener(() => OnAllianceHelpPressed(helpId));
+
+            // Root includes the button row as a child of buildingGO, not root
+            // So we track it in the overlay for cleanup
             return new ConstructionOverlay
             {
                 Root = root,
@@ -354,8 +412,76 @@ namespace AshenThrone.Empire
                 TimerText = timerText,
                 HammerIcon = hammerGO,
                 ScaffoldOverlay = scaffoldGO,
+                FreeSpeedupBtn = freeBtn,
+                GemSpeedupBtn = gemBtn,
+                HelpBtn = helpBtn,
                 TotalSeconds = totalSeconds
             };
+        }
+
+        private static GameObject CreateOverlayButton(Transform parent, string name, string label, Color bgColor)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(0, 0); // Layout-controlled
+
+            var img = go.AddComponent<Image>();
+            img.color = bgColor;
+            go.AddComponent<Button>().targetGraphic = img;
+
+            var textGO = new GameObject("Label");
+            textGO.transform.SetParent(go.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = label;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            return go;
+        }
+
+        private BuildQueueEntry FindQueueEntry(string placedId)
+        {
+            foreach (var e in _buildingManager.BuildQueue)
+                if (e.PlacedId == placedId) return e;
+            return null;
+        }
+
+        private void OnFreeSpeedupPressed(string placedId)
+        {
+            if (_buildingManager == null) return;
+            var entry = FindQueueEntry(placedId);
+            if (entry == null || entry.RemainingSeconds > FreeSpeedupThreshold) return;
+            _buildingManager.ApplySpeedup(placedId, Mathf.CeilToInt(entry.RemainingSeconds));
+            Debug.Log($"[ConstructionOverlay] Free speedup applied to {placedId}.");
+        }
+
+        private void OnGemSpeedupPressed(string placedId)
+        {
+            if (_buildingManager == null) return;
+            var entry = FindQueueEntry(placedId);
+            if (entry == null) return;
+            int gemsNeeded = Mathf.Max(1, Mathf.CeilToInt(entry.RemainingSeconds / 60f));
+            EventBus.Publish(new SpeedupRequestedEvent(placedId, gemsNeeded, entry.RemainingSeconds));
+            Debug.Log($"[ConstructionOverlay] Gem speedup requested for {placedId}: {gemsNeeded} gems.");
+        }
+
+        private void OnAllianceHelpPressed(string placedId)
+        {
+            EventBus.Publish(new AllianceHelpRequestedEvent(placedId));
+            Debug.Log($"[ConstructionOverlay] Alliance help requested for {placedId}.");
         }
 
         // ====================================================================
@@ -590,6 +716,11 @@ namespace AshenThrone.Empire
             return $"{m}:{s:D2}";
         }
 
+        private const float FreeSpeedupThreshold = 300f; // 5 minutes — P&C standard
+        private static readonly Color FreeSpeedupColor = new(0.20f, 0.78f, 0.35f, 1f);
+        private static readonly Color GemSpeedupColor = new(0.55f, 0.35f, 0.85f, 1f);
+        private static readonly Color HelpBtnColor = new(0.25f, 0.65f, 0.85f, 1f);
+
         private class ConstructionOverlay
         {
             public GameObject Root;
@@ -597,6 +728,9 @@ namespace AshenThrone.Empire
             public Text TimerText;
             public GameObject HammerIcon;
             public GameObject ScaffoldOverlay;
+            public GameObject FreeSpeedupBtn;
+            public GameObject GemSpeedupBtn;
+            public GameObject HelpBtn;
             public float TotalSeconds;
         }
     }

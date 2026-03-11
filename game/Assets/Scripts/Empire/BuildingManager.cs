@@ -257,4 +257,6 @@ namespace AshenThrone.Empire
     public readonly struct SpeedupAppliedEvent { public readonly string PlacedId; public readonly int SecondsApplied; public readonly float RemainingSeconds; public SpeedupAppliedEvent(string id, int s, float r) { PlacedId = id; SecondsApplied = s; RemainingSeconds = r; } }
     public readonly struct BuildingUpgradeCancelledEvent { public readonly string PlacedId; public BuildingUpgradeCancelledEvent(string id) { PlacedId = id; } }
     public readonly struct BuildingDemolishedEvent { public readonly string PlacedId; public readonly string BuildingId; public BuildingDemolishedEvent(string pid, string bid) { PlacedId = pid; BuildingId = bid; } }
+    public readonly struct SpeedupRequestedEvent { public readonly string PlacedId; public readonly int GemCost; public readonly float RemainingSeconds; public SpeedupRequestedEvent(string id, int g, float r) { PlacedId = id; GemCost = g; RemainingSeconds = r; } }
+    public readonly struct AllianceHelpRequestedEvent { public readonly string PlacedId; public AllianceHelpRequestedEvent(string id) { PlacedId = id; } }
 }
