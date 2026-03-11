@@ -1142,6 +1142,7 @@ namespace AshenThrone.Empire
         private Outline _placementHighlightOutline;
         private Vector2Int _placementSnapOrigin;
         private EventSubscription _placementRequestSub;
+        private GameObject _placementButtons; // P&C: Confirm/Cancel floating buttons
 
         /// <summary>
         /// Enter placement mode: shows a ghost building that snaps to grid.
@@ -1204,6 +1205,100 @@ namespace AshenThrone.Empire
             }
 
             EventBus.Publish(new PlacementModeEnteredEvent(buildingId));
+
+            // P&C: Create floating confirm/cancel buttons
+            CreatePlacementButtons();
+        }
+
+        private void CreatePlacementButtons()
+        {
+            // Find canvas root for overlay buttons
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _placementButtons = new GameObject("PlacementButtons");
+            _placementButtons.transform.SetParent(canvas.transform, false);
+            _placementButtons.transform.SetAsLastSibling();
+
+            // Semi-transparent banner at bottom
+            var bannerGO = new GameObject("Banner");
+            bannerGO.transform.SetParent(_placementButtons.transform, false);
+            var bannerRect = bannerGO.AddComponent<RectTransform>();
+            bannerRect.anchorMin = new Vector2(0f, 0f);
+            bannerRect.anchorMax = new Vector2(1f, 0.08f);
+            bannerRect.offsetMin = Vector2.zero;
+            bannerRect.offsetMax = Vector2.zero;
+            var bannerImg = bannerGO.AddComponent<Image>();
+            bannerImg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
+            bannerImg.raycastTarget = false;
+
+            // Instruction text
+            var instrGO = new GameObject("Instructions");
+            instrGO.transform.SetParent(_placementButtons.transform, false);
+            var instrRect = instrGO.AddComponent<RectTransform>();
+            instrRect.anchorMin = new Vector2(0.05f, 0.085f);
+            instrRect.anchorMax = new Vector2(0.95f, 0.13f);
+            instrRect.offsetMin = Vector2.zero;
+            instrRect.offsetMax = Vector2.zero;
+            var instrText = instrGO.AddComponent<Text>();
+            instrText.text = "Drag to position building. Tap CONFIRM to place.";
+            instrText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            instrText.fontSize = 11;
+            instrText.alignment = TextAnchor.MiddleCenter;
+            instrText.color = new Color(0.80f, 0.75f, 0.65f, 0.9f);
+            instrText.raycastTarget = false;
+
+            // Confirm button (green checkmark)
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(_placementButtons.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.52f, 0.01f);
+            confirmRect.anchorMax = new Vector2(0.95f, 0.075f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmImg = confirmGO.AddComponent<Image>();
+            confirmImg.color = new Color(0.20f, 0.72f, 0.35f, 1f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmImg;
+            confirmBtn.onClick.AddListener(() => ExitPlacementMode(true));
+            AddPlacementButtonLabel(confirmGO, "\u2714 CONFIRM");
+
+            // Cancel button (red X)
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(_placementButtons.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.05f, 0.01f);
+            cancelRect.anchorMax = new Vector2(0.48f, 0.075f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.65f, 0.20f, 0.20f, 1f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            cancelBtn.onClick.AddListener(() => ExitPlacementMode(false));
+            AddPlacementButtonLabel(cancelGO, "\u2716 CANCEL");
+        }
+
+        private static void AddPlacementButtonLabel(GameObject parent, string label)
+        {
+            var textGO = new GameObject("Label");
+            textGO.transform.SetParent(parent.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = label;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 13;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
         }
 
         /// <summary>
@@ -1221,10 +1316,12 @@ namespace AshenThrone.Empire
 
             if (_placementGhost != null) Destroy(_placementGhost);
             if (_placementHighlight != null) Destroy(_placementHighlight);
+            if (_placementButtons != null) Destroy(_placementButtons);
             _placementGhost = null;
             _placementHighlight = null;
             _placementHighlightImg = null;
             _placementHighlightOutline = null;
+            _placementButtons = null;
             _placementMode = false;
             _placementBuildingId = null;
 

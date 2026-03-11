@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.20.0] — 2026-03-11 (Ralph Loop Iteration 15: Speedup Dialog, Placement Polish, Production Summary)
+
+### ADDED
+- **SpeedupConfirmDialog** — P&C-style gem speedup confirmation popup with cost display, confirm/cancel buttons, full-screen overlay
+- **Placement confirm/cancel buttons** — floating bottom banner with instructions + green CONFIRM / red CANCEL buttons during building placement mode
+- **ResourceProductionSummary** — tappable resource bar opens detailed production breakdown per resource type, per building, with vault capacity summary
+- **ResourceBarTappedEvent** — published when tapping the resource bar background
+
+### CHANGED
+- Building placement mode now shows instruction text ("Drag to position...") and properly cleans up buttons on exit
+- Resource bar background is now tappable (Button component wired at runtime by ResourceProductionSummary)
+
+---
+
 ## [0.19.0] — 2026-03-11 (Ralph Loop Iteration 14: P&C Speedups & Stat Preview)
 
 ### ADDED
