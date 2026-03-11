@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.21.0] — 2026-03-11 (Ralph Loop Iteration 16: Swap, Recommendation, Queue Cancel)
+
+### ADDED
+- **Building swap** — dropping a building onto another same-size building swaps their positions (P&C-style)
+- **UpgradeRecommendationBanner** — persistent banner suggesting next priority upgrade (Stronghold first, then lowest-tier), tappable with "GO" button that opens info popup
+- **Queue cancel buttons** — each active build queue slot now has a small red X button to cancel that upgrade
+- **PlacedId tracking** in QueueSlotUI for cancel targeting
+
+### CHANGED
+- ExitMoveMode now attempts swap when dropping onto occupied cells (same-size buildings only)
+- Build queue HUD slots now show cancel affordance matching P&C queue management
+
+---
+
 ## [0.20.0] — 2026-03-11 (Ralph Loop Iteration 15: Speedup Dialog, Placement Polish, Production Summary)
 
 ### ADDED

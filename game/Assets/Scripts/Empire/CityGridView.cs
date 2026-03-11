@@ -1034,6 +1034,7 @@ namespace AshenThrone.Empire
 
                 if (CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding))
                 {
+                    // Normal move — target cells are empty
                     ClearCells(_movingBuilding.GridOrigin, _movingBuilding.Size);
                     _movingBuilding.GridOrigin = snapOrigin;
                     MarkCells(snapOrigin, _movingBuilding.Size, _movingBuilding.InstanceId);
@@ -1042,6 +1043,11 @@ namespace AshenThrone.Empire
                         PositionBuildingRect(
                             _movingBuilding.VisualGO.GetComponent<RectTransform>(),
                             _movingBuilding);
+                }
+                else
+                {
+                    // P&C: Try swap — if target is occupied by another building of same size
+                    TrySwapBuildings(snapOrigin);
                 }
 
                 if (_movingBuilding.VisualGO != null)
@@ -1058,6 +1064,58 @@ namespace AshenThrone.Empire
             DestroyHighlight();
             SetGridOverlayVisible(false);
             if (scrollRect != null) scrollRect.enabled = true;
+        }
+
+        /// <summary>
+        /// P&C: Swap two buildings' positions when dropped on top of another building.
+        /// Only works if both buildings occupy the same footprint size.
+        /// </summary>
+        private void TrySwapBuildings(Vector2Int targetOrigin)
+        {
+            if (_movingBuilding == null) return;
+
+            // Find the building occupying the target cells
+            CityBuildingPlacement targetBuilding = null;
+            for (int dx = 0; dx < _movingBuilding.Size.x && targetBuilding == null; dx++)
+            {
+                for (int dy = 0; dy < _movingBuilding.Size.y && targetBuilding == null; dy++)
+                {
+                    var cell = targetOrigin + new Vector2Int(dx, dy);
+                    if (_occupancy.TryGetValue(cell, out string occupantId) && occupantId != _movingBuilding.InstanceId)
+                    {
+                        foreach (var p in _placements)
+                        {
+                            if (p.InstanceId == occupantId)
+                            {
+                                targetBuilding = p;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (targetBuilding == null || targetBuilding.Size != _movingBuilding.Size) return;
+
+            // Perform swap
+            var originA = _movingBuilding.GridOrigin;
+            var originB = targetBuilding.GridOrigin;
+
+            ClearCells(originA, _movingBuilding.Size);
+            ClearCells(originB, targetBuilding.Size);
+
+            _movingBuilding.GridOrigin = originB;
+            targetBuilding.GridOrigin = originA;
+
+            MarkCells(originB, _movingBuilding.Size, _movingBuilding.InstanceId);
+            MarkCells(originA, targetBuilding.Size, targetBuilding.InstanceId);
+
+            if (_movingBuilding.VisualGO != null)
+                PositionBuildingRect(_movingBuilding.VisualGO.GetComponent<RectTransform>(), _movingBuilding);
+            if (targetBuilding.VisualGO != null)
+                PositionBuildingRect(targetBuilding.VisualGO.GetComponent<RectTransform>(), targetBuilding);
+
+            Debug.Log($"[CityGrid] Swapped {_movingBuilding.InstanceId} and {targetBuilding.InstanceId}.");
         }
 
         // ====================================================================

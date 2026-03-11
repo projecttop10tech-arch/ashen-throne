@@ -266,12 +266,43 @@ namespace AshenThrone.UI.Empire
             float elapsed = (float)(System.DateTime.UtcNow - entry.StartTime).TotalSeconds;
             float total = elapsed + entry.RemainingSeconds;
 
+            // P&C: Cancel button (small X in top-right corner)
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(root.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.78f, 0.55f);
+            cancelRect.anchorMax = new Vector2(0.98f, 0.95f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.65f, 0.20f, 0.20f, 0.85f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            string cancelId = entry.PlacedId;
+            cancelBtn.onClick.AddListener(() => OnCancelSlotPressed(cancelId));
+            var cancelLabel = new GameObject("X");
+            cancelLabel.transform.SetParent(cancelGO.transform, false);
+            var clRect = cancelLabel.AddComponent<RectTransform>();
+            clRect.anchorMin = Vector2.zero;
+            clRect.anchorMax = Vector2.one;
+            clRect.offsetMin = Vector2.zero;
+            clRect.offsetMax = Vector2.zero;
+            var clText = cancelLabel.AddComponent<Text>();
+            clText.text = "\u2716";
+            clText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            clText.fontSize = 9;
+            clText.fontStyle = FontStyle.Bold;
+            clText.alignment = TextAnchor.MiddleCenter;
+            clText.color = Color.white;
+            clText.raycastTarget = false;
+
             return new QueueSlotUI
             {
                 Root = root,
                 FillRect = fillRect,
                 TimerText = timerText,
-                TotalSeconds = total
+                TotalSeconds = total,
+                PlacedId = entry.PlacedId
             };
         }
 
@@ -430,12 +461,21 @@ namespace AshenThrone.UI.Empire
             return null;
         }
 
+        private void OnCancelSlotPressed(string placedId)
+        {
+            if (_buildingManager == null) return;
+            bool cancelled = _buildingManager.CancelUpgrade(placedId);
+            if (cancelled)
+                Debug.Log($"[BuildQueueHUD] Cancelled upgrade for {placedId}.");
+        }
+
         private class QueueSlotUI
         {
             public GameObject Root;
             public RectTransform FillRect;
             public Text TimerText;
             public float TotalSeconds;
+            public string PlacedId;
         }
     }
 }
