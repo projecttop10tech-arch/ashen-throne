@@ -282,10 +282,11 @@ namespace AshenThrone.Editor
             scroll.content = contentRect;
             scroll.horizontal = true;
             scroll.vertical = true;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.elasticity = 0.08f; // P&C: subtle bounce at edges
             scroll.inertia = true;
-            scroll.decelerationRate = 0.1f;
-            scroll.scrollSensitivity = 10f;
+            scroll.decelerationRate = 0.135f; // P&C: smooth, not abrupt
+            scroll.scrollSensitivity = 12f;
 
             // ================================================================
             // 3. Ground background (rich terrain art, covers entire content)

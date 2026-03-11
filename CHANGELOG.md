@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.24.0] — 2026-03-11 (Ralph Loop Iteration 19: Smooth Zoom, Elastic Scroll, Detail LOD)
+
+### ADDED
+- **Smooth zoom interpolation** — mouse scroll zoom now lerps smoothly to target (ZoomLerpSpeed=8) instead of instant jumps
+- **Zoom-level detail visibility** — level badges and name labels hide when zoomed out below 1.0x for clean strategic overview
+- **Elastic scroll bounce** — scroll edges now have subtle elastic bounce (elasticity=0.08) instead of hard clamp
+
+### CHANGED
+- ScrollRect deceleration rate increased from 0.1 to 0.135 for smoother momentum (P&C-style)
+- Mouse scroll zoom speed increased from 0.1 to 0.15 for more responsive zoom steps
+- Pinch zoom syncs _targetZoom to prevent smooth-zoom fighting with direct pinch input
+
+---
+
 ## [0.23.0] — 2026-03-11 (Ralph Loop Iteration 18: Quick Actions, Resource Glow, Info Flow)
 
 ### ADDED

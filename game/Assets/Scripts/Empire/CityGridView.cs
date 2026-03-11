@@ -111,9 +111,12 @@ namespace AshenThrone.Empire
         private const float ZoomMin = 0.4f;
         private const float ZoomMax = 2.5f;
         private const float ZoomSpeed = 0.005f; // per pixel of pinch delta
-        private const float MouseScrollZoomSpeed = 0.1f;
+        private const float MouseScrollZoomSpeed = 0.15f;
+        private const float ZoomLerpSpeed = 8f; // P&C: smooth zoom interpolation
         private const float DefaultZoom = 2.5f;
         private float _currentZoom = DefaultZoom;
+        private float _targetZoom = DefaultZoom;
+        private Vector2 _zoomPivotScreen;
         private bool _isPinching;
         private float _lastPinchDistance;
         private int _touchCount;
@@ -139,7 +142,10 @@ namespace AshenThrone.Empire
             RegisterSceneBuildings();
             // Read initial zoom from content scale (set by generator, persisted in scene)
             if (contentContainer != null)
+            {
                 _currentZoom = contentContainer.localScale.x;
+                _targetZoom = _currentZoom;
+            }
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
         }
@@ -236,6 +242,7 @@ namespace AshenThrone.Empire
                     float delta = dist - _lastPinchDistance;
                     float newZoom = Mathf.Clamp(_currentZoom + delta * ZoomSpeed, ZoomMin, ZoomMax);
                     ApplyZoom(newZoom, (t0.position + t1.position) * 0.5f);
+                    _targetZoom = _currentZoom; // Sync target with direct pinch
                     _lastPinchDistance = dist;
                 }
             }
@@ -245,12 +252,20 @@ namespace AshenThrone.Empire
                 if (scrollRect != null && !_moveMode) scrollRect.enabled = true;
             }
 
-            // Mouse scroll zoom (editor / desktop testing)
+            // Mouse scroll zoom (editor / desktop testing) — P&C: smooth interpolated
             float scroll = Input.mouseScrollDelta.y;
             if (scroll != 0f && !_moveMode && !_isPinching)
             {
-                float newZoom = Mathf.Clamp(_currentZoom + scroll * MouseScrollZoomSpeed, ZoomMin, ZoomMax);
-                ApplyZoom(newZoom, Input.mousePosition);
+                _targetZoom = Mathf.Clamp(_targetZoom + scroll * MouseScrollZoomSpeed, ZoomMin, ZoomMax);
+                _zoomPivotScreen = Input.mousePosition;
+            }
+
+            // Smooth zoom interpolation
+            if (!Mathf.Approximately(_currentZoom, _targetZoom))
+            {
+                float smoothed = Mathf.Lerp(_currentZoom, _targetZoom, Time.deltaTime * ZoomLerpSpeed);
+                if (Mathf.Abs(smoothed - _targetZoom) < 0.001f) smoothed = _targetZoom;
+                ApplyZoom(smoothed, _zoomPivotScreen);
             }
         }
 
@@ -271,6 +286,26 @@ namespace AshenThrone.Empire
 
             var diff = pivotAfter - pivotBefore;
             contentContainer.anchoredPosition += diff * _currentZoom;
+
+            // P&C: Hide detail labels at far zoom levels
+            UpdateZoomDetailVisibility();
+        }
+
+        /// <summary>
+        /// P&C: Hide level badges and name labels when zoomed out far
+        /// to keep the view clean at strategic overview zoom levels.
+        /// </summary>
+        private void UpdateZoomDetailVisibility()
+        {
+            bool showDetails = _currentZoom >= 1.0f;
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var badge = p.VisualGO.transform.Find("LevelBadge");
+                if (badge != null) badge.gameObject.SetActive(showDetails);
+                var nameLabel = p.VisualGO.transform.Find("NameLabel");
+                if (nameLabel != null) nameLabel.gameObject.SetActive(showDetails);
+            }
         }
 
         /// <summary>Current zoom level (1.0 = default).</summary>
