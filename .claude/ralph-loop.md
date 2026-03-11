@@ -1,357 +1,226 @@
 # Ashen Throne — Ralph Loop Plan
 
 > **Loop Type:** ralph-wiggum:ralph-loop
-> **Completion Promise:** LAUNCH_READY
-> **Max Iterations:** 100
+> **Max Iterations:** 10000
 
 ---
 
 ## Prompt
 
-You are the lead QA engineer and technical director for Ashen Throne, a high-quality mobile game for iOS and Android built in Unity 6. The project lives at ~/ashen-throne/. Your job is to build, review, and expand the game system-by-system through all development phases (7-16), applying BRUTAL quality standards to every single file, line of code, and design decision you encounter or create. Do not skip any check. Do not rush. Be a perfectionist.
+You are the lead Software engineer and technical director for Ashen Throne. You are a senior Unity engineer with an eye for visual quality.
 
-Use the Unity MCP server (port 8090, configured in game/ProjectSettings/McpUnitySettings.json) for all Unity Editor operations: running generators, populating scenes, wiring components, creating assets.
+### VISUAL QUALITY ASSESSMENT PROTOCOL (MANDATORY)
 
-Follow the phase plan below. Apply the 62-check QA protocol to every system.
+Every iteration, you MUST take a screenshot and run this brutally honest checklist BEFORE claiming anything looks good:
 
----
+**SHIT TEST — If ANY of these are true, it looks like shit:**
+1. Buildings are colored rectangles or placeholders instead of actual art sprites → SHIT
+2. Ground is a flat solid color or boring tiled texture → SHIT
+3. UI panels are plain dark rectangles without borders, gradients, or ornate styling → SHIT
+4. Text is plain white with no shadows, outlines, or style hierarchy → SHIT
+5. Buttons look like programmer placeholders (solid color boxes) → SHIT
+6. Icons are missing, generic, or have dark/opaque backgrounds → SHIT
+7. There's no visual depth — no shadows, no layering, no parallax → SHIT
+8. Colors are muddy, flat, or don't have contrast → SHIT
+9. Spacing is uneven, elements overlap awkwardly, or alignment is off → SHIT
+10. It doesn't look like a screenshot from an actual mobile game on the App Store → SHIT
 
-## Phase Status Tracker
+### PUZZLES & CHAOS CITY DESIGN REFERENCE (CRITICAL)
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| 7 | COMPLETE | All generators run, scenes populated, 544 tests pass |
-| 8 | COMPLETE | 132 PNGs, 51 prefabs, 18 WAVs, colorblind shader, 544 tests pass |
-| 9 | COMPLETE | 5 SDK services, 6 IAP SKUs, boot sequence, ~40 new tests |
-| 10 | COMPLETE | BP Season 1, 40 gacha items, 219 locale keys, balance sheets |
-| 11 | PLACEHOLDER | Real art requires external artists — placeholders in place |
-| 12 | PLACEHOLDER | Real audio requires composers — placeholders in place |
-| 13 | COMPLETE | 38 integration tests, 6 performance benchmarks, zero compile errors |
-| 14 | COMPLETE | Scene transitions, UI animation, haptics, settings, deep links |
-| 15 | COMPLETE | GDPR consent, privacy manager, all code-side compliance done |
-| 16 | COMPLETE | Launch checklist, monitoring plan, all code-deliverable work done |
+**Reference image:** `/Users/tomterhune/Downloads/IMG_0791.PNG`
 
----
+The Empire city MUST match the visual design language of Puzzles & Chaos. Here is exactly what P&C does and what we must replicate:
 
-## Phase 7: Infrastructure, Tooling, Project Hygiene (Weeks 1-3)
+#### GROUND & TERRAIN
+- **Dark atmospheric ground** — NOT bright green grass. P&C uses dark stone/dirt terrain with subtle texture variation
+- **Faint grid lines** visible only in certain areas (greenish diamond overlay), NOT prominent everywhere
+- **No visible tile seams** — the ground reads as a continuous surface, not a checkerboard
+- **Terrain fills the ENTIRE screen** — you should never see the edge of the terrain or empty space. The city world extends beyond the viewport in all directions
+- **Ground color is moody/dark** — dark grey, dark brown, muted tones. The terrain RECEDES so buildings pop
 
-**Goal:** Fix project hygiene, run SceneGenerator to populate empty scenes, create missing SO generators, wire scripts to scene GameObjects.
+#### BUILDINGS
+- **Buildings look 3D-rendered** — they have volume, lighting, shadow, not flat 2D sprites pasted on
+- **MASSIVE size variation** — the central castle/citadel is 5-10x larger than resource buildings. P&C's castle dominates the upper-center of the screen
+- **Buildings are DENSE** — they fill the city area tightly with minimal gaps. The city should feel packed and alive
+- **Warm window/interior glows** — buildings emit amber/orange light from windows and doorways
+- **Magical auras** — key buildings (arcane, research) have visible colored aura effects
+- **Each building has a UNIQUE silhouette** — you can tell every building apart by shape alone at a glance
+- **Buildings overlap slightly in the isometric view** — this creates depth, front buildings partially cover back buildings
+- **Level badges are SMALL and integrated** — not big ugly rectangles. P&C shows small numbered indicators that don't dominate the building
+- **Construction timers float above buildings** — "2d 17:44:59" style, semi-transparent dark pill with white text
+- **Building labels appear on TAP** — clean white text on dark rounded pill, shown on selection, not always visible
 
-### Deliverables
+#### FOCAL CENTERPIECE
+- P&C has a **MASSIVE glowing dragon/creature** at the very top of the city behind buildings — this creates a dramatic focal point
+- For Ashen Throne: the Stronghold should be the largest building AND we need a dramatic visual anchor — glowing magical effect, giant creature, or atmospheric element that dominates the upper portion of the city
+- The focal centerpiece should be 2-3x larger than even the biggest building
 
-- [x] **7.1** Create `.gitignore` (Unity standard: exclude Library/, Temp/, Logs/, *.csproj, *.sln, .DS_Store)
-- [ ] **7.2** Run `Assets/Editor/SceneGenerator.cs` to populate all 6 scenes with Camera, Canvas, EventSystem, Directional Light, and scene-specific UI hierarchies
-- [x] **7.3** Wire MonoBehaviour scripts to scene GameObjects:
-  - Boot: GameManager, PlayFabService, LocalizationBootstrap, AccessibilityManager, TutorialManager
-  - Lobby: LobbyUIController with navigation buttons
-  - Empire: EmpireUIController, ResourceHUD, BuildingPanel, ResearchTreePanel
-  - Combat: CombatUIController, CardHandView, EnergyDisplay, TurnOrderDisplay, CombatInputHandler, DamagePopupManager
-  - WorldMap: WorldMapUIController
-  - Alliance: AllianceUIController
-- [x] **7.4** Create `Assets/Editor/BuildingDataGenerator.cs` → generate 21 BuildingData SOs
-- [x] **7.5** Create `Assets/Editor/QuestDefinitionGenerator.cs` → generate 30 QuestDefinition SOs
-- [x] **7.6** Create `Assets/Editor/TutorialStepGenerator.cs` → generate 8 TutorialStep SOs
-- [x] **7.7** Create `Assets/Resources/AccessibilityConfig.asset` (added to ConfigGenerator)
-- [x] **7.8** Create balance sheet CSVs in `tools/BalanceSheets/`
-- [ ] **7.9** Run all generators in Unity Editor (BuildingData, QuestDefinition, TutorialStep, Config)
+#### ATMOSPHERIC EFFECTS
+- **Particle effects everywhere** — floating sparkles, embers, magical motes drifting across the scene
+- **Building-specific ambient FX** — forges emit embers, arcane towers emit sparkles, farms have leaf particles
+- **Glowing light pools** around magical buildings casting colored light onto the ground
+- **Fog/haze layers** — subtle atmospheric fog between building rows adds depth
+- **Purple/blue mystical atmosphere** in the background sky area
 
-### Exit Criteria
-1. All 6 scenes load without NullReferenceException
-2. Scene navigation works: Boot → Lobby → Empire/Combat/WorldMap/Alliance
-3. `.gitignore` prevents Library/ from staging
-4. 21 BuildingData + 30 QuestDefinition + 8 TutorialStep SOs exist
-5. All existing unit tests still pass
+#### COLOR PALETTE
+- **Primary:** Dark blue/indigo/charcoal for backgrounds and terrain
+- **Secondary:** Deep purple/violet for magical effects and atmosphere
+- **Accent:** Warm gold for ALL UI frames, borders, text highlights
+- **Building lights:** Amber/orange window glows creating warm contrast against dark terrain
+- **Text:** White or gold with strong dark shadows/outlines — NEVER plain unshadowed text
+- **Overall mood:** DARK and ATMOSPHERIC with bright accent points, NOT bright and cheerful
 
----
+#### UI OVERLAYS ON CITY
+- **Resource bar** (top): Thin ornate strip with 5 resource icons + amounts, gold-bordered
+- **Player info** (top-left): VIP badge, power display, coordinates — all with ornate frames
+- **Build queue** (left sidebar): 4 compact strips stacked vertically — "Build", "Build", "Research", "Training" with IDLE/timer status. Each has a colored dot icon, dark bg, gold accents
+- **Event buttons** (right sidebar): 7 compact nearly-square buttons stacked vertically with small unique icons, countdown timers, ornate frames
+- **Upgrade banner** (above nav): Gold banner strip with upgrade prompt text
+- **Chat ticker** (above upgrade banner): Dark strip with scrolling alliance notifications
+- **Bottom nav bar**: 7 buttons (WORLD, HERO, QUEST, BAG, MAIL, ALLIANCE, RANK) — each with unique production icon, gold styling, active tab highlighted with accent color
+- **Building selection label**: Clean pill popup appearing on tap, NOT always visible
 
-## Phase 8: Placeholder Art and UI Prefabs (Weeks 4-6)
+#### SIZE & PROPORTION RULES
+- The **city itself** should occupy 60-70% of the vertical screen. UI overlays frame it but don't crush it
+- The **Stronghold** should be at least 3x the width of a resource building
+- **Bottom nav bar** should be ~8-10% of screen height — enough for icons and labels to be readable, NOT paper-thin
+- **Event buttons** should be small enough to stack 7+ vertically without overlapping other UI
 
-**Goal:** Create colored-rectangle placeholder assets for every visual slot so all systems render in Editor. Create all missing prefabs.
+### BUTTON FUNCTIONALITY TEST (MANDATORY)
 
-### Deliverables
+Every button on every screen MUST do something when tapped. For each screen:
+1. **Identify every Button component** in the hierarchy
+2. **Verify it has a click handler** — SceneNavigator, onClick listener, or EventBus publish
+3. **If a button does nothing on click → FAIL** — wire it to navigate, show a panel, or log an action
+4. **Test in play mode** — tap every button and confirm it responds
 
-- [ ] **8.1** Placeholder hero art: 10 portraits (256x256), 10 full-body (512x1024), 10 Spine stubs → wire to HeroData SOs
-- [ ] **8.2** Placeholder card art: 50 card frames (200x300) colored by element → wire to AbilityCardData SOs
-- [ ] **8.3** Placeholder building art: 63 PNGs (21 buildings × 3 tier sprites) → wire to BuildingData SOs
-- [ ] **8.4** UI sprite atlas: resource icons, currency icons, buttons, panels, status icons, navigation icons, bar fills
-- [ ] **8.5** Environment art: 7 combat tile textures, 5 world map textures, empire background + district floors
-- [ ] **8.6** ~30 missing UI prefabs: HeroStatusDisplay, EnergyBar, VictoryPanel, DefeatPanel, BuildingSlot, QuestRow, ChatBubble, LeaderboardRow, BattlePassTierRow, StoreProductCard, HeroCard, EventBanner, TutorialOverlay, SettingsToggle/Slider, BuildingPrefab, WorldMapTile, particle effects
-- [ ] **8.7** Placeholder audio: 3 music loops (30s each), 15 SFX clips
-- [ ] **8.8** Colorblind filter shader (URP fullscreen, 3 Daltonization modes) + 3 material instances
+Buttons that MUST work on each screen:
+- **Empire**: Nav bar (WORLD, HERO, QUEST, BAG, MAIL, ALLIANCE), center EMPIRE button, all 7 event sidebar buttons, resource +, build queue slots, upgrade banner, chat bar
+- **Lobby**: Nav bar, CAMPAIGN play button, JOIN event, Quest GO, Battle Pass claim
+- **Combat**: RETREAT, END TURN, Victory CONTINUE, Defeat RETRY/QUIT
+- **World Map**: BACK button, zoom in/out, search, attack, scout
+- **Alliance**: BACK button, chat tabs, SEND button
 
-### Exit Criteria
-1. Every scene renders visually (no pink materials, no invisible panels)
-2. Combat scene shows: grid tiles, card hand, hero portraits, energy bar, turn order
-3. Empire scene shows: resource HUD, building grid, build queue
-4. All 3 colorblind modes produce visible color shifts
-5. Audio plays on scene transitions
+### NUANCE CHECKLIST — Things that look bad but are easy to miss:
 
----
+1. **Level badges as dark rectangles** — if building level indicators look like tiny black boxes with numbers, they look like shit. They should be small, rounded, gold-framed pills
+2. **Build queue with flat purple backgrounds** — if queue items have plain solid-color fills, they look like programmer art. Needs texture/gradient/ornate frame
+3. **Icons at wrong scale** — icons too small inside their frames look empty; too large look cramped. Icons should fill 60-70% of their container
+4. **Text with no hierarchy** — if all text is the same size/weight/color, it reads as placeholder. Headers bold+gold, values bold+white, labels regular+grey
+5. **Compressed bottom area** — if nav bar + chat + upgrade banner are all squeezed into <15% of screen height, everything becomes unreadable strips
+6. **Empty/dead space in the city** — if you can see large patches of bare ground with no buildings, it looks unfinished. The city should be DENSE
+7. **All buildings same size** — if every building is the same footprint, the city looks like a boring grid. Vary sizes dramatically
+8. **No focal point** — if nothing draws your eye when you first look at the screen, there's no visual hierarchy. The Stronghold/dragon/centerpiece must demand attention
+9. **UI elements with no depth** — flat panels without borders, shadows, gradients, or texture look like rectangles floating on screen. Every panel needs at minimum a border + slight gradient
+10. **Bright terrain under dark buildings** — ground that's brighter than buildings kills the atmospheric mood. Ground must be DARKER than buildings
+11. **Visible UI seams** — where panels meet, there should be ornate transitions, not hard color boundaries
+12. **Notification badges that are rectangles** — notification counts should be in red CIRCLES, not red rectangles
+13. **Icons with visible dark backgrounds** — EVERY icon must have transparent bg. If you see a dark square behind an icon, regenerate it
+14. **Chat/ticker text too small to read** — if text is <10pt at phone resolution, nobody can read it. Minimum 10pt for any visible text
+15. **Buttons without hover/press feedback** — buttons should have visual states. At minimum a color tint on press
 
-## Phase 9: SDK Integration — PlayFab, Photon, Firebase (Weeks 7-9)
+### COMPARE TO REFERENCE
 
-**Goal:** Replace all SDK stubs with real working integrations.
+**Always** load `/Users/tomterhune/Downloads/IMG_0791.PNG` and compare side-by-side. Ask yourself:
+- Does our city have the same DENSITY of buildings?
+- Does our city have the same DARK ATMOSPHERIC mood?
+- Does our UI have the same GOLD ORNATE quality?
+- Does our city have the same DRAMATIC FOCAL POINT (dragon/creature)?
+- Would a random person looking at both screenshots think they're from the same genre of game?
 
-### Deliverables
+If the answer to any of these is NO, keep working.
 
-- [ ] **9.1** Install PlayFab Unity SDK, uncomment all calls in `PlayFabService.cs`
-- [ ] **9.2** Deploy `backend/CloudScript/economy.js` to PlayFab title
-- [ ] **9.3** Activate Unity IAP: register 6 SKUs, wire purchase flow
-- [ ] **9.4** Install Photon Fusion 2, create `PhotonManager.cs`
-- [ ] **9.5** Install Firebase (Analytics + Crashlytics)
-- [ ] **9.6** Create `ATTManager.cs` for iOS App Tracking Transparency
+**ZOOMED INSPECTION:** For each screen, capture the full view AND zoom into: top bar area, center content, bottom nav, left sidebar, right sidebar. Each zone must pass the shit test independently.
 
-### Exit Criteria
-1. Boot scene authenticates with PlayFab (real PlayFabId)
-2. User data round-trips (save/read via PlayFab)
-3. IAP catalog loads with localized prices
-4. Photon connects and can create/join a room
-5. Firebase Analytics event visible in console
-6. All existing tests still pass
+### PROCEDURAL UI TEXTURE SYSTEM (CRITICAL — NO MORE PNG DEPENDENCY)
 
----
+**The #1 quality problem is relying on external PNG sprites for UI elements.** When PNGs are missing, dark, or low-quality, the entire UI looks like programmer art. Instead, ALL UI elements must use **code-generated textures** created at editor time.
 
-## Phase 10: Content Population and Data Balancing (Weeks 10-12)
+Create a `ProceduralUITextures.cs` utility class in `Assets/Editor/` that generates high-quality Texture2D assets programmatically. These textures must look PREMIUM, not like boring flat rectangles.
 
-**Goal:** Fill all data-driven systems with launch content and balance the economy.
+#### Required Procedural Textures:
 
-### Deliverables
+1. **Panel backgrounds** — rounded rectangle with:
+   - Configurable corner radius (8-16px)
+   - Multi-stop vertical gradient (dark bottom → slightly lighter top)
+   - 2px inner border with configurable color (gold, teal, blood, etc.)
+   - Subtle inner shadow along top and left edges (lit-from-above effect)
+   - Optional outer glow (1-3px soft colored border outside the main rect)
 
-- [ ] **10.1** Tune 21 buildings × 10 tiers against balance sheet
-- [ ] **10.2** Tune 30 quest rewards against economy flow model
-- [ ] **10.3** Hero balance pass: faction diversity, role coverage, stat distributions
-- [ ] **10.4** PvE difficulty curve: Chapter 1 beatable with 1 hero at level 1
-- [ ] **10.5** Expand localization from 32 keys to ~400 keys, translate 7 non-English languages
-- [ ] **10.6** Battle Pass Season 1: 50 tiers free + premium, zero P2W
-- [ ] **10.7** Gacha pool: 40 cosmetic items, zero heroes, pity counter at 50
+2. **Button textures** — rounded rectangle with:
+   - Brighter gradient than panels (convex/raised look)
+   - Thicker border (2-3px) with highlight on top edge, shadow on bottom
+   - Inner bevel effect (light edge top/left, dark edge bottom/right)
+   - Pressed state variant (inverted gradient, inset shadow)
 
-### Exit Criteria
-1. Complete Chapter 1 playthrough (5 PvE levels) with starter hero
-2. Daily quest cycle completes correctly
-3. Building Stronghold through 3 tiers with correct costs/timers
-4. All 8 languages display correct text
-5. Balance sheet audit passes (Day 1/7/30 resource flow matches targets)
+3. **Ornate frame textures** — for major panels:
+   - Double border (outer gold + inner dark gap + inner gold)
+   - Corner accent marks (small diamond or flourish at corners)
+   - Gradient fill with subtle noise/texture pattern
 
----
+4. **Badge/pill textures** — small rounded shapes:
+   - Fully rounded ends (capsule shape)
+   - High-contrast border
+   - Inner gradient
 
-## Phase 11: Real Art Asset Production (Weeks 13-17)
+5. **Progress bar textures** — for HP bars, XP bars:
+   - Rounded fill with glossy highlight across top 30%
+   - Dark inset background track
+   - Animated-looking gradient in fill
 
-**Goal:** Replace all placeholder art with production dark fantasy assets.
+6. **Tab textures** — for active/inactive states:
+   - Active: bright gradient + bottom accent bar + no top border
+   - Inactive: dark flat + subtle border + dimmed
 
-### Deliverables
+#### Technical Requirements:
+- Generate at 2x resolution (256x64 for buttons, 512x128 for panels, etc.)
+- Save as PNG to `Assets/Art/UI/Generated/` folder
+- Auto-set import settings (textureType: Sprite, spriteMode: Single, filterMode: Bilinear)
+- All textures must be 9-slice compatible (set border values in .meta)
+- Menu item: `AshenThrone/Generate UI Textures`
+- Idempotent — safe to re-run, overwrites existing
 
-- [ ] **11.1** 10 hero portraits + full-body + Spine rigs (5 animations each)
-- [ ] **11.2** 50 card illustrations + 6 element frame overlays
-- [ ] **11.3** 210 building sprites (21 buildings × 10 tiers)
-- [ ] **11.4** Environment: combat tiles, world map, empire city, URP skyboxes
-- [ ] **11.5** UI atlas: production icons, ornate buttons/panels, app icon, splash screen
-- [ ] **11.6** 20 particle effect prefabs
-- [ ] **11.7** Art style guide reference sheets
+#### What STAYS as real art assets (NOT procedural):
+- **Hero portraits** (`Assets/Art/Characters/Heroes/*_portrait.png`) — embedded in procedural frames
+- **Hero fullbody art** — embedded in card frames, profile screens
+- **Building sprites** (`Assets/Art/Buildings/*.png`) — the isometric city buildings
+- **Terrain/environment textures** — ground tiles, world map tiles, backgrounds
+- **Icons** (resource icons, nav icons, event icons) — embedded in procedural button/panel textures
+- **Card art** (`Assets/Art/UI/Cards/CardFrame_*.png`) — combat card illustrations
 
-### Exit Criteria
-1. Zero placeholder rectangles visible
-2. All 10 heroes animate correctly in combat
-3. Empire shows visually distinct buildings per district/tier
-4. App icon renders correctly in simulators
+The procedural system generates the CONTAINERS (panels, buttons, frames, badges) — then real art sprites are placed INSIDE them. A button is a procedural rounded gradient rect with a real icon sprite centered inside it.
 
----
+#### Quality Bar:
+Every generated texture must look like it was designed by a UI artist. Compare to mobile games like Puzzles & Chaos, AFK Arena, Rise of Kingdoms. If a texture looks like a CSS border-box from 2005, it's WRONG. It should have:
+- Visible depth (not flat)
+- Warm metallic sheen for gold elements
+- Soft gradients (not hard color stops)
+- Subtle noise/grain for richness (not clean digital look)
 
-## Phase 12: Audio Production and Integration (Weeks 16-18)
+### TASK
 
-**Goal:** Replace placeholder audio with production music, SFX, and voice.
+**Phase 1: Build the procedural texture generator**
+1. Create `ProceduralUITextures.cs` with all texture types above
+2. Run the generator to create the texture assets
+3. Update `SceneUIGenerator.cs` to load from `Assets/Art/UI/Generated/` instead of `Assets/Art/UI/Production/`
+4. Regenerate ALL scenes with the new textures
+5. Screenshot and verify every scene looks better than before
 
-### Deliverables
+**Phase 2: Per-scene quality pass**
+Go through every page of Ashen Throne one at a time. For each page:
+1. Screenshot it
+2. Run the shit test honestly — list every failure
+3. Run the nuance checklist — list every failure
+4. Run the button functionality test — list every dead button
+5. Fix ALL failures before moving to the next page
+6. Re-screenshot and re-test until it passes ALL THREE checklists
 
-- [ ] **12.1** 7 music tracks (OGG 128kbps)
-- [ ] **12.2** 50+ SFX clips (WAV 44.1kHz)
-- [ ] **12.3** 40 hero voice lines (10 heroes × 4)
-- [ ] **12.4** Create `Scripts/Core/AudioManager.cs`
+The EMPIRE page is the priority. It must match P&C's city design language — dark atmospheric terrain, dense isometric buildings with dramatic size variation, glowing effects, a massive focal centerpiece, ornate gold UI overlays. Every building needs a real sprite, not a placeholder.
 
-### Exit Criteria
-1. Music crossfades between scenes without gap/pop
-2. Every player action has audio feedback
-3. Combat SFX sync with Spine animations (within 100ms)
-4. Volume sliders work independently per category
+Then: World Map with cities and player names. Then all other pages.
 
----
+Make sure no buttons exist that do nothing. Every button needs a unique icon with transparent background. Every icon used should match its purpose.
 
-## Phase 13: Integration Testing and Performance Optimization (Weeks 19-21)
-
-**Goal:** Make everything work together reliably, hit mobile performance targets.
-
-### Deliverables
-
-- [ ] **13.1** Performance benchmark suite
-- [ ] **13.2** Memory optimization: ObjectPool, Addressables (4 bundles)
-- [ ] **13.3** GPU optimization: URP mobile config, sprite atlas packing
-- [ ] **13.4** Network optimization: PlayFab call profiling, caching
-- [ ] **13.5** Full 62-check QA pass with documented results
-- [ ] **13.6** 20 new PlayMode integration tests
-
-### Exit Criteria
-1. Stable 60fps in combat
-2. Zero memory leaks in 30-minute session
-3. Zero NullReferenceExceptions in any scene transition
-4. 50+ of 62 QA checks passing
-5. 60+ total tests passing
-6. Build size under 150MB
-
----
-
-## Phase 14: Polish, UX, and Accessibility (Weeks 22-24)
-
-**Goal:** Add transitions, animations, haptics, tutorial polish, settings completion.
-
-### Deliverables
-
-- [ ] **14.1** Scene transition system: fade-to-black, loading spinner
-- [ ] **14.2** UI animation: card fan, HP bar lerp, building pop, gacha reveal
-- [ ] **14.3** Haptic feedback for key events
-- [ ] **14.4** Notification scheduling
-- [ ] **14.5** Settings panel completion
-- [ ] **14.6** Tutorial polish: dim overlay, hand pointer, skip button
-- [ ] **14.7** Deep link registration
-
-### Exit Criteria
-1. Smooth scene transitions
-2. Every UI panel animates in/out
-3. Haptics fire on all designated events
-4. Notifications appear at correct times
-5. Tutorial completes Steps 0-7
-6. Settings persist across sessions
-
----
-
-## Phase 15: Platform Compliance and Store Preparation (Weeks 25-27)
-
-**Goal:** Meet all App Store / Google Play requirements, prepare store listings.
-
-### Deliverables
-
-- [ ] **15.1** iOS: ExportOptions.plist, Info.plist, screenshots, localized description
-- [ ] **15.2** Android: Target API 34, AndroidManifest, keystore signing, screenshots
-- [ ] **15.3** Privacy: Privacy Policy/ToS viewers, GDPR consent, COPPA
-- [ ] **15.4** Age rating: IARC (expected PEGI 12 / ESRB T)
-- [ ] **15.5** CI/CD final config: test gates, version bumping, signing
-- [ ] **15.6** Store assets: feature graphic, promotional art, preview video
-- [ ] **15.7** Final 62-check QA pass — all checks must pass
-
-### Exit Criteria
-1. TestFlight build runs on physical iPhone
-2. Google Play Internal build runs on physical Android
-3. All 62 QA checks pass on both platforms
-4. Store listings complete in 8 languages
-5. CI/CD produces signed release builds
+YOU ARE NEVER FINISHED — DO NOT STOP. If you think you're done, you are wrong. Take another screenshot, zoom in, and find more problems.
 
 ---
-
-## Phase 16: Soft Launch, Beta, Global Release (Weeks 28-30)
-
-**Goal:** Beta test, soft launch, fix issues, go global.
-
-### Deliverables
-
-- [ ] **16.1** Closed beta: 100-200 testers
-- [ ] **16.2** Soft launch: Philippines + New Zealand
-- [ ] **16.3** Hotfix cycle: top 5 crashes, progression blockers
-- [ ] **16.4** Global launch: simultaneous App Store + Google Play
-- [ ] **16.5** Post-launch monitoring plan
-- [ ] **16.6** Launch marketing assets
-
-### Exit Criteria
-1. Global launch on both stores
-2. Crash-free rate >99.5% in first 48 hours
-3. No progression-blocking bugs
-4. D1 retention >40%
-5. All 5 launch events scheduled
-
----
-
-## 62-Check QA Protocol
-
-| # | Category | Check |
-|---|----------|-------|
-| 1 | Code Quality | Zero compiler warnings |
-| 2 | Code Quality | All public APIs have XML doc comments |
-| 3 | Code Quality | Zero NullReferenceException paths |
-| 4 | Code Quality | No hardcoded strings in UI (all localized) |
-| 5 | Code Quality | No hardcoded magic numbers (use config SOs) |
-| 6 | Code Quality | All PlayFab callbacks handle error case |
-| 7 | Code Quality | No FindObjectOfType (use ServiceLocator) |
-| 8 | Code Quality | No LINQ in hot paths (Update, combat resolution) |
-| 9 | Code Quality | All IDisposable properly disposed |
-| 10 | Code Quality | No async void (except Unity event handlers) |
-| 11 | Architecture | ServiceLocator used for cross-system deps |
-| 12 | Architecture | EventBus for loose coupling (all events are structs) |
-| 13 | Architecture | ScriptableObjects for ALL tunable values |
-| 14 | Architecture | MainThreadDispatcher for PlayFab → Unity |
-| 15 | Architecture | ObjectPool for frequent spawns (>5x/session) |
-| 16 | Architecture | Assembly definitions enforce boundaries |
-| 17 | Performance | 60fps in combat (profiler verified) |
-| 18 | Performance | Scene load < 3s on target device |
-| 19 | Performance | No GC alloc in Update loops |
-| 20 | Performance | Sprite atlases for all UI |
-| 21 | Performance | Particle systems ≤ 200 particles each |
-| 22 | Performance | Audio compressed (OGG music, WAV short SFX) |
-| 23 | Performance | Addressables for large assets |
-| 24 | Performance | Build size < 150MB |
-| 25 | Performance | Memory stable over 30-min session |
-| 26 | Visual | No pink/missing materials |
-| 27 | Visual | No invisible UI panels |
-| 28 | Visual | Consistent art style across scenes |
-| 29 | Visual | Scene transitions smooth (no flash) |
-| 30 | Visual | All heroes have idle/attack/hit/death/victory anims |
-| 31 | Visual | Colorblind modes work (3 Daltonization modes) |
-| 32 | Visual | UI scales correctly 16:9 through 21:9 |
-| 33 | Visual | Dark fantasy theme consistent |
-| 34 | Gameplay | Chapter 1 completable with starter hero |
-| 35 | Gameplay | Tutorial steps 0-7 complete without error |
-| 36 | Gameplay | Daily/weekly quest cycle works |
-| 37 | Gameplay | Building upgrade respects timer caps (4h/8h) |
-| 38 | Gameplay | Combat card play → damage → animation pipeline works |
-| 39 | Gameplay | Alliance creation/join/chat functional |
-| 40 | Monetization | ZERO P2W items in shop |
-| 41 | Monetization | All heroes earnable F2P |
-| 42 | Monetization | Gacha is cosmetic-only, pity at 50 |
-| 43 | Monetization | F2P reaches 70% max power at Day 90 |
-| 44 | Platform | iOS builds and runs on device |
-| 45 | Platform | Android builds and runs on device |
-| 46 | Platform | Notifications schedule correctly |
-| 47 | Platform | Deep links resolve |
-| 48 | Platform | IAP purchase flow completes |
-| 49 | Security | No secrets in source control |
-| 50 | Security | PlayFab calls use HTTPS |
-| 51 | Security | IAP receipt validation server-side |
-| 52 | Security | No client-authority for currency/resources |
-| 53 | Security | GDPR/COPPA compliance |
-| 54 | Testing | Unit tests pass (NUnit) |
-| 55 | Testing | Integration tests pass (PlayMode) |
-| 56 | Testing | All generators idempotent |
-| 57 | Testing | Backend tests pass (Jest) |
-| 58 | Testing | Crash-free rate > 99.5% |
-| 59 | Docs | CLAUDE.md up to date |
-| 60 | Docs | CHANGELOG.md current |
-| 61 | Docs | Store listing complete in 8 languages |
-| 62 | Docs | Privacy policy and ToS accessible |
-
----
-
-## Critical Files
-
-| File | Why |
-|------|-----|
-| `Assets/Editor/SceneGenerator.cs` | Must run first — populates all 6 empty scenes |
-| `Assets/Scripts/Network/PlayFabService.cs` | Central stub → real SDK conversion |
-| `Assets/Scripts/UI/Combat/CombatUIController.cs` | Template for wiring SerializeField refs |
-| `Assets/Scripts/Data/BuildingData.cs` | Data class with zero SO instances |
-| `Assets/Editor/StarterAssetGenerator.cs` | Pattern for all new SO generators |
-
-## End-of-Iteration Protocol
-
-After each ralph-loop iteration:
-1. Run all unit + integration tests
-2. Run 62-check QA protocol on modified systems
-3. Update CHANGELOG.md and CLAUDE.md
-4. Commit all changes
-5. Push to GitHub
-6. Update Phase Status Tracker above

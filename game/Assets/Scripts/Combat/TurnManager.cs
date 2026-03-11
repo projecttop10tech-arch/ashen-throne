@@ -42,6 +42,8 @@ namespace AshenThrone.Combat
 
         private void Awake()
         {
+            if (_config == null)
+                _config = Resources.Load<CombatConfig>("CombatConfig");
             _grid = GetComponent<CombatGrid>();
             _cardHand = GetComponent<CardHandManager>();
         }

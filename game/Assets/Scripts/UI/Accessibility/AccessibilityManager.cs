@@ -107,6 +107,8 @@ namespace AshenThrone.UI.Accessibility
 
         private void Awake()
         {
+            if (_config == null)
+                _config = Resources.Load<AccessibilityConfig>("AccessibilityConfig");
             ServiceLocator.Register<AccessibilityManager>(this);
         }
 

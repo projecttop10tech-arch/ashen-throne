@@ -357,9 +357,9 @@ namespace AshenThrone.Events
 
         private void Awake()
         {
-            ServiceLocator.Register<VoidRiftManager>(this);
             if (_config == null)
-                Debug.LogError("[VoidRiftManager] VoidRiftConfig not assigned.", this);
+                _config = Resources.Load<VoidRiftConfig>("VoidRiftConfig");
+            ServiceLocator.Register<VoidRiftManager>(this);
         }
 
         private void OnDestroy()

@@ -101,3 +101,4 @@ sysinfo.txt
 !game/Packages/manifest.json
 !game/Packages/packages-lock.json
 !game/ProjectSettings/*.asset
+.env

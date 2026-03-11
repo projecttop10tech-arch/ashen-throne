@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="14" result="Passed" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.0422984">
+  <test-suite type="TestSuite" id="1000" name="game" fullname="game" runstate="Runnable" testcasecount="703" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.042298" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1748" name="AshenThrone.Tests.dll" fullname="/Users/tomterhune/ashen-throne/game/Library/ScriptAssemblies/AshenThrone.Tests.dll" runstate="Runnable" testcasecount="702" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.033281" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="14383" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1749" name="AshenThrone" fullname="AshenThrone" runstate="Runnable" testcasecount="702" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.028483" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1750" name="Tests" fullname="AshenThrone.Tests" runstate="Runnable" testcasecount="702" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.024418" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1758" name="Core" fullname="AshenThrone.Tests.Core" runstate="Runnable" testcasecount="88" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.017366" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1472" name="ServiceLocatorTests" fullname="AshenThrone.Tests.Core.ServiceLocatorTests" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.016040" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1476" name="Get_NotRegistered_Throws" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Get_NotRegistered_Throws" methodname="Get_NotRegistered_Throws" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1811207894" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.006578" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1486" name="Initialize_DoubleCall_IsIdempotent" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Initialize_DoubleCall_IsIdempotent" methodname="Initialize_DoubleCall_IsIdempotent" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1003512213" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000210" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1480" name="IsRegistered_False_WhenNotRegistered" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.IsRegistered_False_WhenNotRegistered" methodname="IsRegistered_False_WhenNotRegistered" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1944478312" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000095" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1479" name="IsRegistered_True_WhenRegistered" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.IsRegistered_True_WhenRegistered" methodname="IsRegistered_True_WhenRegistered" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="147682372" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000052" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1483" name="MultipleTypes_IndependentRegistration" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.MultipleTypes_IndependentRegistration" methodname="MultipleTypes_IndependentRegistration" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="745790235" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000136" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1473" name="Register_Get_ReturnsSameInstance" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Register_Get_ReturnsSameInstance" methodname="Register_Get_ReturnsSameInstance" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="720805344" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000061" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1474" name="Register_Null_Throws" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Register_Null_Throws" methodname="Register_Null_Throws" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1202453136" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000084" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1475" name="Register_Overwrite_ReturnsNewInstance" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Register_Overwrite_ReturnsNewInstance" methodname="Register_Overwrite_ReturnsNewInstance" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1873450305" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000067" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1485" name="Shutdown_ClearsAllServices" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Shutdown_ClearsAllServices" methodname="Shutdown_ClearsAllServices" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1858836375" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000060" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1478" name="TryGet_NotRegistered_ReturnsFalse" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.TryGet_NotRegistered_ReturnsFalse" methodname="TryGet_NotRegistered_ReturnsFalse" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1853518804" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000233" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1477" name="TryGet_Registered_ReturnsTrue" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.TryGet_Registered_ReturnsTrue" methodname="TryGet_Registered_ReturnsTrue" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="952384353" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000608" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1482" name="Unregister_NotRegistered_DoesNotThrow" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Unregister_NotRegistered_DoesNotThrow" methodname="Unregister_NotRegistered_DoesNotThrow" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1452738957" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000289" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1484" name="Unregister_OneType_DoesNotAffectOther" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Unregister_OneType_DoesNotAffectOther" methodname="Unregister_OneType_DoesNotAffectOther" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="1837707594" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000062" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1481" name="Unregister_RemovesService" fullname="AshenThrone.Tests.Core.ServiceLocatorTests.Unregister_RemovesService" methodname="Unregister_RemovesService" classname="AshenThrone.Tests.Core.ServiceLocatorTests" runstate="Runnable" seed="275965238" result="Passed" start-time="2026-03-08 12:38:03Z" end-time="2026-03-08 12:38:03Z" duration="0.000057" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: /Users/tomterhune/Library/Application Support/DefaultCompany/game/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -17,7 +17,6 @@ namespace AshenThrone.Core
         public static void Initialize()
         {
             if (_initialized) return;
-            _services.Clear();
             _initialized = true;
         }
 

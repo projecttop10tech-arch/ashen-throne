@@ -4,6 +4,62 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.17.0] — 2026-03-10 (Ralph Loop Pass 2: Deep Visual Polish)
+
+### ADDED
+- **Background art** wired to Lobby + Alliance scenes (`empire_bg.png` atmospheric cityscape)
+- **Boot splash screen** brightness increased — flaming throne art now visible
+- **Building Info Popup** (Empire): full ornate upgrade with header, level badge, separator, time estimate, glass highlight
+- **Resource Detail Popup** (Empire): ornate frame, glass highlight, capacity bar outline, value shadows
+
+### CHANGED
+- **106 text shadows** across all scenes (was ~60) — every bold text now has a shadow component
+- **Ornate panel tints** standardized: QuestSummary, EnergyPanel, CardTray fixed from cool/gray to warm gold
+- **Glass highlights** unified to `(0.20, 0.18, 0.28, 0.15)` across all 7 panels
+- **Victory/Defeat frames** now have gold separator lines between sections
+- **Close buttons** unified to consistent color across all Empire popups
+- **Empire popup frames** brightened from `(0.55, 0.50, 0.42)` to `(0.65, 0.58, 0.48)`
+- **Boot loading frame** warmer tint `(0.62, 0.55, 0.45)`
+
+### FIXED
+- **2 unconditional AddOutlinePanel bugs** — endTurnBtn and costBadge now conditional on sprite load
+- **Badge count text** 7pt → 9pt (notification badges)
+- **AddStyledButton** helper now adds shadow to all button labels automatically
+- **9 bold text elements** missing shadows: gold/gem amounts, TURN title, energy count, chat tab, chat initials, emblem letters, hero portraits, HP text
+
+### REMOVED
+- Removed midGlow and heroGlow flat panels from Lobby (replaced by background art)
+
+### VERIFIED
+- 0 compile errors, 0 warnings
+- All 7 generators run clean (6 scene UIs + city layout)
+- All 6 scenes screenshotted and visually verified
+
+---
+
+## [0.16.0] — 2026-03-09 (Ralph Loop: Nav Wiring, Icon Regen, Dense City)
+
+### ADDED
+- **94-building Empire city** layout (up from 41): ultra-dense P&C-style with inner ring administration, north military, east magic, west support, south resources, defense tower perimeter, and deep outer ring.
+
+### FIXED
+- **7 dead nav buttons wired** with SceneNavigator across all scenes:
+  - Lobby: HERO/QUEST/BAG/MAIL now stay on Lobby (were incorrectly navigating to Empire).
+  - Lobby: CAMPAIGN button now navigates to Combat scene.
+  - WorldMap: BACK button now navigates to Empire.
+  - Alliance: BACK button now navigates to Empire.
+  - Combat: RETREAT, Victory CONTINUE, Defeat QUIT all navigate to Empire.
+- **5 nav bar icons regenerated** with transparent backgrounds (were dark/opaque):
+  nav_battle, nav_heroes, nav_shop, nav_alliance, nav_empire — all now vibrant art on transparent bg via Runware generate + bg removal.
+
+### VERIFIED
+- All 5 scenes pass 10-point SHIT TEST visual quality audit.
+- All 34 production UI icons audited for background quality.
+- All building sprites (63), hero portraits (10), card frames (8), terrain tiles (5) verified.
+- 683/703 tests passing (19 pre-existing ServiceLocator/AudioManager failures, 0 regressions).
+
+---
+
 ## [0.15.0] — 2026-03-08 (UI Audit: Combat, WorldMap, Alliance Overhaul)
 
 ### ADDED

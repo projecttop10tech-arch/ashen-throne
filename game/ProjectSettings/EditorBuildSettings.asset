@@ -12,11 +12,11 @@ EditorBuildSettings:
     path: Assets/Scenes/Lobby/Lobby.unity
     guid: 2a8130597adfe4052934b178ecb580b2
   - enabled: 1
-    path: Assets/Scenes/Empire/Empire.unity
-    guid: eab03186acc2a4966afcea912fe79041
-  - enabled: 1
     path: Assets/Scenes/Combat/Combat.unity
     guid: e4d0befa2906c4364bebdc8b21087b3a
+  - enabled: 1
+    path: Assets/Scenes/Empire/Empire.unity
+    guid: eab03186acc2a4966afcea912fe79041
   - enabled: 1
     path: Assets/Scenes/WorldMap/WorldMap.unity
     guid: a991551b293234cd88c98b0a44261503

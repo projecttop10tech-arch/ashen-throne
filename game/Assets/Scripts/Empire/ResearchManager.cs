@@ -40,6 +40,8 @@ namespace AshenThrone.Empire
 
         private void Awake()
         {
+            if (_config == null)
+                _config = Resources.Load<EmpireConfig>("EmpireConfig");
             _resourceManager = GetComponent<ResourceManager>();
             if (_resourceManager == null) ServiceLocator.TryGet<ResourceManager>(out _resourceManager);
             ServiceLocator.Register<ResearchManager>(this);

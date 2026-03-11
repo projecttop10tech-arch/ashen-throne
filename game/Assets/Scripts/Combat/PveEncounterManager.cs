@@ -41,14 +41,13 @@ namespace AshenThrone.Combat
 
         private void Awake()
         {
+            if (_combatConfig == null)
+                _combatConfig = Resources.Load<CombatConfig>("CombatConfig");
+            if (_progressionConfig == null)
+                _progressionConfig = Resources.Load<ProgressionConfig>("ProgressionConfig");
             _grid = GetComponent<CombatGrid>();
             _turnManager = GetComponent<TurnManager>();
             _cardHand = GetComponent<CardHandManager>();
-
-            if (_combatConfig == null)
-                Debug.LogError("[PveEncounterManager] CombatConfig not assigned in Inspector.");
-            if (_progressionConfig == null)
-                Debug.LogError("[PveEncounterManager] ProgressionConfig not assigned in Inspector.");
         }
 
         private void OnEnable()

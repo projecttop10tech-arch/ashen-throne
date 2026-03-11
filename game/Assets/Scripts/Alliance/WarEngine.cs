@@ -255,9 +255,9 @@ namespace AshenThrone.Alliance
 
         private void Awake()
         {
-            ServiceLocator.Register<WarEngine>(this);
             if (_config == null)
-                Debug.LogError("[WarEngine] TerritoryConfig not assigned.", this);
+                _config = Resources.Load<TerritoryConfig>("TerritoryConfig");
+            ServiceLocator.Register<WarEngine>(this);
         }
 
         private void Start()

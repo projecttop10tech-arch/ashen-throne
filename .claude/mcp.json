@@ -9,6 +9,12 @@
         "UNITY_PORT": "8090",
         "LOGGING": "true"
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     }
   }
 }

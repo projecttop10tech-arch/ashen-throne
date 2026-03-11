@@ -2156,77 +2156,47 @@ namespace AshenThrone.Editor
             rbTop -= rbH + rbGap;
             AddEventButton(canvas, "EventBtn7", "Arena", new Color(0.6f, 0.25f, 0.15f, 1f), rbX0, rbTop - rbH, rbX1, rbTop, "03:28:11", SceneName.Combat);
 
-            // === CHAT BAR — compact P&C-style ticker with channel tabs and input ===
-            var chatBar = AddPanel(canvas, "ChatBar", new Color(0.12f, 0.09f, 0.18f, 0.96f));
-            SetAnchors(chatBar, 0f, 0.142f, 0.84f, 0.195f);
+            // === CHAT BAR — full-width minimal icon bar, taps to open Alliance chat ===
+            var chatBar = AddPanel(canvas, "ChatBar", new Color(0.08f, 0.06f, 0.14f, 0.90f));
+            SetAnchors(chatBar, 0f, 0.142f, 1f, 0.185f);
             // Gold top border
-            var chatTopBorder = AddPanel(chatBar, "TopBorder", new Color(0.80f, 0.62f, 0.24f, 0.75f));
-            SetAnchors(chatTopBorder, 0f, 0.92f, 1f, 1f);
+            var chatTopBorder = AddPanel(chatBar, "TopBorder", new Color(0.80f, 0.62f, 0.24f, 0.60f));
+            SetAnchors(chatTopBorder, 0f, 0.90f, 1f, 1f);
             chatTopBorder.AddComponent<LayoutElement>().ignoreLayout = true;
-            var chatBotBorder = AddPanel(chatBar, "BotBorder", new Color(0.65f, 0.50f, 0.20f, 0.40f));
-            SetAnchors(chatBotBorder, 0f, 0f, 1f, 0.08f);
-            chatBotBorder.AddComponent<LayoutElement>().ignoreLayout = true;
+            // Entire bar is tappable → opens Alliance/Chat scene
+            SetButtonFeedback(chatBar.AddComponent<Button>());
+            AddSceneNav(chatBar, SceneName.Alliance);
 
-            // Channel tabs — left side (World | Alliance | Private)
-            var chatTabs = AddPanel(chatBar, "Tabs", new Color(0, 0, 0, 0));
-            SetAnchors(chatTabs, 0.01f, 0.55f, 0.42f, 0.95f);
-            var chatTabsHlg = chatTabs.AddComponent<HorizontalLayoutGroup>();
-            chatTabsHlg.spacing = 2; chatTabsHlg.childForceExpandWidth = true; chatTabsHlg.childForceExpandHeight = true;
-            chatTabsHlg.padding = new RectOffset(2, 2, 0, 0);
-            // Active tab (World)
-            var tabWorld = AddPanel(chatTabs, "TabWorld", new Color(0.18f, 0.12f, 0.06f, 0.65f));
-            tabWorld.AddComponent<LayoutElement>().flexibleWidth = 1;
-            var tabWorldBorder = AddPanel(tabWorld, "Border", new Color(0.72f, 0.56f, 0.22f, 0.70f));
-            SetAnchors(tabWorldBorder, 0f, 0f, 1f, 0.06f);
-            var tabWorldText = AddText(tabWorld, "Text", "World", 10, TextAnchor.MiddleCenter);
-            StretchToParent(tabWorldText);
-            tabWorldText.GetComponent<Text>().color = new Color(1f, 0.92f, 0.72f, 1f);
-            tabWorldText.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var twSh = tabWorldText.AddComponent<Shadow>(); twSh.effectColor = new Color(0, 0, 0, 0.7f); twSh.effectDistance = new Vector2(0.5f, -0.5f);
-            // Inactive tab (Alliance) — subtle border for depth
-            var tabAlliance = AddPanel(chatTabs, "TabAlliance", new Color(0.06f, 0.04f, 0.10f, 0.40f));
-            tabAlliance.AddComponent<LayoutElement>().flexibleWidth = 1;
-            var tabAlliBorder = AddPanel(tabAlliance, "Border", new Color(0.45f, 0.38f, 0.22f, 0.30f));
-            SetAnchors(tabAlliBorder, 0f, 0f, 1f, 0.06f);
-            var tabAlliText = AddText(tabAlliance, "Text", "Alliance", 10, TextAnchor.MiddleCenter);
-            StretchToParent(tabAlliText);
-            tabAlliText.GetComponent<Text>().color = new Color(0.55f, 0.50f, 0.45f, 0.80f);
-            // Red dot on alliance tab for unread
-            var tabAlliDot = AddPanel(tabAlliance, "UnreadDot", new Color(0.88f, 0.14f, 0.14f, 1f));
-            SetAnchors(tabAlliDot, 0.82f, 0.65f, 0.95f, 0.90f);
-            // Inactive tab (Private) — subtle border for depth
-            var tabPm = AddPanel(chatTabs, "TabPM", new Color(0.06f, 0.04f, 0.10f, 0.40f));
-            tabPm.AddComponent<LayoutElement>().flexibleWidth = 1;
-            var tabPmBorder = AddPanel(tabPm, "Border", new Color(0.45f, 0.38f, 0.22f, 0.30f));
-            SetAnchors(tabPmBorder, 0f, 0f, 1f, 0.06f);
-            var tabPmText = AddText(tabPm, "Text", "PM", 10, TextAnchor.MiddleCenter);
-            StretchToParent(tabPmText);
-            tabPmText.GetComponent<Text>().color = new Color(0.55f, 0.50f, 0.45f, 0.80f);
+            // NavChat icon — shows alliance shield if in alliance chat, speech bubble for realm/server
+            var chatNavIcon = AddPanel(chatBar, "NavChatIcon", new Color(0, 0, 0, 0));
+            SetAnchors(chatNavIcon, 0.02f, 0.10f, 0.08f, 0.88f);
+            // Load alliance icon (swap at runtime based on last active channel)
+            var chatIconSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/icon_chat.png");
+            if (chatIconSpr != null) { chatNavIcon.GetComponent<Image>().sprite = chatIconSpr; chatNavIcon.GetComponent<Image>().preserveAspect = true; chatNavIcon.GetComponent<Image>().color = new Color(0.85f, 0.70f, 0.30f, 0.90f); }
+            else
+            {
+                // Fallback: emoji chat icon
+                var chatIconText = AddText(chatNavIcon, "Icon", "\uD83D\uDCAC", 16, TextAnchor.MiddleCenter);
+                StretchToParent(chatIconText);
+                chatIconText.GetComponent<Text>().color = new Color(0.85f, 0.70f, 0.30f, 0.90f);
+            }
 
-            // Chat message area — shows latest message with chat icon
-            var chatIconText = AddText(chatBar, "ChatIcon", "\uD83D\uDCAC", 12, TextAnchor.MiddleCenter);
-            SetAnchors(chatIconText, 0.01f, 0.08f, 0.06f, 0.52f);
-            chatIconText.GetComponent<Text>().color = new Color(0.80f, 0.64f, 0.28f, 0.80f);
+            // Latest message preview — scrolling ticker text
             var chatMsgArea = AddPanel(chatBar, "MessageArea", new Color(0, 0, 0, 0));
-            SetAnchors(chatMsgArea, 0.06f, 0.06f, 0.78f, 0.55f);
-            var chatMsg = AddText(chatMsgArea, "Message", "<color=#2EC7A6>NBAHeartless:</color> launched a rally at Lv. 17 Monster...", 11, TextAnchor.MiddleLeft);
+            SetAnchors(chatMsgArea, 0.09f, 0.08f, 0.92f, 0.92f);
+            var chatMsg = AddText(chatMsgArea, "Message", "<color=#2EC7A6>[Alliance]</color> NBAHeartless: Rally at Lv.17 Monster!", 11, TextAnchor.MiddleLeft);
             StretchToParent(chatMsg);
-            chatMsg.GetComponent<Text>().color = new Color(0.85f, 0.82f, 0.75f, 0.95f);
+            chatMsg.GetComponent<Text>().color = new Color(0.78f, 0.75f, 0.68f, 0.88f);
             chatMsg.GetComponent<Text>().supportRichText = true;
             var chatMsgShadow = chatMsg.AddComponent<Shadow>();
             chatMsgShadow.effectColor = new Color(0, 0, 0, 0.8f);
             chatMsgShadow.effectDistance = new Vector2(1f, -1f);
 
-            // Input field area — right side with ornate border
-            var chatInputBg = AddPanel(chatBar, "InputBg", new Color(0.12f, 0.09f, 0.18f, 0.92f));
-            SetAnchors(chatInputBg, 0.78f, 0.10f, 0.99f, 0.90f);
-            AddOutlinePanel(chatInputBg, new Color(0.72f, 0.56f, 0.22f, 0.65f));
-            var chatInputLabel = AddText(chatInputBg, "Placeholder", "Chat...", 10, TextAnchor.MiddleCenter);
-            StretchToParent(chatInputLabel);
-            chatInputLabel.GetComponent<Text>().color = new Color(0.62f, 0.56f, 0.48f, 0.80f);
-            chatInputLabel.GetComponent<Text>().fontStyle = FontStyle.Italic;
-            SetButtonFeedback(chatInputBg.AddComponent<Button>()); // Tappable to open full chat
-            AddSceneNav(chatInputBg, SceneName.Alliance);
+            // Unread notification dot — right side
+            var chatUnread = AddPanel(chatBar, "UnreadDot", new Color(0.92f, 0.15f, 0.10f, 1f));
+            SetAnchors(chatUnread, 0.94f, 0.30f, 0.97f, 0.70f);
+            var roundSprChat = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Kenney/buttonRound_brown.png");
+            if (roundSprChat != null) { chatUnread.GetComponent<Image>().sprite = roundSprChat; chatUnread.GetComponent<Image>().type = Image.Type.Sliced; chatUnread.GetComponent<Image>().color = new Color(0.92f, 0.15f, 0.10f, 1f); }
 
             // === UPGRADE BANNER (above nav) — bright gold banner like P&C ===
             var upgradeBanner = AddPanel(canvas, "UpgradeBanner", new Color(0.28f, 0.20f, 0.08f, 0.96f));
@@ -2264,70 +2234,48 @@ namespace AshenThrone.Editor
             SetButtonFeedback(upgradeBanner.AddComponent<Button>());
             AddSceneNav(upgradeBanner, SceneName.Empire);
 
-            // === BOTTOM NAV BAR — warm dark base with multi-layer gold borders, visible depth ===
+            // === BOTTOM NAV BAR — clean with single gold top border ===
             var navBar = AddPanel(canvas, "BottomNavBar", new Color(0.10f, 0.07f, 0.16f, 1f));
             SetAnchors(navBar, 0f, 0f, 1f, 0.10f);
-            // Triple gold border — outermost bright
+            // Single gold top border
             var navBorder1 = AddPanel(navBar, "TopBorder1", new Color(0.92f, 0.74f, 0.32f, 1f));
             SetAnchors(navBorder1, 0f, 0.96f, 1f, 1f);
             navBorder1.AddComponent<LayoutElement>().ignoreLayout = true;
-            // Middle dark inset
-            var navBorder2 = AddPanel(navBar, "TopBorder2", new Color(0.30f, 0.22f, 0.10f, 0.85f));
-            SetAnchors(navBorder2, 0f, 0.93f, 1f, 0.96f);
-            navBorder2.AddComponent<LayoutElement>().ignoreLayout = true;
-            // Inner thin gold line
-            var navBorder3 = AddPanel(navBar, "TopBorder3", new Color(0.75f, 0.58f, 0.24f, 0.65f));
-            SetAnchors(navBorder3, 0f, 0.915f, 1f, 0.93f);
-            navBorder3.AddComponent<LayoutElement>().ignoreLayout = true;
-            // Warm golden glow beneath borders
-            var navTopGlow = AddPanel(navBar, "TopGlow", new Color(0.75f, 0.55f, 0.20f, 0.18f));
-            SetAnchors(navTopGlow, 0f, 0.82f, 1f, 0.915f);
-            navTopGlow.AddComponent<LayoutElement>().ignoreLayout = true;
             // Upper half lighter for glass depth
             var navHighlight = AddPanel(navBar, "Highlight", new Color(0.16f, 0.11f, 0.24f, 0.50f));
-            SetAnchors(navHighlight, 0f, 0.50f, 1f, 0.82f);
+            SetAnchors(navHighlight, 0f, 0.50f, 1f, 0.96f);
             navHighlight.AddComponent<LayoutElement>().ignoreLayout = true;
             // Bottom fade to black
             var navBotFade = AddPanel(navBar, "BotFade", new Color(0.03f, 0.02f, 0.05f, 0.50f));
             SetAnchors(navBotFade, 0f, 0f, 1f, 0.15f);
             navBotFade.AddComponent<LayoutElement>().ignoreLayout = true;
 
-            // Gold diamond accent where center button meets left border
-            var navDiamondL = AddPanel(navBar, "DiamondL", new Color(0.92f, 0.74f, 0.32f, 0.85f));
-            SetAnchors(navDiamondL, 0.325f, 0.88f, 0.355f, 1.04f);
-            navDiamondL.AddComponent<LayoutElement>().ignoreLayout = true;
-            navDiamondL.transform.localRotation = Quaternion.Euler(0, 0, 45);
-            // Gold diamond accent where center button meets right border
-            var navDiamondR = AddPanel(navBar, "DiamondR", new Color(0.92f, 0.74f, 0.32f, 0.85f));
-            SetAnchors(navDiamondR, 0.645f, 0.88f, 0.675f, 1.04f);
-            navDiamondR.AddComponent<LayoutElement>().ignoreLayout = true;
-            navDiamondR.transform.localRotation = Quaternion.Euler(0, 0, 45);
-
             // === Nav items — 3 left, CENTER raised button, 3 right ===
             var navLayoutLeft = AddPanel(navBar, "NavLeft", new Color(0, 0, 0, 0));
-            SetAnchors(navLayoutLeft, 0f, 0.02f, 0.38f, 0.94f);
+            SetAnchors(navLayoutLeft, 0f, 0.02f, 0.34f, 0.94f);
             var nllLayout = navLayoutLeft.AddComponent<HorizontalLayoutGroup>();
             nllLayout.spacing = 0;
-            nllLayout.padding = new RectOffset(4, 0, 4, 6);
+            nllLayout.padding = new RectOffset(4, 4, 4, 6);
             nllLayout.childForceExpandWidth = true;
             nllLayout.childForceExpandHeight = true;
+            nllLayout.childAlignment = TextAnchor.MiddleCenter;
 
             AddNavItem(navLayoutLeft, "NavWorld", "WORLD", Ember, false, 0, SceneName.WorldMap);
             AddNavItem(navLayoutLeft, "NavHero", "HERO", Purple, false, 2, SceneName.Lobby);
             AddNavItem(navLayoutLeft, "NavQuest", "QUEST", Teal, false, 17, SceneName.Lobby);
 
-            // === CENTER BUTTON — dramatic raised ornate jewel button with multi-layer glow ===
-            // Widest outer glow — soft warm halo
-            var centerGlow1 = AddPanel(navBar, "CenterGlow1", new Color(0.72f, 0.52f, 0.18f, 0.06f));
-            SetAnchors(centerGlow1, 0.26f, -0.02f, 0.74f, 1.28f);
-            // Mid glow — warmer, brighter
-            var centerGlow2 = AddPanel(navBar, "CenterGlow2", new Color(0.88f, 0.62f, 0.22f, 0.10f));
-            SetAnchors(centerGlow2, 0.30f, 0.02f, 0.70f, 1.22f);
-            // Inner glow — ember ring
-            var centerGlow3 = AddPanel(navBar, "CenterGlow3", new Color(0.95f, 0.55f, 0.18f, 0.12f));
-            SetAnchors(centerGlow3, 0.33f, 0.04f, 0.67f, 1.18f);
+            // === CENTER BUTTON — raised ornate, no ember glow ===
+            // Gold diamond accents at junctions
+            var navDiamondL = AddPanel(navBar, "DiamondL", new Color(0.92f, 0.74f, 0.32f, 0.85f));
+            SetAnchors(navDiamondL, 0.325f, 0.88f, 0.355f, 1.04f);
+            navDiamondL.AddComponent<LayoutElement>().ignoreLayout = true;
+            navDiamondL.transform.localRotation = Quaternion.Euler(0, 0, 45);
+            var navDiamondR = AddPanel(navBar, "DiamondR", new Color(0.92f, 0.74f, 0.32f, 0.85f));
+            SetAnchors(navDiamondR, 0.645f, 0.88f, 0.675f, 1.04f);
+            navDiamondR.AddComponent<LayoutElement>().ignoreLayout = true;
+            navDiamondR.transform.localRotation = Quaternion.Euler(0, 0, 45);
 
-            // Main button body — use btn_ornate sprite with brighter gold frame
+            // Main button body
             var centerBtn = AddPanel(navBar, "NavCenterBtn", new Color(0.10f, 0.06f, 0.16f, 1f));
             SetAnchors(centerBtn, 0.34f, 0.04f, 0.66f, 1.16f);
             var centerBtnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/btn_neutral.png");
@@ -2336,31 +2284,17 @@ namespace AshenThrone.Editor
                 var cImg = centerBtn.GetComponent<Image>();
                 cImg.sprite = centerBtnSpr;
                 cImg.type = Image.Type.Sliced;
-                cImg.color = new Color(0.88f, 0.74f, 0.45f, 1f); // brighter warm gold
+                cImg.color = new Color(0.88f, 0.74f, 0.45f, 1f);
             }
-            else
-            {
-                AddOutlinePanel(centerBtn, new Color(0.90f, 0.72f, 0.30f, 0.95f));
-            }
+            else { AddOutlinePanel(centerBtn, new Color(0.90f, 0.72f, 0.30f, 0.95f)); }
 
-            // Inner fill — warm dark purple (NOT pure black) with glass layers
+            // Inner fill — clean dark purple, no ember
             var centerInner = AddPanel(centerBtn, "Inner", new Color(0.06f, 0.03f, 0.10f, 0.96f));
             SetAnchors(centerInner, 0.07f, 0.05f, 0.93f, 0.95f);
-            // Top glass reflection — visible highlight
             var centerHighlight = AddPanel(centerInner, "Highlight", new Color(0.25f, 0.18f, 0.35f, 0.40f));
             SetAnchors(centerHighlight, 0.04f, 0.60f, 0.96f, 0.96f);
-            // Mid-tone body for warmth
-            var centerWarmth = AddPanel(centerInner, "Warmth", new Color(0.14f, 0.08f, 0.20f, 0.30f));
-            SetAnchors(centerWarmth, 0.04f, 0.25f, 0.96f, 0.60f);
-            // Ember glow behind icon — three concentric layers for radial effect
-            var centerEmber1 = AddPanel(centerInner, "Ember1", new Color(0.88f, 0.42f, 0.14f, 0.08f));
-            SetAnchors(centerEmber1, 0.02f, 0.15f, 0.98f, 0.88f);
-            var centerEmber2 = AddPanel(centerInner, "Ember2", new Color(0.92f, 0.50f, 0.18f, 0.14f));
-            SetAnchors(centerEmber2, 0.10f, 0.22f, 0.90f, 0.80f);
-            var centerEmber3 = AddPanel(centerInner, "Ember3", new Color(0.98f, 0.60f, 0.22f, 0.12f));
-            SetAnchors(centerEmber3, 0.20f, 0.30f, 0.80f, 0.72f);
 
-            // Icon — empire castle sprite, large and centered
+            // Icon — empire castle sprite
             var centerIcon = AddPanel(centerInner, "Icon", new Color(0, 0, 0, 0));
             SetAnchors(centerIcon, 0.10f, 0.20f, 0.90f, 0.86f);
             var empSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/nav_empire.png");
@@ -2372,7 +2306,7 @@ namespace AshenThrone.Editor
             }
             else { centerIcon.GetComponent<Image>().color = Ember; }
 
-            // "EMPIRE" label — bright warm gold, bold, crisp with strong outline
+            // "EMPIRE" label
             var centerLabel = AddText(centerInner, "Label", "EMPIRE", 12, TextAnchor.MiddleCenter);
             SetAnchors(centerLabel, 0f, 0.01f, 1f, 0.22f);
             centerLabel.GetComponent<Text>().color = new Color(1f, 0.95f, 0.75f, 1f);
@@ -2380,36 +2314,22 @@ namespace AshenThrone.Editor
             var clShadow = centerLabel.AddComponent<Shadow>();
             clShadow.effectColor = new Color(0, 0, 0, 0.98f);
             clShadow.effectDistance = new Vector2(1.5f, -1.5f);
-            var clOutline = centerLabel.AddComponent<Outline>();
-            clOutline.effectColor = new Color(0.50f, 0.35f, 0.12f, 0.55f);
-            clOutline.effectDistance = new Vector2(0.6f, -0.6f);
 
-            // Crown accent — triple gold top strip
+            // Crown accent
             var centerCrown1 = AddPanel(centerBtn, "Crown1", new Color(0.94f, 0.76f, 0.32f, 1f));
             SetAnchors(centerCrown1, 0.05f, 0.980f, 0.95f, 1f);
-            var centerCrown2 = AddPanel(centerBtn, "Crown2", new Color(0.55f, 0.42f, 0.18f, 0.70f));
-            SetAnchors(centerCrown2, 0.08f, 0.962f, 0.92f, 0.980f);
-            var centerCrown3 = AddPanel(centerBtn, "Crown3", new Color(0.80f, 0.62f, 0.25f, 0.45f));
-            SetAnchors(centerCrown3, 0.12f, 0.948f, 0.88f, 0.962f);
-            // Bottom accent strip
-            var centerBotAccent = AddPanel(centerBtn, "BotAccent", new Color(0.78f, 0.60f, 0.24f, 0.55f));
-            SetAnchors(centerBotAccent, 0.08f, 0f, 0.92f, 0.028f);
-            // Side gold accents
-            var centerLeftAccent = AddPanel(centerBtn, "LeftAccent", new Color(0.82f, 0.64f, 0.26f, 0.40f));
-            SetAnchors(centerLeftAccent, 0f, 0.10f, 0.02f, 0.90f);
-            var centerRightAccent = AddPanel(centerBtn, "RightAccent", new Color(0.82f, 0.64f, 0.26f, 0.40f));
-            SetAnchors(centerRightAccent, 0.98f, 0.10f, 1f, 0.90f);
             SetButtonFeedback(centerBtn.AddComponent<Button>());
             AddSceneNav(centerBtn, SceneName.Empire);
 
             // Right nav items
             var navLayoutRight = AddPanel(navBar, "NavRight", new Color(0, 0, 0, 0));
-            SetAnchors(navLayoutRight, 0.62f, 0.02f, 1f, 0.94f);
+            SetAnchors(navLayoutRight, 0.66f, 0.02f, 1f, 0.94f);
             var nlrLayout = navLayoutRight.AddComponent<HorizontalLayoutGroup>();
             nlrLayout.spacing = 0;
-            nlrLayout.padding = new RectOffset(0, 4, 4, 6);
+            nlrLayout.padding = new RectOffset(4, 4, 4, 6);
             nlrLayout.childForceExpandWidth = true;
             nlrLayout.childForceExpandHeight = true;
+            nlrLayout.childAlignment = TextAnchor.MiddleCenter;
 
             AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3, SceneName.Lobby);
             AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5, SceneName.Lobby);
@@ -3917,9 +3837,9 @@ namespace AshenThrone.Editor
                 SetAnchors(activeGlow, 0.08f, 0.82f, 0.92f, 0.94f);
             }
 
-            // Icon — transparent bg, production sprite only (NO colored square fallback)
+            // Icon — transparent bg, production sprite only, 1.5x scale (both X and Y)
             var icon = AddPanel(item, "Icon", new Color(0, 0, 0, 0));
-            SetAnchors(icon, 0.18f, 0.30f, 0.82f, 0.88f);
+            SetAnchors(icon, 0.02f, 0.16f, 0.98f, 1.02f);
 
             // Map to dedicated production sprites — each is unique and instantly recognizable
             string spriteKey = label.ToLower() switch {
@@ -3951,7 +3871,7 @@ namespace AshenThrone.Editor
             if (badgeCount > 0)
             {
                 var badge = AddPanel(item, "Badge", new Color(0.90f, 0.12f, 0.12f, 1f));
-                SetAnchors(badge, 0.62f, 0.72f, 0.92f, 0.96f);
+                SetAnchors(badge, 0.67f, 0.76f, 1.12f, 1.12f);
                 // Use Kenney circular button sprite for round badge
                 var circleSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Kenney/buttonRound_brown.png");
                 if (circleSpr != null)
@@ -3967,7 +3887,7 @@ namespace AshenThrone.Editor
                 if (circleSpr != null) { badgeRing.GetComponent<Image>().sprite = circleSpr; badgeRing.GetComponent<Image>().type = Image.Type.Sliced; }
                 badgeRing.transform.SetAsFirstSibling(); // behind badge
 
-                var badgeText = AddText(badge, "Count", badgeCount.ToString(), 10, TextAnchor.MiddleCenter);
+                var badgeText = AddText(badge, "Count", badgeCount.ToString(), 14, TextAnchor.MiddleCenter);
                 StretchToParent(badgeText);
                 badgeText.GetComponent<Text>().color = Color.white;
                 badgeText.GetComponent<Text>().fontStyle = FontStyle.Bold;
@@ -3976,9 +3896,9 @@ namespace AshenThrone.Editor
                 badgeShadow.effectDistance = new Vector2(0.5f, -0.5f);
             }
 
-            // Label — warm gold active, visible silver-gold inactive
-            var lbl = AddText(item, "Label", label, 11, TextAnchor.MiddleCenter);
-            SetAnchors(lbl, 0f, 0.02f, 1f, 0.28f);
+            // Label — warm gold active, visible silver-gold inactive, 16px
+            var lbl = AddText(item, "Label", label, 16, TextAnchor.MiddleCenter);
+            SetAnchors(lbl, 0f, 0.0f, 1f, 0.28f);
             lbl.GetComponent<Text>().color = active
                 ? new Color(1f, 0.95f, 0.75f, 1f)
                 : new Color(0.80f, 0.75f, 0.66f, 0.92f);

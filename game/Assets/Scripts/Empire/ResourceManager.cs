@@ -55,8 +55,8 @@ namespace AshenThrone.Empire
         private void Awake()
         {
             if (_config == null)
-                Debug.LogError("[ResourceManager] EmpireConfig not assigned in Inspector. Assign it on the Empire scene's ResourceManager component.");
-            else
+                _config = Resources.Load<Data.EmpireConfig>("EmpireConfig");
+            if (_config != null)
                 InitializeFromConfig();
             ServiceLocator.Register<ResourceManager>(this);
         }

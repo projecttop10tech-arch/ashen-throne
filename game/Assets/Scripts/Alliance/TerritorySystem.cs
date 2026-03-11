@@ -169,9 +169,9 @@ namespace AshenThrone.Alliance
 
         private void Awake()
         {
-            ServiceLocator.Register<TerritoryManager>(this);
             if (_config == null)
-                Debug.LogError("[TerritoryManager] TerritoryConfig not assigned.", this);
+                _config = Resources.Load<TerritoryConfig>("TerritoryConfig");
+            ServiceLocator.Register<TerritoryManager>(this);
         }
 
         private void OnDestroy()

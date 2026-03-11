@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using AshenThrone.Core;
 using AshenThrone.Empire;
@@ -6,122 +7,126 @@ using AshenThrone.Empire;
 namespace AshenThrone.UI.Empire
 {
     /// <summary>
-    /// Displays all four resource stockpiles and their per-hour production rates.
+    /// Compact resource bar (P&C style) — icon + abbreviated number for each resource.
     /// Subscribes to ResourceChangedEvent for real-time updates.
-    /// Subscribes to ProductionRatesUpdatedEvent to refresh rate labels.
+    /// Tapping a resource slot opens the ResourceDetailPopup.
     /// </summary>
     public class ResourceHUD : MonoBehaviour
     {
-        [Header("Stone")]
-        [SerializeField] private TextMeshProUGUI _stoneLabel;
-        [SerializeField] private TextMeshProUGUI _stoneRateLabel;
+        [Header("Amount Labels (abbreviated: 8.37M, 365K)")]
+        [SerializeField] private TextMeshProUGUI _grainAmount;
+        [SerializeField] private TextMeshProUGUI _ironAmount;
+        [SerializeField] private TextMeshProUGUI _stoneAmount;
+        [SerializeField] private TextMeshProUGUI _arcaneAmount;
+        [SerializeField] private TextMeshProUGUI _gemsAmount;
 
-        [Header("Iron")]
-        [SerializeField] private TextMeshProUGUI _ironLabel;
-        [SerializeField] private TextMeshProUGUI _ironRateLabel;
-
-        [Header("Grain")]
-        [SerializeField] private TextMeshProUGUI _grainLabel;
-        [SerializeField] private TextMeshProUGUI _grainRateLabel;
-
-        [Header("Arcane Essence")]
-        [SerializeField] private TextMeshProUGUI _arcaneLabel;
-        [SerializeField] private TextMeshProUGUI _arcaneRateLabel;
+        [Header("Resource Detail Popup")]
+        [SerializeField] private GameObject _detailPopup;
+        [SerializeField] private TextMeshProUGUI _detailTitle;
+        [SerializeField] private TextMeshProUGUI _detailCurrentValue;
+        [SerializeField] private TextMeshProUGUI _detailCapacityValue;
+        [SerializeField] private TextMeshProUGUI _detailProductionValue;
+        [SerializeField] private Image _detailCapacityFill;
 
         private EventSubscription _resourceChangedSub;
-        private EventSubscription _productionRatesSub;
-
         private ResourceManager _resourceManager;
+        private long _gems; // Premium currency — tracked separately
 
         private void Awake()
         {
-            _resourceManager = ServiceLocator.Get<ResourceManager>();
-            if (_resourceManager == null)
-                Debug.LogError("[ResourceHUD] ResourceManager not found in ServiceLocator.", this);
+            if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+                _resourceManager = rm;
+            else
+                Debug.LogWarning("[ResourceHUD] ResourceManager not found — will retry on Enable.", this);
         }
 
         private void OnEnable()
         {
-            _resourceChangedSub  = EventBus.Subscribe<ResourceChangedEvent>(OnResourceChanged);
-            _productionRatesSub  = EventBus.Subscribe<ProductionRatesUpdatedEvent>(OnProductionRatesUpdated);
+            if (_resourceManager == null)
+                ServiceLocator.TryGet<ResourceManager>(out _resourceManager);
 
-            // Force full refresh on enable
+            _resourceChangedSub = EventBus.Subscribe<ResourceChangedEvent>(OnResourceChanged);
             if (_resourceManager != null) RefreshAll();
         }
 
         private void OnDisable()
         {
             _resourceChangedSub?.Dispose();
-            _productionRatesSub?.Dispose();
         }
 
         private void RefreshAll()
         {
-            UpdateResourceLabel(ResourceType.Stone, _resourceManager.Stone, _resourceManager.MaxStone);
-            UpdateResourceLabel(ResourceType.Iron, _resourceManager.Iron, _resourceManager.MaxIron);
-            UpdateResourceLabel(ResourceType.Grain, _resourceManager.Grain, _resourceManager.MaxGrain);
-            UpdateResourceLabel(ResourceType.ArcaneEssence, _resourceManager.ArcaneEssence, _resourceManager.MaxArcaneEssence);
-            RefreshRateLabels();
+            SetText(_grainAmount, Abbreviate(_resourceManager.Grain));
+            SetText(_ironAmount, Abbreviate(_resourceManager.Iron));
+            SetText(_stoneAmount, Abbreviate(_resourceManager.Stone));
+            SetText(_arcaneAmount, Abbreviate(_resourceManager.ArcaneEssence));
+            SetText(_gemsAmount, Abbreviate(_gems));
         }
 
         private void OnResourceChanged(ResourceChangedEvent evt)
         {
-            if (_resourceManager == null) return;
-            long max = evt.Type switch
+            TextMeshProUGUI label = evt.Type switch
             {
-                ResourceType.Stone => _resourceManager.MaxStone,
-                ResourceType.Iron => _resourceManager.MaxIron,
-                ResourceType.Grain => _resourceManager.MaxGrain,
-                ResourceType.ArcaneEssence => _resourceManager.MaxArcaneEssence,
-                _ => 0L
-            };
-            UpdateResourceLabel(evt.Type, evt.NewValue, max);
-        }
-
-        private void OnProductionRatesUpdated(ProductionRatesUpdatedEvent evt)
-        {
-            // Rates are per-second internally; convert to per-hour for display
-            SetText(_stoneRateLabel, FormatRate(evt.Stone * 3600f));
-            SetText(_ironRateLabel, FormatRate(evt.Iron * 3600f));
-            SetText(_grainRateLabel, FormatRate(evt.Grain * 3600f));
-            SetText(_arcaneRateLabel, FormatRate(evt.Arcane * 3600f));
-        }
-
-        private void RefreshRateLabels()
-        {
-            if (_resourceManager == null) return;
-            SetText(_stoneRateLabel, FormatRate(_resourceManager.StonePerSecond * 3600f));
-            SetText(_ironRateLabel, FormatRate(_resourceManager.IronPerSecond * 3600f));
-            SetText(_grainRateLabel, FormatRate(_resourceManager.GrainPerSecond * 3600f));
-            SetText(_arcaneRateLabel, FormatRate(_resourceManager.ArcaneEssencePerSecond * 3600f));
-        }
-
-        private void UpdateResourceLabel(ResourceType type, long current, long max)
-        {
-            TextMeshProUGUI label = type switch
-            {
-                ResourceType.Stone => _stoneLabel,
-                ResourceType.Iron => _ironLabel,
-                ResourceType.Grain => _grainLabel,
-                ResourceType.ArcaneEssence => _arcaneLabel,
+                ResourceType.Stone => _stoneAmount,
+                ResourceType.Iron => _ironAmount,
+                ResourceType.Grain => _grainAmount,
+                ResourceType.ArcaneEssence => _arcaneAmount,
                 _ => null
             };
-            SetText(label, FormatStock(current, max));
+            SetText(label, Abbreviate(evt.NewValue));
         }
 
-        private static string FormatStock(long current, long max)
+        /// <summary>
+        /// Show the resource detail popup for a specific resource.
+        /// Called from UI button OnClick events on each resource slot.
+        /// </summary>
+        public void ShowDetail(int resourceIndex)
         {
-            // Compact format: "4,200 / 5,000" or "4.2K / 5K" for large values
-            if (max >= 1_000_000)
-                return $"{current / 1000f:F1}K / {max / 1000f:F0}K";
-            return $"{current:N0} / {max:N0}";
+            if (_detailPopup == null || _resourceManager == null) return;
+
+            string name;
+            long current, max;
+            float perHour;
+
+            switch (resourceIndex)
+            {
+                case 0: name = "GRAIN"; current = _resourceManager.Grain; max = _resourceManager.MaxGrain; perHour = _resourceManager.GrainPerSecond * 3600f; break;
+                case 1: name = "IRON"; current = _resourceManager.Iron; max = _resourceManager.MaxIron; perHour = _resourceManager.IronPerSecond * 3600f; break;
+                case 2: name = "STONE"; current = _resourceManager.Stone; max = _resourceManager.MaxStone; perHour = _resourceManager.StonePerSecond * 3600f; break;
+                case 3: name = "ARCANE"; current = _resourceManager.ArcaneEssence; max = _resourceManager.MaxArcaneEssence; perHour = _resourceManager.ArcaneEssencePerSecond * 3600f; break;
+                default: return;
+            }
+
+            SetText(_detailTitle, name);
+            SetText(_detailCurrentValue, current.ToString("N0"));
+            SetText(_detailCapacityValue, max.ToString("N0"));
+            SetText(_detailProductionValue, $"+{Abbreviate((long)perHour)}/hr");
+            if (_detailCapacityFill != null && max > 0)
+                _detailCapacityFill.fillAmount = Mathf.Clamp01((float)current / max);
+            _detailPopup.SetActive(true);
         }
 
-        private static string FormatRate(float perHour)
+        public void HideDetail()
         {
-            if (perHour <= 0f) return "+0/h";
-            if (perHour >= 1000f) return $"+{perHour / 1000f:F1}K/h";
-            return $"+{perHour:F0}/h";
+            if (_detailPopup != null) _detailPopup.SetActive(false);
+        }
+
+        // ---------------------------------------------------------------
+        // Number abbreviation: 1000 → 1K, 1500000 → 1.50M, 2300000000 → 2.30B
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// Abbreviates a number for compact display.
+        /// Under 1,000: exact number.  1K–999K.  1.00M–999M.  1.00B+.
+        /// </summary>
+        public static string Abbreviate(long value)
+        {
+            if (value < 0) return "-" + Abbreviate(-value);
+            if (value < 1_000) return value.ToString();
+            if (value < 10_000) return $"{value / 1_000f:F2}K";          // 1.23K
+            if (value < 1_000_000) return $"{value / 1_000f:F0}K";       // 365K
+            if (value < 1_000_000_000L) return $"{value / 1_000_000f:F2}M"; // 8.37M
+            return $"{value / 1_000_000_000f:F2}B";                      // 2.30B
         }
 
         private static void SetText(TextMeshProUGUI label, string text)
