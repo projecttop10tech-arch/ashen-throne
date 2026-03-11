@@ -101,26 +101,133 @@ namespace AshenThrone.UI.Empire
             }
 
             Vector2 endPos = GetScreenPosition(targetIcon);
-            SpawnFlyIcon(evt.Type, startPos, endPos);
+
+            // P&C-style: Spawn burst of 4 icons that scatter then converge on HUD
+            SpawnCollectBurst(evt.Type, startPos, endPos);
         }
 
-        private void SpawnFlyIcon(ResourceType type, Vector2 startPos, Vector2 endPos)
+        /// <summary>
+        /// P&C-style burst: spawn multiple icons that scatter outward from the building,
+        /// then arc-fly to the HUD resource icon with staggered timing.
+        /// </summary>
+        private void SpawnCollectBurst(ResourceType type, Vector2 startPos, Vector2 endPos)
+        {
+            int count = 4;
+            float scatterRadius = 35f;
+
+            for (int i = 0; i < count; i++)
+            {
+                // Scatter positions in a ring around the collection point
+                float angle = (i / (float)count) * Mathf.PI * 2f + Random.Range(-0.3f, 0.3f);
+                Vector2 scatter = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * scatterRadius;
+                Vector2 scatterPos = startPos + scatter;
+
+                float delay = i * 0.07f; // Stagger each icon by 70ms
+                float arcVariation = Random.Range(60f, 100f); // Varied arc heights
+                float sizeVariation = Random.Range(0.7f, 1.0f);
+
+                StartCoroutine(DelayedFlyIcon(type, startPos, scatterPos, endPos, delay, arcVariation, sizeVariation));
+            }
+
+            // Spawn a pop ring at the collection point
+            SpawnPopRing(startPos, type);
+        }
+
+        private IEnumerator DelayedFlyIcon(ResourceType type, Vector2 origin, Vector2 scatterTarget,
+            Vector2 endPos, float delay, float arcHeight, float sizeMult)
+        {
+            // Phase 1: Quick scatter outward from origin (0.12s)
+            var flyGO = CreateFlyIconGO(type, sizeMult);
+            if (flyGO == null) yield break;
+
+            var rect = flyGO.GetComponent<RectTransform>();
+            var cg = flyGO.GetComponent<CanvasGroup>();
+            cg.alpha = 0f;
+
+            // Wait for stagger delay
+            if (delay > 0f)
+            {
+                float waited = 0f;
+                while (waited < delay) { waited += Time.deltaTime; yield return null; }
+            }
+
+            // Scatter burst phase
+            float scatterDuration = 0.12f;
+            float scatterElapsed = 0f;
+            while (scatterElapsed < scatterDuration)
+            {
+                scatterElapsed += Time.deltaTime;
+                float t = scatterElapsed / scatterDuration;
+                float ease = t * (2f - t); // EaseOut
+                rect.anchoredPosition = Vector2.Lerp(origin, scatterTarget, ease);
+                cg.alpha = Mathf.Min(1f, t * 4f); // Quick fade in
+                rect.localScale = Vector3.one * sizeMult * Mathf.Lerp(1.6f, 1f, ease);
+                yield return null;
+            }
+
+            // Phase 2: Arc fly to HUD (0.5s)
+            yield return AnimateFly(flyGO, rect, cg, scatterTarget, endPos, arcHeight, sizeMult);
+        }
+
+        /// <summary>Spawn a brief expanding ring at the collection point for pop feedback.</summary>
+        private void SpawnPopRing(Vector2 pos, ResourceType type)
+        {
+            var ringGO = new GameObject("PopRing");
+            ringGO.transform.SetParent(_canvasRect, false);
+            ringGO.transform.SetAsLastSibling();
+
+            var rect = ringGO.AddComponent<RectTransform>();
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = new Vector2(20, 20);
+
+            var img = ringGO.AddComponent<Image>();
+            img.raycastTarget = false;
+            FlyColors.TryGetValue(type, out var color);
+            color.a = 0.7f;
+            img.color = color;
+
+            // Try radial gradient sprite for soft glow ring
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) img.sprite = spr;
+
+            var cg = ringGO.AddComponent<CanvasGroup>();
+            StartCoroutine(AnimatePopRing(ringGO, rect, cg));
+        }
+
+        private IEnumerator AnimatePopRing(GameObject go, RectTransform rect, CanvasGroup cg)
+        {
+            float duration = 0.3f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float size = Mathf.Lerp(20f, 80f, t);
+                rect.sizeDelta = new Vector2(size, size);
+                cg.alpha = 1f - t;
+                yield return null;
+            }
+            Destroy(go);
+        }
+
+        private GameObject CreateFlyIconGO(ResourceType type, float sizeMult)
         {
             var flyGO = new GameObject($"FlyIcon_{type}");
             flyGO.transform.SetParent(_canvasRect, false);
-            // Ensure it renders on top
             flyGO.transform.SetAsLastSibling();
 
             var rect = flyGO.AddComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(28, 28);
-            rect.anchoredPosition = startPos;
+            rect.sizeDelta = new Vector2(24 * sizeMult, 24 * sizeMult);
 
             var img = flyGO.AddComponent<Image>();
             img.raycastTarget = false;
             FlyColors.TryGetValue(type, out var color);
             img.color = color;
 
-            // Try to load resource icon sprite
             string iconName = type switch
             {
                 ResourceType.Stone => "icon_stone",
@@ -144,19 +251,18 @@ namespace AshenThrone.UI.Empire
                 }
             }
 
-            // Add glow trail
-            var cg = flyGO.AddComponent<CanvasGroup>();
-
-            StartCoroutine(AnimateFly(flyGO, rect, cg, startPos, endPos));
+            flyGO.AddComponent<CanvasGroup>();
+            return flyGO;
         }
 
-        private IEnumerator AnimateFly(GameObject go, RectTransform rect, CanvasGroup cg, Vector2 start, Vector2 end)
+        private IEnumerator AnimateFly(GameObject go, RectTransform rect, CanvasGroup cg,
+            Vector2 start, Vector2 end, float arcHeight = 80f, float sizeMult = 1f)
         {
-            float duration = 0.6f;
+            float duration = 0.5f;
             float elapsed = 0f;
 
             // Arc control point (higher than midpoint for parabolic path)
-            Vector2 mid = (start + end) * 0.5f + Vector2.up * 80f;
+            Vector2 mid = (start + end) * 0.5f + Vector2.up * arcHeight;
 
             while (elapsed < duration)
             {
@@ -170,7 +276,7 @@ namespace AshenThrone.UI.Empire
                 rect.anchoredPosition = Vector2.Lerp(a, b, ease);
 
                 // Scale: start big, shrink to normal
-                float scale = Mathf.Lerp(1.4f, 0.8f, ease);
+                float scale = Mathf.Lerp(1.2f, 0.7f, ease) * sizeMult;
                 rect.localScale = Vector3.one * scale;
 
                 // Fade in at start, stay visible, slight fade at end

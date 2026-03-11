@@ -92,10 +92,17 @@ namespace AshenThrone.Empire
         {
             int maxHours = _config != null ? _config.MaxOfflineEarningsHours : 8;
             float cappedSeconds = Mathf.Min(offlineSeconds, maxHours * 3600f);
-            AddResource(ResourceType.Stone, (long)(StonePerSecond * cappedSeconds));
-            AddResource(ResourceType.Iron, (long)(IronPerSecond * cappedSeconds));
-            AddResource(ResourceType.Grain, (long)(GrainPerSecond * cappedSeconds));
-            AddResource(ResourceType.ArcaneEssence, (long)(ArcaneEssencePerSecond * cappedSeconds));
+            long stone = (long)(StonePerSecond * cappedSeconds);
+            long iron = (long)(IronPerSecond * cappedSeconds);
+            long grain = (long)(GrainPerSecond * cappedSeconds);
+            long arcane = (long)(ArcaneEssencePerSecond * cappedSeconds);
+            AddResource(ResourceType.Stone, stone);
+            AddResource(ResourceType.Iron, iron);
+            AddResource(ResourceType.Grain, grain);
+            AddResource(ResourceType.ArcaneEssence, arcane);
+
+            if (stone > 0 || iron > 0 || grain > 0 || arcane > 0)
+                EventBus.Publish(new OfflineEarningsAppliedEvent(stone, iron, grain, arcane, cappedSeconds));
         }
 
         /// <summary>
@@ -224,4 +231,5 @@ namespace AshenThrone.Empire
     // --- Events ---
     public readonly struct ResourceChangedEvent { public readonly ResourceType Type; public readonly long OldValue; public readonly long NewValue; public ResourceChangedEvent(ResourceType t, long o, long n) { Type = t; OldValue = o; NewValue = n; } }
     public readonly struct ProductionRatesUpdatedEvent { public readonly float Stone; public readonly float Iron; public readonly float Grain; public readonly float Arcane; public ProductionRatesUpdatedEvent(float s, float i, float g, float a) { Stone = s; Iron = i; Grain = g; Arcane = a; } }
+    public readonly struct OfflineEarningsAppliedEvent { public readonly long Stone; public readonly long Iron; public readonly long Grain; public readonly long ArcaneEssence; public readonly float OfflineSeconds; public OfflineEarningsAppliedEvent(long s, long i, long g, long a, float sec) { Stone = s; Iron = i; Grain = g; ArcaneEssence = a; OfflineSeconds = sec; } }
 }

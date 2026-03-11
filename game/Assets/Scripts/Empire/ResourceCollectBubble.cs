@@ -25,7 +25,7 @@ namespace AshenThrone.Empire
         private Vector2 _basePosition;
         private bool _collecting;
         private float _collectTimer;
-        private const float CollectDuration = 0.45f;
+        private const float CollectDuration = 0.3f;
 
         // Pulse glow
         private float _pulsePhase;
@@ -138,11 +138,14 @@ namespace AshenThrone.Empire
             _collecting = true;
             _collectTimer = 0f;
 
+            // P&C-style: quick punch scale on collect
+            transform.localScale = Vector3.one * 1.4f;
+
             // Actually add the resources
             if (ServiceLocator.TryGet<ResourceManager>(out var rm))
                 rm.AddResource(ResourceType, Amount);
 
-            // Publish event for UI feedback
+            // Publish event for UI feedback (triggers burst fly animation)
             EventBus.Publish(new ResourceCollectedEvent(ResourceType, Amount, BuildingInstanceId));
         }
 
