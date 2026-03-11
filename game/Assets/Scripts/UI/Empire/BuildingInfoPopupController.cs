@@ -51,6 +51,7 @@ namespace AshenThrone.UI.Empire
         private const int GemsPerMinute = 10;
 
         private EventSubscription _tapSub;
+        private EventSubscription _infoRequestSub;
         private EventSubscription _completedSub;
         private EventSubscription _cancelledSub;
         private BuildingManager _buildingManager;
@@ -64,7 +65,10 @@ namespace AshenThrone.UI.Empire
 
         private void OnEnable()
         {
+            // P&C: Info popup now opens via BuildingInfoRequestedEvent (from quick action menu)
+            // Keep BuildingTappedEvent as fallback for direct open
             _tapSub = EventBus.Subscribe<BuildingTappedEvent>(OnBuildingTapped);
+            _infoRequestSub = EventBus.Subscribe<BuildingInfoRequestedEvent>(OnInfoRequested);
             _completedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompleted);
             _cancelledSub = EventBus.Subscribe<BuildingUpgradeCancelledEvent>(OnUpgradeCancelled);
         }
@@ -72,6 +76,7 @@ namespace AshenThrone.UI.Empire
         private void OnDisable()
         {
             _tapSub?.Dispose();
+            _infoRequestSub?.Dispose();
             _completedSub?.Dispose();
             _cancelledSub?.Dispose();
         }
@@ -137,15 +142,32 @@ namespace AshenThrone.UI.Empire
 
         private void OnBuildingTapped(BuildingTappedEvent evt)
         {
+            // P&C: Quick action menu handles first tap.
+            // Info popup only opens via BuildingInfoRequestedEvent.
+            // Keep this as fallback when no quick action menu is present.
+            var quickMenu = FindFirstObjectByType<BuildingQuickActionMenu>();
+            if (quickMenu != null) return; // Quick action menu will handle it
+
+            OpenPopupForBuilding(evt.BuildingId, evt.InstanceId, evt.Tier);
+        }
+
+        private void OnInfoRequested(BuildingInfoRequestedEvent evt)
+        {
+            OpenPopupForBuilding(evt.BuildingId, evt.InstanceId, evt.Tier);
+        }
+
+        private void OpenPopupForBuilding(string buildingId, string instanceId, int tier)
+        {
             if (_popup == null)
                 FindPopupElements();
             if (_popup == null) return;
 
-            _currentBuildingId = evt.BuildingId;
-            _currentInstanceId = evt.InstanceId;
-            _currentTier = evt.Tier;
+            _currentBuildingId = buildingId;
+            _currentInstanceId = instanceId;
+            _currentTier = tier;
 
-            PopulatePopup(evt);
+            var tapEvt = new BuildingTappedEvent(buildingId, instanceId, tier, default);
+            PopulatePopup(tapEvt);
             _popup.SetActive(true);
         }
 

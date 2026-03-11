@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.23.0] — 2026-03-11 (Ralph Loop Iteration 18: Quick Actions, Resource Glow, Info Flow)
+
+### ADDED
+- **BuildingQuickActionMenu** — P&C-style radial action buttons (Upgrade, Info, Move) on building tap with pop-in animation, selection ring, and auto-dismiss
+- **BuildingInfoRequestedEvent** — separate event for full info popup, decoupled from building tap
+- **Resource building golden glow** — pulsing radial glow on resource buildings (farms, mines, quarries, arcane towers) replaces red "!" badge for P&C visual match
+- **Direct quick upgrade** — tapping "UPGRADE" in quick menu starts upgrade immediately if affordable, falls back to info popup if not
+
+### CHANGED
+- Building tap flow now matches P&C: tap → radial quick actions → full popup only via "Info" button
+- BuildingInfoPopupController defers to quick action menu when present (no duplicate popup)
+
+---
+
 ## [0.22.0] — 2026-03-11 (Ralph Loop Iteration 17: Grid Fix, Overlap Fix, Construction Overlay)
 
 ### ADDED

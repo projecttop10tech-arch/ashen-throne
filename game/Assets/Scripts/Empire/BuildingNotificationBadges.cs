@@ -22,6 +22,7 @@ namespace AshenThrone.Empire
         private const float RefreshInterval = 2f; // Check every 2 seconds
 
         private static readonly Color BadgeColor = new(0.95f, 0.20f, 0.20f, 1f);
+        private static readonly Color ResourceGlowColor = new(1f, 0.85f, 0.30f, 0.35f);
 
         private void Start()
         {
@@ -34,10 +35,23 @@ namespace AshenThrone.Empire
         private void Update()
         {
             _refreshTimer += Time.deltaTime;
-            if (_refreshTimer < RefreshInterval) return;
-            _refreshTimer = 0f;
+            if (_refreshTimer >= RefreshInterval)
+            {
+                _refreshTimer = 0f;
+                RefreshBadges();
+            }
 
-            RefreshBadges();
+            // P&C: Pulse resource glow alpha
+            foreach (var kvp in _badges)
+            {
+                if (kvp.Value == null || kvp.Value.name != "ResourceGlow") continue;
+                var img = kvp.Value.GetComponent<Image>();
+                if (img == null) continue;
+                float pulse = 0.25f + 0.15f * Mathf.Sin(Time.time * 2.5f);
+                var c = ResourceGlowColor;
+                c.a = pulse;
+                img.color = c;
+            }
         }
 
         private void RefreshBadges()
@@ -93,37 +107,69 @@ namespace AshenThrone.Empire
 
         private void CreateBadge(CityBuildingPlacement p)
         {
-            var badge = new GameObject("NotifBadge");
-            badge.transform.SetParent(p.VisualGO.transform, false);
+            bool isResource = IsResourceBuilding(p.BuildingId);
 
-            var rect = badge.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.75f, 0.80f);
-            rect.anchorMax = new Vector2(0.95f, 1.0f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            if (isResource)
+            {
+                // P&C: Golden glow around resource buildings when collectible
+                var glow = new GameObject("ResourceGlow");
+                glow.transform.SetParent(p.VisualGO.transform, false);
+                glow.transform.SetAsFirstSibling(); // Behind building sprite
 
-            var img = badge.AddComponent<Image>();
-            img.color = BadgeColor;
-            img.raycastTarget = false;
+                var rect = glow.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(-0.08f, -0.08f);
+                rect.anchorMax = new Vector2(1.08f, 1.08f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
 
-            // Exclamation text
-            var textGO = new GameObject("Text");
-            textGO.transform.SetParent(badge.transform, false);
-            var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGO.AddComponent<Text>();
-            text.text = "!";
-            text.fontSize = 12;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontStyle = FontStyle.Bold;
-            text.raycastTarget = false;
+                var img = glow.AddComponent<Image>();
+                img.color = ResourceGlowColor;
+                img.raycastTarget = false;
 
-            _badges[p.InstanceId] = badge;
+                // Use radial gradient sprite for soft glow
+                var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                #if UNITY_EDITOR
+                if (spr == null)
+                    spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+                #endif
+                if (spr != null) img.sprite = spr;
+
+                _badges[p.InstanceId] = glow;
+            }
+            else
+            {
+                // Standard red badge for non-resource buildings
+                var badge = new GameObject("NotifBadge");
+                badge.transform.SetParent(p.VisualGO.transform, false);
+
+                var rect = badge.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.75f, 0.80f);
+                rect.anchorMax = new Vector2(0.95f, 1.0f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var img = badge.AddComponent<Image>();
+                img.color = BadgeColor;
+                img.raycastTarget = false;
+
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(badge.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                var text = textGO.AddComponent<Text>();
+                text.text = "!";
+                text.fontSize = 12;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.color = Color.white;
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontStyle = FontStyle.Bold;
+                text.raycastTarget = false;
+
+                _badges[p.InstanceId] = badge;
+            }
         }
 
         private void RemoveBadge(string instanceId)
