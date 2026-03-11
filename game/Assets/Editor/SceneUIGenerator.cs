@@ -1891,20 +1891,13 @@ namespace AshenThrone.Editor
             // Safe area for all interactive UI
             var canvas = CreateSafeArea(canvasGo);
 
-            // === RESOURCE BAR — uses production resource_bar.png sprite (9-slice ornate bar) ===
-            var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.06f, 0.04f, 0.10f, 0.98f));
+            // === RESOURCE BAR — solid dark bg matching nav bar ===
+            var resBarBg = AddPanel(canvas, "ResourceBarBg", new Color(0.10f, 0.07f, 0.16f, 1f));
             SetAnchors(resBarBg, 0f, 0.957f, 1f, 0.998f);
-            var resBarSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/resource_bar.png");
-            if (resBarSpr != null)
-            {
-                var rbImg = resBarBg.GetComponent<Image>();
-                rbImg.sprite = resBarSpr;
-                rbImg.type = Image.Type.Sliced;
-                rbImg.color = new Color(0.75f, 0.68f, 0.58f, 1f);
-            }
-            // Soft drop shadow below resource bar for depth separation
-            var resBarShadow = AddPanel(canvas, "ResBarShadow", new Color(0f, 0f, 0f, 0.20f));
-            SetAnchors(resBarShadow, 0f, 0.942f, 1f, 0.957f);
+            // Gold bottom border (mirrors nav bar's top border)
+            var resBarBorder = AddPanel(resBarBg, "BottomBorder", new Color(0.92f, 0.74f, 0.32f, 1f));
+            SetAnchors(resBarBorder, 0f, 0f, 1f, 0.04f);
+            resBarBorder.AddComponent<LayoutElement>().ignoreLayout = true;
 
             // Layout container — sits on top of the bar background
             var resBar = AddPanel(canvas, "ResourceBar", new Color(0, 0, 0, 0));
@@ -2127,15 +2120,21 @@ namespace AshenThrone.Editor
             coordShadow.effectColor = new Color(0, 0, 0, 0.7f);
             coordShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // === LEFT SIDEBAR — Build/Research queue (below avatar block, same width) ===
+            // === LEFT SIDEBAR — Build/Research/Training queue (square icons stacked vertically) ===
             var leftSidebar = AddPanel(canvas, "LeftSidebar", new Color(0, 0, 0, 0));
-            SetAnchors(leftSidebar, 0.01f, 0.55f, 0.18f, 0.873f);
+            SetAnchors(leftSidebar, 0.01f, 0.48f, 0.14f, 0.865f);
 
-            // 4 compact queue strips with tight spacing
-            AddQueueSlot(leftSidebar, "BuildSlot1", "Build", "2:34:15", Ember, true, 0.77f, 0.99f);
-            AddQueueSlot(leftSidebar, "BuildSlot2", "Build", "IDLE", EmberDim, false, 0.53f, 0.75f);
-            AddQueueSlot(leftSidebar, "ResearchSlot", "Research", "IDLE", Sky, false, 0.29f, 0.51f);
-            AddQueueSlot(leftSidebar, "TrainingSlot", "Training", "IDLE", Purple, false, 0.05f, 0.27f);
+            // 4 square slots stacked with small gaps (each ~23.5% of sidebar height)
+            float qSlotH = 0.235f;
+            float qGap = 0.02f;
+            float qTop = 1.0f;
+            AddQueueSlot(leftSidebar, "BuildSlot1", "Build", "2:34:15", Ember, true, qTop - qSlotH, qTop);
+            qTop -= qSlotH + qGap;
+            AddQueueSlot(leftSidebar, "BuildSlot2", "Build", "IDLE", EmberDim, false, qTop - qSlotH, qTop);
+            qTop -= qSlotH + qGap;
+            AddQueueSlot(leftSidebar, "ResearchSlot", "Research", "IDLE", Sky, false, qTop - qSlotH, qTop);
+            qTop -= qSlotH + qGap;
+            AddQueueSlot(leftSidebar, "TrainingSlot", "Training", "IDLE", Purple, false, qTop - qSlotH, qTop);
 
             // === RIGHT SIDEBAR — Event buttons (P&C: compact, nearly square, tight stacking) ===
             float rbX0 = 0.89f, rbX1 = 0.995f; // 10.5% wide (P&C-style compact)
@@ -3622,53 +3621,26 @@ namespace AshenThrone.Editor
             le.flexibleWidth = 0;
         }
 
-        /// <summary>Left sidebar queue slot — P&C style: compact strip with colored emblem + label + status + progress bar.</summary>
+        /// <summary>Left sidebar queue slot — square icon with progress bar/timer below.</summary>
         static void AddQueueSlot(GameObject parent, string name, string label, string status,
             Color color, bool active, float yMin, float yMax)
         {
-            var slot = AddPanel(parent, name, active
-                ? new Color(0.12f, 0.08f, 0.20f, 0.96f)
-                : new Color(0.16f, 0.13f, 0.22f, 0.94f));
+            var slot = AddPanel(parent, name, new Color(0, 0, 0, 0));
             SetAnchors(slot, 0f, yMin, 1f, yMax);
-            // Active: ornate panel with warm gold tint; Idle: flat bg (ornate sprite too dark when dimmed)
-            var queueOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/panel_ornate_gen.png");
-            if (active && queueOrnateSpr != null)
-            {
-                slot.GetComponent<Image>().sprite = queueOrnateSpr;
-                slot.GetComponent<Image>().type = Image.Type.Sliced;
-                slot.GetComponent<Image>().color = new Color(0.65f, 0.55f, 0.40f, 1f);
-            }
             SetButtonFeedback(slot.AddComponent<Button>());
             AddSceneNav(slot, SceneName.Empire);
 
-            // Border — gold for active, visible muted gold for idle
-            AddOutlinePanel(slot, active ? new Color(0.72f, 0.58f, 0.24f, 0.8f) : new Color(0.52f, 0.44f, 0.25f, 0.60f));
+            // Icon area — top 82% of the square, semi-transparent so city shows through
+            var iconArea = AddPanel(slot, "IconArea", new Color(0.10f, 0.07f, 0.16f, 0.55f));
+            SetAnchors(iconArea, 0f, 0.18f, 1f, 1f);
+            // Subtle purple border
+            AddOutlinePanel(iconArea, new Color(0.30f, 0.22f, 0.42f, 0.60f));
 
-            // Left color accent strip — visible on idle too (P&C style)
-            var strip = AddPanel(slot, "AccentStrip", active ? color : new Color(color.r * 0.40f, color.g * 0.40f, color.b * 0.40f, 0.55f));
-            SetAnchors(strip, 0f, 0.06f, active ? 0.05f : 0.04f, 0.94f);
-
-            // Active slot: subtle gradient glow from left
-            if (active)
-            {
-                var glow = AddPanel(slot, "ActiveGlow", new Color(color.r * 0.15f, color.g * 0.15f, color.b * 0.15f, 0.3f));
-                SetAnchors(glow, 0f, 0f, 0.5f, 1f);
-            }
-
-            // Colored emblem — larger square with vivid color and sprite icon
-            // Active: rich dark bg with vivid color; Idle: medium-light bg so even dark icons pop
-            var emblemBg = AddPanel(slot, "EmblemBg", active
-                ? new Color(color.r * 0.35f + 0.08f, color.g * 0.35f + 0.07f, color.b * 0.35f + 0.08f, 0.92f)
-                : new Color(color.r * 0.12f + 0.28f, color.g * 0.12f + 0.26f, color.b * 0.12f + 0.28f, 0.90f));
-            SetAnchors(emblemBg, 0.05f, 0.08f, 0.34f, 0.92f);
-            // Emblem border for definition
-            AddOutlinePanel(emblemBg, active ? new Color(0.60f, 0.45f, 0.18f, 0.5f) : new Color(0.50f, 0.42f, 0.24f, 0.45f));
-
-            // Sprite icon — fills emblem generously
-            var emblemIcon = AddPanel(emblemBg, "Icon", Color.white);
-            SetAnchors(emblemIcon, 0.06f, 0.06f, 0.94f, 0.94f);
+            // Sprite icon — fills 90% of icon area
+            var icon = AddPanel(iconArea, "Icon", Color.white);
+            SetAnchors(icon, 0.05f, 0.05f, 0.95f, 0.95f);
             string spriteKey = label.ToLower() switch {
-                "build" => "icon_iron", "research" => "icon_arcane", "training" => "icon_iron", _ => null
+                "build" => "icon_build", "research" => "icon_research", "training" => "icon_training", _ => null
             };
             bool spriteLoaded = false;
             if (spriteKey != null)
@@ -3676,52 +3648,40 @@ namespace AshenThrone.Editor
                 var spr = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/UI/Production/{spriteKey}.png");
                 if (spr != null)
                 {
-                    var img = emblemIcon.GetComponent<Image>();
+                    var img = icon.GetComponent<Image>();
                     img.sprite = spr;
                     img.preserveAspect = true;
-                    img.color = active ? new Color(1f, 0.95f, 0.85f, 1f) : new Color(0.82f, 0.78f, 0.70f, 0.85f);
+                    img.color = active ? new Color(1f, 0.95f, 0.85f, 1f) : new Color(0.75f, 0.72f, 0.65f, 0.80f);
                     spriteLoaded = true;
                 }
             }
             if (!spriteLoaded)
             {
-                emblemIcon.GetComponent<Image>().color = new Color(0, 0, 0, 0);
-                var letterText = AddText(emblemBg, "Letter", label[..1], 16, TextAnchor.MiddleCenter);
+                icon.GetComponent<Image>().color = new Color(0, 0, 0, 0);
+                var letterText = AddText(iconArea, "Letter", label[..1], 20, TextAnchor.MiddleCenter);
                 StretchToParent(letterText);
                 letterText.GetComponent<Text>().color = active ? Color.white : new Color(0.72f, 0.68f, 0.60f, 0.80f);
                 letterText.GetComponent<Text>().fontStyle = FontStyle.Bold;
-                var ltSh2 = letterText.AddComponent<Shadow>(); ltSh2.effectColor = new Color(0, 0, 0, 0.7f); ltSh2.effectDistance = new Vector2(0.5f, -0.5f);
             }
 
-            // Label — right of emblem, upper portion
-            var lbl = AddText(slot, "Label", label, 13, TextAnchor.MiddleLeft);
-            SetAnchors(lbl, 0.32f, 0.55f, 0.95f, 0.95f);
-            lbl.GetComponent<Text>().color = active ? new Color(1f, 0.96f, 0.88f, 1f) : new Color(0.80f, 0.75f, 0.65f, 0.92f);
-            lbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var lblShadow = lbl.AddComponent<Shadow>();
-            lblShadow.effectColor = new Color(0, 0, 0, 0.9f);
-            lblShadow.effectDistance = new Vector2(1.5f, -1.5f);
+            // Progress bar — bottom 16%, solid black bg with green fill
+            var progBg = AddPanel(slot, "ProgressBar", new Color(0f, 0f, 0f, 1f));
+            SetAnchors(progBg, 0f, 0f, 1f, 0.16f);
 
-            // Status — right of emblem, middle (bright green timer or visible IDLE)
-            var statusText = AddText(slot, "Status", status, 12, TextAnchor.MiddleLeft);
-            SetAnchors(statusText, 0.32f, 0.22f, 0.95f, 0.55f);
-            statusText.GetComponent<Text>().color = active ? new Color(0.3f, 1f, 0.75f, 1f) : new Color(0.58f, 0.55f, 0.48f, 0.85f);
-            statusText.GetComponent<Text>().fontStyle = active ? FontStyle.Bold : FontStyle.Normal;
-            var statusShadow = statusText.AddComponent<Shadow>();
-            statusShadow.effectColor = new Color(0, 0, 0, 0.8f);
-            statusShadow.effectDistance = new Vector2(1f, -1f);
-
-            // Progress bar at bottom (P&C shows thin progress bars on active slots)
             if (active)
             {
-                var progBg = AddPanel(slot, "ProgressBg", new Color(0.08f, 0.06f, 0.12f, 0.9f));
-                SetAnchors(progBg, 0.32f, 0.06f, 0.95f, 0.18f);
-                var progFill = AddPanel(progBg, "ProgressFill", new Color(color.r, color.g, color.b, 0.85f));
-                SetAnchors(progFill, 0f, 0f, 0.35f, 1f); // 35% progress
-                // Glow at fill edge
-                var progGlow = AddPanel(progBg, "ProgressGlow", new Color(color.r * 0.8f + 0.2f, color.g * 0.8f + 0.2f, color.b * 0.3f + 0.2f, 0.5f));
-                SetAnchors(progGlow, 0.33f, 0f, 0.38f, 1f);
+                var progFill = AddPanel(progBg, "Fill", new Color(0.20f, 0.78f, 0.35f, 1f));
+                SetAnchors(progFill, 0f, 0f, 0.35f, 1f);
             }
+
+            // Timer / IDLE text centered inside the progress bar
+            var timerText = AddText(progBg, "Timer", status, 13, TextAnchor.MiddleCenter);
+            StretchToParent(timerText);
+            timerText.GetComponent<Text>().color = active ? new Color(1f, 1f, 1f, 1f) : new Color(0.55f, 0.52f, 0.46f, 0.85f);
+            timerText.GetComponent<Text>().fontStyle = active ? FontStyle.Bold : FontStyle.Normal;
+            var timerShadow = timerText.AddComponent<Shadow>();
+            timerShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            timerShadow.effectDistance = new Vector2(1f, -1f);
         }
 
         /// <summary>P&C-style event button — ornate frame with icon, glow, and timer.</summary>
