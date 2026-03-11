@@ -143,6 +143,11 @@ namespace AshenThrone.Empire
         };
         private static readonly Color CategoryIconColor = new(1f, 0.92f, 0.72f, 0.85f);
 
+        // P&C: Empty-ground double-tap zoom toggle
+        private float _lastEmptyTapTime;
+        private const float EmptyDoubleTapWindow = 0.4f;
+        private const float ZoomOverview = 0.6f; // zoomed out overview level
+
         // P&C: Long-press hold indicator
         private GameObject _holdIndicator;
         private Image _holdFillImage;
@@ -196,8 +201,29 @@ namespace AshenThrone.Empire
                 _currentZoom = contentContainer.localScale.x;
                 _targetZoom = _currentZoom;
             }
+            // P&C: Sort buildings by isometric depth (higher grid Y = closer to camera = higher sibling index)
+            SortBuildingsByDepth();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
+        }
+
+        /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
+        private void SortBuildingsByDepth()
+        {
+            if (buildingContainer == null) return;
+            // Sort placements by grid Y+X (isometric depth: higher sum = closer to camera)
+            _placements.Sort((a, b) =>
+            {
+                int depthA = a.GridOrigin.x + a.GridOrigin.y;
+                int depthB = b.GridOrigin.x + b.GridOrigin.y;
+                return depthA.CompareTo(depthB); // Lower depth first (further back)
+            });
+            // Reorder siblings to match
+            for (int i = 0; i < _placements.Count; i++)
+            {
+                if (_placements[i].VisualGO != null)
+                    _placements[i].VisualGO.transform.SetSiblingIndex(i);
+            }
         }
 
         private IEnumerator DelayedCenterOnStronghold()
@@ -430,6 +456,41 @@ namespace AshenThrone.Empire
             _targetZoom = endZoom;
             contentContainer.localScale = Vector3.one * endZoom;
             contentContainer.anchoredPosition = endPos;
+            UpdateZoomDetailVisibility();
+            _smoothZoomCoroutine = null;
+        }
+
+        /// <summary>P&C: Smooth zoom to target level centered on screen position (for empty-ground double-tap).</summary>
+        private IEnumerator SmoothZoomToggle(float targetZoomLevel, Vector2 screenPos)
+        {
+            float startZoom = _currentZoom;
+            Vector2 startPos = contentContainer.anchoredPosition;
+
+            // Calculate end position to keep screen point stable
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                contentContainer, screenPos, null, out var pivotLocal);
+            float elapsed = 0f;
+            while (elapsed < SmoothZoomDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / SmoothZoomDuration;
+                float ease = 1f - (1f - t) * (1f - t) * (1f - t);
+                float zoom = Mathf.Lerp(startZoom, targetZoomLevel, ease);
+                _currentZoom = zoom;
+                _targetZoom = targetZoomLevel;
+                contentContainer.localScale = Vector3.one * zoom;
+
+                // Keep pivot stable
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    contentContainer, screenPos, null, out var pivotNow);
+                contentContainer.anchoredPosition += (pivotNow - pivotLocal) * zoom * 0.1f;
+
+                UpdateZoomDetailVisibility();
+                yield return null;
+            }
+            _currentZoom = targetZoomLevel;
+            _targetZoom = targetZoomLevel;
+            contentContainer.localScale = Vector3.one * targetZoomLevel;
             UpdateZoomDetailVisibility();
             _smoothZoomCoroutine = null;
         }
@@ -679,6 +740,9 @@ namespace AshenThrone.Empire
             var rect = go.AddComponent<RectTransform>();
             PositionBuildingRect(rect, placement);
 
+            // P&C: Drop shadow behind building for depth
+            CreateBuildingShadow(go, placement.Size);
+
             var img = go.AddComponent<Image>();
             string spriteName = $"{placement.BuildingId}_t{placement.Tier}";
             var sprite = Resources.Load<Sprite>($"Buildings/{spriteName}");
@@ -695,6 +759,32 @@ namespace AshenThrone.Empire
             CreateProductionLabel(go, placement.BuildingId, placement.Tier);
 
             placement.VisualGO = go;
+        }
+
+        /// <summary>P&C: Subtle oval drop shadow behind each building for depth.</summary>
+        private void CreateBuildingShadow(GameObject building, Vector2Int size)
+        {
+            var shadowGO = new GameObject("Shadow");
+            shadowGO.transform.SetParent(building.transform, false);
+            shadowGO.transform.SetAsFirstSibling(); // Behind building sprite
+
+            var rect = shadowGO.AddComponent<RectTransform>();
+            // Shadow is slightly wider and sits at the bottom of the building
+            rect.anchorMin = new Vector2(-0.05f, -0.08f);
+            rect.anchorMax = new Vector2(1.05f, 0.15f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var img = shadowGO.AddComponent<Image>();
+            img.color = new Color(0.02f, 0.01f, 0.05f, 0.30f);
+            img.raycastTarget = false;
+
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) img.sprite = spr;
         }
 
         private static readonly Dictionary<string, (string Name, Color Tint)> ResourceBuildingTypes = new()
@@ -1178,6 +1268,18 @@ namespace AshenThrone.Empire
                 // Clear footprint when tapping empty ground
                 ClearBuildingFootprint();
 
+                // P&C: Double-tap empty ground → toggle zoom between close and overview
+                if ((Time.time - _lastEmptyTapTime) < EmptyDoubleTapWindow)
+                {
+                    _lastEmptyTapTime = 0f;
+                    float target = _currentZoom > 1.0f ? ZoomOverview : DoubleTapZoomTarget;
+                    if (_smoothZoomCoroutine != null) StopCoroutine(_smoothZoomCoroutine);
+                    _targetZoom = target;
+                    _smoothZoomCoroutine = StartCoroutine(SmoothZoomToggle(target, eventData.position));
+                    return;
+                }
+                _lastEmptyTapTime = Time.time;
+
                 // P&C: Tap on empty ground → publish event for building placement
                 if (buildingContainer != null)
                 {
@@ -1659,8 +1761,9 @@ namespace AshenThrone.Empire
             _movingBuilding = null;
             _moveMode = false;
 
-            // P&C: SFX on move complete
+            // P&C: SFX on move complete + re-sort depth
             PlaySfx(_sfxBuildComplete);
+            SortBuildingsByDepth();
 
             HideMoveGridCells();
             DestroyHighlight();

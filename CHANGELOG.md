@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.29.0] — 2026-03-11 (Ralph Loop Iteration 24: Shadows, Depth Sort, Zoom Toggle)
+
+### ADDED
+- **Building drop shadows** — every building gets a subtle oval shadow (radial gradient, 30% alpha) at its base for P&C-style depth perception
+- **Isometric depth sorting** — buildings sorted by grid X+Y sum so front buildings correctly overlap back ones. Re-sorts after moves/swaps.
+- **Empty-ground double-tap zoom toggle** — double-tapping empty ground toggles between close (2.0x) and overview (0.6x) zoom with smooth ease-out cubic animation
+
+### CHANGED
+- CreateBuildingVisual now adds shadow as first sibling (behind building sprite)
+- SortBuildingsByDepth called on Start and after every move/swap operation
+
+---
+
 ## [0.28.0] — 2026-03-11 (Ralph Loop Iteration 23: Hold Indicator, Drop Slam, Selection Glow)
 
 ### ADDED
