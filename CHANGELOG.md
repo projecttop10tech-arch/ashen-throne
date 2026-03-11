@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.28.0] — 2026-03-11 (Ralph Loop Iteration 23: Hold Indicator, Drop Slam, Selection Glow)
+
+### ADDED
+- **Long-press hold indicator** — radial fill ring appears above finger during 0.5s long-press, gold fill sweeps clockwise showing progress toward move mode entry. Destroyed on release or mode entry.
+- **Building drop/slam animation** — placing a building plays a 3-phase animation: overshoot scale (0.12s), squash-bounce on impact (0.18s), expanding dust ring fade (0.35s)
+- **Pulsing selection ring** — tapped building's golden glow ring now pulses alpha (0.35-0.50) at 3Hz for a living, breathing selection feel
+
+### CHANGED
+- Selection ring size increased 1.2→1.4x width, 0.6→0.7x height for better visibility at all zoom levels
+- Hold indicator only shows after 100ms delay to avoid flash on quick taps
+
+---
+
 ## [0.27.0] — 2026-03-11 (Ralph Loop Iteration 22: Move Mode Polish, Swap Celebration, Placement Shake)
 
 ### ADDED

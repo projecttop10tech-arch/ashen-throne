@@ -143,6 +143,10 @@ namespace AshenThrone.Empire
         };
         private static readonly Color CategoryIconColor = new(1f, 0.92f, 0.72f, 0.85f);
 
+        // P&C: Long-press hold indicator
+        private GameObject _holdIndicator;
+        private Image _holdFillImage;
+
         // P&C: Soft-center on single tap
         private Coroutine _softCenterCoroutine;
         private const float SoftCenterDuration = 0.25f;
@@ -246,12 +250,28 @@ namespace AshenThrone.Empire
 
         private void Update()
         {
-            // Long press detection
+            // Long press detection with P&C hold indicator
             if (_holdStarted && !_moveMode && !_isPinching)
             {
                 _holdTimer += Time.deltaTime;
+                UpdateHoldIndicator();
                 if (_holdTimer >= LongPressTime)
                     TryEnterMoveMode();
+            }
+            else if (_holdIndicator != null)
+            {
+                DestroyHoldIndicator();
+            }
+
+            // P&C: Pulse selection ring glow
+            if (_selectionRing != null)
+            {
+                var ringImg = _selectionRing.GetComponent<Image>();
+                if (ringImg != null)
+                {
+                    float pulse = 0.35f + 0.15f * Mathf.Sin(Time.time * 3f);
+                    ringImg.color = new Color(0.90f, 0.75f, 0.25f, pulse);
+                }
             }
 
             // P&C: Pulse placement ghost transparency
@@ -1230,6 +1250,79 @@ namespace AshenThrone.Empire
             building.localScale = original;
         }
 
+        /// <summary>P&C: Drop/slam animation when building is placed — slight overshoot + squash + dust ring.</summary>
+        private IEnumerator DropSlamAnimation(Transform building)
+        {
+            var original = building.localScale;
+            float elapsed = 0f;
+            float dropDur = 0.12f;
+
+            // Phase 1: quick scale up (building "drops" from above)
+            while (elapsed < dropDur)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / dropDur;
+                building.localScale = original * (1f + 0.12f * (1f - t * t)); // overshoot easing
+                yield return null;
+            }
+
+            // Phase 2: squash on impact + bounce
+            elapsed = 0f;
+            float bounceDur = 0.18f;
+            while (elapsed < bounceDur)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / bounceDur;
+                float sx = 1f + 0.06f * (1f - t) * Mathf.Cos(t * Mathf.PI * 2f);
+                float sy = 1f - 0.04f * (1f - t) * Mathf.Cos(t * Mathf.PI * 2f);
+                building.localScale = new Vector3(original.x * sx, original.y * sy, original.z);
+                yield return null;
+            }
+            building.localScale = original;
+
+            // Phase 3: dust ring expand + fade
+            SpawnDustRing(building);
+        }
+
+        private void SpawnDustRing(Transform building)
+        {
+            if (buildingContainer == null) return;
+            var dust = new GameObject("DustRing");
+            dust.transform.SetParent(buildingContainer, false);
+            var rect = dust.AddComponent<RectTransform>();
+            var bRect = building.GetComponent<RectTransform>();
+            if (bRect != null) rect.anchoredPosition = bRect.anchoredPosition;
+            rect.sizeDelta = new Vector2(20, 10); // starts small
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            var img = dust.AddComponent<Image>();
+            img.color = new Color(0.75f, 0.65f, 0.50f, 0.5f);
+            img.raycastTarget = false;
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) img.sprite = spr;
+            StartCoroutine(ExpandDustRing(dust, rect, img));
+        }
+
+        private IEnumerator ExpandDustRing(GameObject dust, RectTransform rect, Image img)
+        {
+            float elapsed = 0f;
+            float duration = 0.35f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                rect.sizeDelta = new Vector2(20 + 80 * t, 10 + 40 * t);
+                var c = img.color;
+                c.a = 0.5f * (1f - t);
+                img.color = c;
+                yield return null;
+            }
+            Destroy(dust);
+        }
+
         // Side length for iso diamond cell: square of this size rotated 45° = diamond CellSize wide
         private static readonly float IsoDiamondSide = CellSize / Mathf.Sqrt(2f); // ~45.25
 
@@ -1312,9 +1405,9 @@ namespace AshenThrone.Empire
             if (buildingRect != null)
                 rect.anchoredPosition = buildingRect.anchoredPosition - new Vector2(0, buildingRect.sizeDelta.y * 0.15f);
 
-            // Oval glow matching building footprint
-            float ringW = placement.Size.x * CellSize * 1.2f;
-            float ringH = placement.Size.y * CellSize * 0.6f;
+            // Oval glow matching building footprint (P&C: generous size for visibility)
+            float ringW = placement.Size.x * CellSize * 1.4f;
+            float ringH = placement.Size.y * CellSize * 0.7f;
             rect.sizeDelta = new Vector2(ringW, ringH);
             rect.pivot = new Vector2(0.5f, 0.5f);
 
@@ -1405,6 +1498,7 @@ namespace AshenThrone.Empire
 
             _moveMode = true;
             _movingBuilding = found;
+            DestroyHoldIndicator();
 
             // P&C: Audio + haptic on move mode enter
             PlaySfx(_sfxTap);
@@ -1535,9 +1629,13 @@ namespace AshenThrone.Empire
                     MarkCells(snapOrigin, _movingBuilding.Size, _movingBuilding.InstanceId);
 
                     if (_movingBuilding.VisualGO != null)
+                    {
                         PositionBuildingRect(
                             _movingBuilding.VisualGO.GetComponent<RectTransform>(),
                             _movingBuilding);
+                        // P&C: Drop/slam animation on successful placement
+                        StartCoroutine(DropSlamAnimation(_movingBuilding.VisualGO.transform));
+                    }
                 }
                 else
                 {
@@ -1646,6 +1744,71 @@ namespace AshenThrone.Empire
                 yield return null;
             }
             building.localPosition = original;
+        }
+
+        // ====================================================================
+        // P&C: Long-press hold indicator — radial fill ring
+        // ====================================================================
+
+        private void UpdateHoldIndicator()
+        {
+            if (_holdIndicator == null && _holdTimer > 0.1f) // Show after 100ms to avoid flash on quick taps
+                CreateHoldIndicator();
+            if (_holdFillImage != null)
+                _holdFillImage.fillAmount = Mathf.Clamp01(_holdTimer / LongPressTime);
+        }
+
+        private void CreateHoldIndicator()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _holdIndicator = new GameObject("HoldIndicator");
+            _holdIndicator.transform.SetParent(canvas.transform, false);
+            _holdIndicator.transform.SetAsLastSibling();
+
+            var rect = _holdIndicator.AddComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(48, 48);
+
+            // Convert hold start screen position to canvas position
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvas.transform as RectTransform, _holdStartPos, null, out var localPos);
+            rect.anchoredPosition = localPos + new Vector2(0, 36f); // Above finger
+
+            // Background ring (dark)
+            var bgImg = _holdIndicator.AddComponent<Image>();
+            bgImg.color = new Color(0.1f, 0.08f, 0.15f, 0.6f);
+            bgImg.raycastTarget = false;
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) bgImg.sprite = spr;
+
+            // Fill ring (gold, radial fill)
+            var fillGO = new GameObject("Fill");
+            fillGO.transform.SetParent(_holdIndicator.transform, false);
+            var fillRect = fillGO.AddComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = new Vector2(4, 4);
+            fillRect.offsetMax = new Vector2(-4, -4);
+            _holdFillImage = fillGO.AddComponent<Image>();
+            _holdFillImage.color = new Color(0.90f, 0.75f, 0.25f, 0.85f);
+            _holdFillImage.type = Image.Type.Filled;
+            _holdFillImage.fillMethod = Image.FillMethod.Radial360;
+            _holdFillImage.fillOrigin = (int)Image.Origin360.Top;
+            _holdFillImage.fillAmount = 0f;
+            _holdFillImage.raycastTarget = false;
+            if (spr != null) _holdFillImage.sprite = spr;
+        }
+
+        private void DestroyHoldIndicator()
+        {
+            if (_holdIndicator != null) Destroy(_holdIndicator);
+            _holdIndicator = null;
+            _holdFillImage = null;
         }
 
         // ====================================================================
