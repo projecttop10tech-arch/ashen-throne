@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.27.0] — 2026-03-11 (Ralph Loop Iteration 22: Move Mode Polish, Swap Celebration, Placement Shake)
+
+### ADDED
+- **Move mode SFX + haptic** — entering move mode (long-press) plays tap SFX with haptic vibration, exiting plays build-complete SFX
+- **Swap celebration animation** — swapping two buildings bounces both with level-up SFX for satisfying feedback
+- **Invalid placement shake** — dropping a building on an invalid spot shakes it horizontally (3 oscillations, 0.3s, decaying amplitude)
+- **Upgrade started SFX** — starting a building upgrade plays level-up sound via EventBus subscription
+- **Larger resource bubble tap area** — increased from 36×36 to 56×56 pixels for easier mobile tapping (P&C-style generous hit targets)
+
+### CHANGED
+- TrySwapBuildings now returns bool to signal success/failure for caller feedback
+- CityGridView subscribes to BuildingUpgradeStartedEvent for audio integration
+
+---
+
 ## [0.26.0] — 2026-03-11 (Ralph Loop Iteration 21: Soft-Center, Audio SFX, Production Labels)
 
 ### ADDED

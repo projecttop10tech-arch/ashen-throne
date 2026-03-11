@@ -152,8 +152,10 @@ namespace AshenThrone.Empire
         private AudioClip _sfxTap;
         private AudioClip _sfxCollect;
         private AudioClip _sfxBuildComplete;
+        private AudioClip _sfxLevelUp;
         private EventSubscription _collectSub;
         private EventSubscription _buildCompleteSfxSub;
+        private EventSubscription _upgradeStartedSfxSub;
 
         private void OnEnable()
         {
@@ -162,6 +164,7 @@ namespace AshenThrone.Empire
             _doubleTapZoomSub = EventBus.Subscribe<BuildingDoubleTappedEvent>(OnDoubleTapZoom);
             _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(_ => PlaySfx(_sfxCollect));
             _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(_ => PlaySfx(_sfxBuildComplete));
+            _upgradeStartedSfxSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(_ => PlaySfx(_sfxLevelUp));
         }
 
         private void OnDisable()
@@ -171,6 +174,7 @@ namespace AshenThrone.Empire
             _doubleTapZoomSub?.Dispose();
             _collectSub?.Dispose();
             _buildCompleteSfxSub?.Dispose();
+            _upgradeStartedSfxSub?.Dispose();
         }
 
         private void Start()
@@ -181,6 +185,7 @@ namespace AshenThrone.Empire
             _sfxTap = Resources.Load<AudioClip>("Audio/SFX/sfx_btn_click");
             _sfxCollect = Resources.Load<AudioClip>("Audio/SFX/sfx_collect_resource");
             _sfxBuildComplete = Resources.Load<AudioClip>("Audio/SFX/sfx_building_complete");
+            _sfxLevelUp = Resources.Load<AudioClip>("Audio/SFX/sfx_level_up");
             // Read initial zoom from content scale (set by generator, persisted in scene)
             if (contentContainer != null)
             {
@@ -1401,6 +1406,12 @@ namespace AshenThrone.Empire
             _moveMode = true;
             _movingBuilding = found;
 
+            // P&C: Audio + haptic on move mode enter
+            PlaySfx(_sfxTap);
+            #if UNITY_IOS || UNITY_ANDROID
+            Handheld.Vibrate();
+            #endif
+
             if (scrollRect != null) scrollRect.enabled = false;
             SetGridOverlayVisible(true);
 
@@ -1531,7 +1542,12 @@ namespace AshenThrone.Empire
                 else
                 {
                     // P&C: Try swap — if target is occupied by another building of same size
-                    TrySwapBuildings(snapOrigin);
+                    if (!TrySwapBuildings(snapOrigin))
+                    {
+                        // P&C: Shake building back to original position on invalid drop
+                        if (_movingBuilding.VisualGO != null)
+                            StartCoroutine(ShakeBuilding(_movingBuilding.VisualGO.transform));
+                    }
                 }
 
                 if (_movingBuilding.VisualGO != null)
@@ -1545,6 +1561,9 @@ namespace AshenThrone.Empire
             _movingBuilding = null;
             _moveMode = false;
 
+            // P&C: SFX on move complete
+            PlaySfx(_sfxBuildComplete);
+
             HideMoveGridCells();
             DestroyHighlight();
             SetGridOverlayVisible(false);
@@ -1555,9 +1574,9 @@ namespace AshenThrone.Empire
         /// P&C: Swap two buildings' positions when dropped on top of another building.
         /// Only works if both buildings occupy the same footprint size.
         /// </summary>
-        private void TrySwapBuildings(Vector2Int targetOrigin)
+        private bool TrySwapBuildings(Vector2Int targetOrigin)
         {
-            if (_movingBuilding == null) return;
+            if (_movingBuilding == null) return false;
 
             // Find the building occupying the target cells
             CityBuildingPlacement targetBuilding = null;
@@ -1580,7 +1599,7 @@ namespace AshenThrone.Empire
                 }
             }
 
-            if (targetBuilding == null || targetBuilding.Size != _movingBuilding.Size) return;
+            if (targetBuilding == null || targetBuilding.Size != _movingBuilding.Size) return false;
 
             // Perform swap
             var originA = _movingBuilding.GridOrigin;
@@ -1600,7 +1619,33 @@ namespace AshenThrone.Empire
             if (targetBuilding.VisualGO != null)
                 PositionBuildingRect(targetBuilding.VisualGO.GetComponent<RectTransform>(), targetBuilding);
 
+            // P&C: Swap celebration — bounce both buildings
+            if (_movingBuilding.VisualGO != null)
+                StartCoroutine(BounceBuilding(_movingBuilding.VisualGO.transform));
+            if (targetBuilding.VisualGO != null)
+                StartCoroutine(BounceBuilding(targetBuilding.VisualGO.transform));
+            PlaySfx(_sfxLevelUp);
+
             Debug.Log($"[CityGrid] Swapped {_movingBuilding.InstanceId} and {targetBuilding.InstanceId}.");
+            return true;
+        }
+
+        /// <summary>P&C: Quick horizontal shake on invalid placement.</summary>
+        private IEnumerator ShakeBuilding(Transform building)
+        {
+            var original = building.localPosition;
+            float elapsed = 0f;
+            float duration = 0.3f;
+            float amplitude = 8f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float offset = amplitude * (1f - t) * Mathf.Sin(t * Mathf.PI * 6f);
+                building.localPosition = original + new Vector3(offset, 0, 0);
+                yield return null;
+            }
+            building.localPosition = original;
         }
 
         // ====================================================================

@@ -46,7 +46,7 @@ namespace AshenThrone.Empire
             _rect = GetComponent<RectTransform>();
             if (_rect == null) _rect = gameObject.AddComponent<RectTransform>();
 
-            _rect.sizeDelta = new Vector2(36, 36);
+            _rect.sizeDelta = new Vector2(56, 56); // P&C: Generous tap target
 
             // Canvas group for fade
             _canvasGroup = gameObject.AddComponent<CanvasGroup>();
