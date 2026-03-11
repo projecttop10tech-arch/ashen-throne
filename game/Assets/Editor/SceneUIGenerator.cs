@@ -2382,70 +2382,83 @@ namespace AshenThrone.Editor
 
             resPopup.SetActive(false);
 
-            // === BUILDING INFO POPUP (hidden, full screen overlay) ===
-            var infoPopup = AddPanel(canvasGo, "BuildingInfoPopup", new Color(0, 0, 0, 0.6f));
+            // === BUILDING INFO POPUP — P&C style (hidden, shown on building tap) ===
+            var infoPopup = AddPanel(canvasGo, "BuildingInfoPopup", new Color(0, 0, 0, 0));
             StretchToParent(infoPopup);
+            var infoOverlay = AddPanel(infoPopup, "Overlay", new Color(0, 0, 0, 0.55f));
+            StretchToParent(infoOverlay);
+            infoOverlay.AddComponent<Button>();
             var infoFrame = AddPanel(infoPopup, "Frame", BgPanel);
-            SetAnchors(infoFrame, 0.10f, 0.25f, 0.90f, 0.75f);
+            SetAnchors(infoFrame, 0.08f, 0.22f, 0.92f, 0.78f);
             var infoOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/panel_ornate_gen.png");
             if (infoOrnateSpr != null) { infoFrame.GetComponent<Image>().sprite = infoOrnateSpr; infoFrame.GetComponent<Image>().type = Image.Type.Sliced; infoFrame.GetComponent<Image>().color = new Color(0.65f, 0.58f, 0.48f, 1f); }
             else { AddOutlinePanel(infoFrame, Gold); }
-            // Glass highlight
-            var infoGlass = AddPanel(infoFrame, "GlassTop", new Color(0.20f, 0.18f, 0.28f, 0.15f));
-            SetAnchors(infoGlass, 0.03f, 0.92f, 0.97f, 0.99f);
+            var infoInner = AddPanel(infoFrame, "InnerFill", new Color(0.06f, 0.04f, 0.10f, 0.92f));
+            SetAnchors(infoInner, 0.02f, 0.02f, 0.98f, 0.98f);
 
-            // Header
-            var infoHeader = AddPanel(infoFrame, "Header", new Color(0.08f, 0.10f, 0.18f, 1f));
-            SetAnchors(infoHeader, 0f, 0.85f, 1f, 1f);
-            var infoTitle = AddText(infoHeader, "Title", "BARRACKS", 22, TextAnchor.MiddleCenter);
+            var infoHeader = AddPanel(infoInner, "Header", new Color(0.12f, 0.08f, 0.20f, 1f));
+            SetAnchors(infoHeader, 0f, 0.88f, 1f, 1f);
+            var infoTitle = AddText(infoHeader, "BuildingName", "BARRACKS", 22, TextAnchor.MiddleCenter);
             StretchToParent(infoTitle);
             infoTitle.GetComponent<Text>().color = Gold;
             infoTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var infoTitleSh = infoTitle.AddComponent<Shadow>();
             infoTitleSh.effectColor = new Color(0, 0, 0, 0.85f);
             infoTitleSh.effectDistance = new Vector2(1f, -1f);
-            // Header bottom border
-            var infoHeaderBorder = AddPanel(infoFrame, "HeaderBorder", GoldDim);
-            SetAnchors(infoHeaderBorder, 0.03f, 0.845f, 0.97f, 0.85f);
+            var infoHeaderBorder = AddPanel(infoInner, "HeaderBorder", Gold);
+            SetAnchors(infoHeaderBorder, 0.03f, 0.875f, 0.97f, 0.88f);
 
-            // Level badge
-            var infoLvl = AddText(infoFrame, "Level", "Level 5", 14, TextAnchor.MiddleCenter);
-            SetAnchors(infoLvl, 0.30f, 0.76f, 0.70f, 0.84f);
+            // Building preview (left)
+            var infoPreview = AddPanel(infoInner, "BuildingPreview", new Color(0.08f, 0.06f, 0.14f, 0.80f));
+            SetAnchors(infoPreview, 0.04f, 0.52f, 0.36f, 0.86f);
+            AddOutlinePanel(infoPreview, new Color(0.50f, 0.40f, 0.22f, 0.60f));
+            var previewSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/barracks_t1.png");
+            if (previewSpr != null) { infoPreview.GetComponent<Image>().sprite = previewSpr; infoPreview.GetComponent<Image>().preserveAspect = true; infoPreview.GetComponent<Image>().color = Color.white; }
+
+            // Level badge overlapping preview
+            var infoLvlBadge = AddPanel(infoInner, "LevelBadgeFrame", new Color(0.72f, 0.56f, 0.22f, 1f));
+            SetAnchors(infoLvlBadge, 0.10f, 0.50f, 0.30f, 0.56f);
+            AddOutlinePanel(infoLvlBadge, new Color(0.45f, 0.34f, 0.12f, 0.9f));
+            var infoLvl = AddText(infoLvlBadge, "LevelBadge", "Level 5", 12, TextAnchor.MiddleCenter);
+            StretchToParent(infoLvl);
             infoLvl.GetComponent<Text>().color = TextWhite;
             infoLvl.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var infoLvlSh = infoLvl.AddComponent<Shadow>();
-            infoLvlSh.effectColor = new Color(0, 0, 0, 0.7f);
-            infoLvlSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            var infoDesc = AddText(infoFrame, "Desc", "Trains military units. Increases army capacity by 50 per level.", 13, TextAnchor.MiddleCenter);
-            SetAnchors(infoDesc, 0.08f, 0.58f, 0.92f, 0.76f);
+            // Description (right of preview)
+            var infoDesc = AddText(infoInner, "Description", "Trains military units.\nIncreases army capacity by 50 per level.", 13, TextAnchor.UpperLeft);
+            SetAnchors(infoDesc, 0.38f, 0.56f, 0.96f, 0.86f);
             infoDesc.GetComponent<Text>().color = TextLight;
             var infoDescSh = infoDesc.AddComponent<Shadow>();
             infoDescSh.effectColor = new Color(0, 0, 0, 0.5f);
             infoDescSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Separator
-            var infoSep = AddPanel(infoFrame, "Sep", new Color(0.20f, 0.18f, 0.30f, 0.5f));
-            SetAnchors(infoSep, 0.05f, 0.55f, 0.95f, 0.555f);
-
-            var infoCosts = AddText(infoFrame, "Costs", "Upgrade Cost:  1,200 Stone  •  800 Iron  •  600 Grain", 11, TextAnchor.MiddleCenter);
-            SetAnchors(infoCosts, 0.05f, 0.40f, 0.95f, 0.54f);
-            infoCosts.GetComponent<Text>().color = TextMid;
+            // Upgrade cost section
+            var infoCostHeader = AddText(infoInner, "CostHeader", "UPGRADE COST", 11, TextAnchor.MiddleLeft);
+            SetAnchors(infoCostHeader, 0.04f, 0.42f, 0.50f, 0.50f);
+            infoCostHeader.GetComponent<Text>().color = GoldDim;
+            infoCostHeader.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var infoCostSep = AddPanel(infoInner, "CostSep", new Color(0.72f, 0.56f, 0.22f, 0.30f));
+            SetAnchors(infoCostSep, 0.04f, 0.415f, 0.96f, 0.42f);
+            var infoCosts = AddText(infoInner, "CostText", "1,200 Stone  \u2022  800 Iron  \u2022  600 Grain", 14, TextAnchor.MiddleCenter);
+            SetAnchors(infoCosts, 0.04f, 0.30f, 0.96f, 0.42f);
+            infoCosts.GetComponent<Text>().color = TextWhite;
             var infoCostsSh = infoCosts.AddComponent<Shadow>();
             infoCostsSh.effectColor = new Color(0, 0, 0, 0.5f);
             infoCostsSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Time estimate
-            var infoTime = AddText(infoFrame, "Time", "\u23F1  2h 30m", 12, TextAnchor.MiddleCenter);
-            SetAnchors(infoTime, 0.30f, 0.33f, 0.70f, 0.40f);
+            var infoTime = AddText(infoInner, "TimeText", "\u23F1  2h 30m", 13, TextAnchor.MiddleCenter);
+            SetAnchors(infoTime, 0.30f, 0.22f, 0.70f, 0.30f);
             infoTime.GetComponent<Text>().color = Sky;
+            var infoTimeSh = infoTime.AddComponent<Shadow>();
+            infoTimeSh.effectColor = new Color(0, 0, 0, 0.5f);
+            infoTimeSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            var infoUpBtn = AddStyledButton(infoFrame, "UpgradeBtn", "UPGRADE", Gold, GoldDim);
-            SetAnchors(infoUpBtn, 0.10f, 0.10f, 0.50f, 0.28f);
-            AddSceneNav(infoUpBtn, SceneName.Empire);
-            var infoClose = AddStyledButton(infoFrame, "CloseBtn", "CLOSE", new Color(0.25f, 0.22f, 0.30f), BgMid);
-            SetAnchors(infoClose, 0.55f, 0.10f, 0.90f, 0.28f);
-            AddSceneNav(infoClose, SceneName.Empire);
+            var infoUpBtn = AddStyledButton(infoInner, "UpgradeBtn", "UPGRADE", new Color(0.20f, 0.72f, 0.35f, 1f), new Color(0.12f, 0.50f, 0.22f, 1f));
+            SetAnchors(infoUpBtn, 0.06f, 0.04f, 0.48f, 0.18f);
+            var infoClose = AddStyledButton(infoInner, "CloseBtn", "CLOSE", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
+            SetAnchors(infoClose, 0.52f, 0.04f, 0.94f, 0.18f);
+
+            canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingInfoPopupController>();
             infoPopup.SetActive(false);
 
             SaveScene();

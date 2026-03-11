@@ -388,7 +388,58 @@ namespace AshenThrone.Empire
 
             CreateLevelBadge(go, placement.Tier);
 
+            // P&C-style production rate label on resource buildings
+            CreateProductionLabel(go, placement.BuildingId, placement.Tier);
+
             placement.VisualGO = go;
+        }
+
+        private static readonly Dictionary<string, string> ResourceBuildingTypes = new()
+        {
+            { "grain_farm", "Grain" },
+            { "iron_mine", "Iron" },
+            { "stone_quarry", "Stone" },
+            { "arcane_tower", "Arcane" }
+        };
+
+        private void CreateProductionLabel(GameObject parent, string buildingId, int tier)
+        {
+            if (!ResourceBuildingTypes.TryGetValue(buildingId, out string resName)) return;
+
+            int rate = (tier + 1) * 250; // base production per hour per tier
+            string rateText = rate >= 1000 ? $"+{rate / 1000f:F1}K/hr" : $"+{rate}/hr";
+
+            var labelGO = new GameObject("ProductionRate");
+            labelGO.transform.SetParent(parent.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0.85f);
+            labelRect.anchorMax = new Vector2(0.55f, 1f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            // Dark semi-transparent bg pill
+            var bgImg = labelGO.AddComponent<Image>();
+            bgImg.color = new Color(0.06f, 0.04f, 0.10f, 0.70f);
+            bgImg.raycastTarget = false;
+
+            var textGO = new GameObject("RateText");
+            textGO.transform.SetParent(labelGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = rateText;
+            text.fontSize = 9;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.40f, 0.88f, 0.50f, 1f);
+            text.fontStyle = FontStyle.Bold;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
         }
 
         private void CreateLevelBadge(GameObject parent, int tier)
@@ -565,7 +616,7 @@ namespace AshenThrone.Empire
                 StartCoroutine(BounceBuilding(tapped.VisualGO.transform));
 
             // Publish tap event for UI systems
-            EventBus.Publish(new BuildingTappedEvent(tapped.GridOrigin, null));
+            EventBus.Publish(new BuildingTappedEvent(tapped));
         }
 
         private IEnumerator BounceBuilding(Transform building)
@@ -785,8 +836,19 @@ namespace AshenThrone.Empire
 
     public readonly struct BuildingTappedEvent
     {
+        public readonly string BuildingId;
+        public readonly string InstanceId;
+        public readonly int Tier;
         public readonly Vector2Int GridPosition;
-        public readonly PlacedBuilding Building;
-        public BuildingTappedEvent(Vector2Int pos, PlacedBuilding b) { GridPosition = pos; Building = b; }
+        public readonly GameObject VisualGO;
+
+        public BuildingTappedEvent(CityBuildingPlacement p)
+        {
+            BuildingId = p.BuildingId;
+            InstanceId = p.InstanceId;
+            Tier = p.Tier;
+            GridPosition = p.GridOrigin;
+            VisualGO = p.VisualGO;
+        }
     }
 }

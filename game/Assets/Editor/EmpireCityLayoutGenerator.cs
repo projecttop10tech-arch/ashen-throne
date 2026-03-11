@@ -592,7 +592,12 @@ namespace AshenThrone.Editor
             bsSO.ApplyModifiedPropertiesWithoutUndo();
 
             // ================================================================
-            // 9c. Ambient city effects (sparkles, smoke, etc.)
+            // 9c. Construction progress overlays during upgrades
+            // ================================================================
+            viewport.AddComponent<ConstructionOverlayManager>();
+
+            // ================================================================
+            // 9d. Ambient city effects (sparkles, smoke, etc.)
             // ================================================================
             var ambientFX = viewport.AddComponent<CityAmbientEffects>();
             var fxSO = new SerializedObject(ambientFX);
