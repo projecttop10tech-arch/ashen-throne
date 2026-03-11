@@ -32,6 +32,8 @@ namespace AshenThrone.Empire
         private static readonly Color ProgressFillColor = new(0.20f, 0.78f, 0.35f, 1f);
         private static readonly Color TimerTextColor = new(0.98f, 0.96f, 0.92f, 1f);
         private static readonly Color UpgradeArrowColor = new(0.30f, 0.85f, 0.40f, 1f);
+        private static readonly Color ScaffoldColor = new(0.65f, 0.55f, 0.35f, 0.25f);
+        private static readonly Color ScaffoldBorderColor = new(0.50f, 0.40f, 0.25f, 0.40f);
 
         private void Awake()
         {
@@ -193,6 +195,10 @@ namespace AshenThrone.Empire
             {
                 if (overlay.Root != null)
                     Destroy(overlay.Root);
+                if (overlay.ScaffoldOverlay != null)
+                    Destroy(overlay.ScaffoldOverlay);
+                if (overlay.HammerIcon != null)
+                    Destroy(overlay.HammerIcon);
                 _overlays.Remove(placedId);
             }
         }
@@ -281,12 +287,73 @@ namespace AshenThrone.Empire
                 hammerImg.color = UpgradeArrowColor;
             }
 
+            // P&C-style scaffold overlay — semi-transparent tint over the building
+            var scaffoldGO = new GameObject("ScaffoldOverlay");
+            scaffoldGO.transform.SetParent(buildingGO.transform, false);
+            scaffoldGO.transform.SetSiblingIndex(0); // behind other overlays
+            var scaffRect = scaffoldGO.AddComponent<RectTransform>();
+            scaffRect.anchorMin = new Vector2(0.02f, 0.02f);
+            scaffRect.anchorMax = new Vector2(0.98f, 0.85f);
+            scaffRect.offsetMin = Vector2.zero;
+            scaffRect.offsetMax = Vector2.zero;
+            var scaffImg = scaffoldGO.AddComponent<Image>();
+            scaffImg.color = ScaffoldColor;
+            scaffImg.raycastTarget = false;
+            var scaffOutline = scaffoldGO.AddComponent<Outline>();
+            scaffOutline.effectColor = ScaffoldBorderColor;
+            scaffOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Diagonal scaffold stripes (3 lines)
+            for (int stripe = 0; stripe < 3; stripe++)
+            {
+                var stripeGO = new GameObject($"Stripe_{stripe}");
+                stripeGO.transform.SetParent(scaffoldGO.transform, false);
+                var stripeRect = stripeGO.AddComponent<RectTransform>();
+                float xOff = 0.15f + stripe * 0.30f;
+                stripeRect.anchorMin = new Vector2(xOff - 0.01f, 0f);
+                stripeRect.anchorMax = new Vector2(xOff + 0.01f, 1f);
+                stripeRect.offsetMin = Vector2.zero;
+                stripeRect.offsetMax = Vector2.zero;
+                stripeRect.localRotation = Quaternion.Euler(0, 0, 20f);
+                var stripeImg = stripeGO.AddComponent<Image>();
+                stripeImg.color = new Color(0.55f, 0.45f, 0.30f, 0.30f);
+                stripeImg.raycastTarget = false;
+            }
+
+            // "UPGRADING" label across scaffold
+            var upgLabelGO = new GameObject("UpgradingLabel");
+            upgLabelGO.transform.SetParent(scaffoldGO.transform, false);
+            var upgLabelRect = upgLabelGO.AddComponent<RectTransform>();
+            upgLabelRect.anchorMin = new Vector2(0.05f, 0.40f);
+            upgLabelRect.anchorMax = new Vector2(0.95f, 0.60f);
+            upgLabelRect.offsetMin = Vector2.zero;
+            upgLabelRect.offsetMax = Vector2.zero;
+            var upgBg = upgLabelGO.AddComponent<Image>();
+            upgBg.color = new Color(0.06f, 0.04f, 0.08f, 0.70f);
+            upgBg.raycastTarget = false;
+            var upgText = new GameObject("Text");
+            upgText.transform.SetParent(upgLabelGO.transform, false);
+            var upgTextRect = upgText.AddComponent<RectTransform>();
+            upgTextRect.anchorMin = Vector2.zero;
+            upgTextRect.anchorMax = Vector2.one;
+            upgTextRect.offsetMin = Vector2.zero;
+            upgTextRect.offsetMax = Vector2.zero;
+            var upgLabel = upgText.AddComponent<Text>();
+            upgLabel.text = "UPGRADING";
+            upgLabel.fontSize = 10;
+            upgLabel.fontStyle = FontStyle.Bold;
+            upgLabel.alignment = TextAnchor.MiddleCenter;
+            upgLabel.color = new Color(0.90f, 0.75f, 0.35f, 0.85f);
+            upgLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            upgLabel.raycastTarget = false;
+
             return new ConstructionOverlay
             {
                 Root = root,
                 ProgressFill = fillRect,
                 TimerText = timerText,
                 HammerIcon = hammerGO,
+                ScaffoldOverlay = scaffoldGO,
                 TotalSeconds = totalSeconds
             };
         }
@@ -529,6 +596,7 @@ namespace AshenThrone.Empire
             public RectTransform ProgressFill;
             public Text TimerText;
             public GameObject HammerIcon;
+            public GameObject ScaffoldOverlay;
             public float TotalSeconds;
         }
     }

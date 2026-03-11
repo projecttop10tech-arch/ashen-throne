@@ -416,17 +416,17 @@ namespace AshenThrone.Empire
             placement.VisualGO = go;
         }
 
-        private static readonly Dictionary<string, string> ResourceBuildingTypes = new()
+        private static readonly Dictionary<string, (string Name, Color Tint)> ResourceBuildingTypes = new()
         {
-            { "grain_farm", "Grain" },
-            { "iron_mine", "Iron" },
-            { "stone_quarry", "Stone" },
-            { "arcane_tower", "Arcane" }
+            { "grain_farm", ("Grain", new Color(0.95f, 0.85f, 0.30f, 1f)) },   // yellow
+            { "iron_mine", ("Iron", new Color(0.70f, 0.75f, 0.85f, 1f)) },      // silver-blue
+            { "stone_quarry", ("Stone", new Color(0.75f, 0.68f, 0.55f, 1f)) },  // tan
+            { "arcane_tower", ("Arcane", new Color(0.65f, 0.45f, 0.90f, 1f)) }  // purple
         };
 
         private void CreateProductionLabel(GameObject parent, string buildingId, int tier)
         {
-            if (!ResourceBuildingTypes.TryGetValue(buildingId, out string resName)) return;
+            if (!ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo)) return;
 
             int rate = (tier + 1) * 250; // base production per hour per tier
             string rateText = rate >= 1000 ? $"+{rate / 1000f:F1}K/hr" : $"+{rate}/hr";
@@ -434,20 +434,36 @@ namespace AshenThrone.Empire
             var labelGO = new GameObject("ProductionRate");
             labelGO.transform.SetParent(parent.transform, false);
             var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0f, 0.85f);
-            labelRect.anchorMax = new Vector2(0.55f, 1f);
+            labelRect.anchorMin = new Vector2(-0.05f, 0.85f);
+            labelRect.anchorMax = new Vector2(0.60f, 1.02f);
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
 
             // Dark semi-transparent bg pill
             var bgImg = labelGO.AddComponent<Image>();
-            bgImg.color = new Color(0.06f, 0.04f, 0.10f, 0.70f);
+            bgImg.color = new Color(0.06f, 0.04f, 0.10f, 0.78f);
             bgImg.raycastTarget = false;
+            // Subtle resource-colored border
+            var outline = labelGO.AddComponent<Outline>();
+            outline.effectColor = new Color(resInfo.Tint.r, resInfo.Tint.g, resInfo.Tint.b, 0.50f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Small resource color dot on left
+            var dotGO = new GameObject("ResDot");
+            dotGO.transform.SetParent(labelGO.transform, false);
+            var dotRect = dotGO.AddComponent<RectTransform>();
+            dotRect.anchorMin = new Vector2(0.04f, 0.22f);
+            dotRect.anchorMax = new Vector2(0.16f, 0.78f);
+            dotRect.offsetMin = Vector2.zero;
+            dotRect.offsetMax = Vector2.zero;
+            var dotImg = dotGO.AddComponent<Image>();
+            dotImg.color = resInfo.Tint;
+            dotImg.raycastTarget = false;
 
             var textGO = new GameObject("RateText");
             textGO.transform.SetParent(labelGO.transform, false);
             var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMin = new Vector2(0.18f, 0f);
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
@@ -455,7 +471,7 @@ namespace AshenThrone.Empire
             text.text = rateText;
             text.fontSize = 9;
             text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color(0.40f, 0.88f, 0.50f, 1f);
+            text.color = resInfo.Tint;
             text.fontStyle = FontStyle.Bold;
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.raycastTarget = false;
@@ -656,7 +672,7 @@ namespace AshenThrone.Empire
 
         private void UpdateProductionLabel(GameObject building, string buildingId, int tier)
         {
-            if (!ResourceBuildingTypes.TryGetValue(buildingId, out string resName)) return;
+            if (!ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo)) return;
 
             var existing = building.transform.Find("ProductionRate");
             if (existing != null)
@@ -666,6 +682,7 @@ namespace AshenThrone.Empire
                 {
                     int rate = (tier + 1) * 250;
                     rateText.text = rate >= 1000 ? $"+{rate / 1000f:F1}K/hr" : $"+{rate}/hr";
+                    rateText.color = resInfo.Tint;
                 }
             }
         }

@@ -2488,6 +2488,7 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildQueueHUDIndicator>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeCompleteToast>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildCatalogController>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.CityPowerHUD>();
             infoPopup.SetActive(false);
 
             // P&C: Building Catalog Popup (shown when tapping empty ground)

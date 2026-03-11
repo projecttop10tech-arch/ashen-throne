@@ -4,6 +4,26 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.18.0] — 2026-03-11 (Ralph Loop Iteration 13: P&C Building Interactions)
+
+### ADDED
+- **CityPowerHUD** — calculates and displays total city power from building tiers, auto-refreshes on upgrade/place/demolish events
+- **Scaffold construction overlay** — semi-transparent tint with diagonal stripes + "UPGRADING" label on buildings during upgrade
+- **Star burst fanfare** on upgrade complete toast — 4 pulsing star decorations with shimmer animation
+- **Building icon + level badge** in upgrade complete toast — shows building sprite and "Lv X" badge
+- **"LEVEL UP!" header** in toast with two-line layout (header + "Now Level X — New abilities unlocked!")
+
+### CHANGED
+- **Production rate labels** now use resource-specific colors (yellow grain, silver-blue iron, tan stone, purple arcane) with colored dot indicator
+- **Upgrade complete toast** now has scale-pop overshoot animation (0.7→1.08→1.0) + glow backdrop
+- **Toast timing** refined: 0.35s slide-in, 0.6s star shimmer, 2.0s hold, 0.5s fade-out
+- **Construction overlay cleanup** now properly destroys scaffold + hammer icon on completion
+
+### FIXED
+- **CS1503 type mismatch** in `UpdateProductionLabel` — updated to use tuple destructuring matching new `ResourceBuildingTypes` dictionary type
+
+---
+
 ## [0.17.0] — 2026-03-10 (Ralph Loop Pass 2: Deep Visual Polish)
 
 ### ADDED
