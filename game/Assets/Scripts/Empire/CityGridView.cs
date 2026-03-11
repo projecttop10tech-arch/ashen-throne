@@ -123,17 +123,38 @@ namespace AshenThrone.Empire
 
         private EventSubscription _upgradeCompletedSub;
         private EventSubscription _demolishedSub;
+        private EventSubscription _doubleTapZoomSub;
+
+        // P&C: Smooth zoom-to-building on double-tap
+        private Coroutine _smoothZoomCoroutine;
+        private const float DoubleTapZoomTarget = 2.0f;
+        private const float SmoothZoomDuration = 0.35f;
+
+        // P&C: Building category mini-icons (visible at medium zoom)
+        private static readonly Dictionary<string, string> CategoryIcons = new()
+        {
+            { "barracks", "\u2694" }, { "training_ground", "\u2694" }, { "armory", "\u2694" },
+            { "wall", "\u26E8" }, { "watch_tower", "\u26E8" },
+            { "grain_farm", "\u26CF" }, { "iron_mine", "\u26CF" }, { "stone_quarry", "\u26CF" },
+            { "arcane_tower", "\u2728" }, { "enchanting_tower", "\u2728" }, { "hero_shrine", "\u2728" },
+            { "academy", "\u2609" }, { "library", "\u2609" }, { "archive", "\u2609" },
+            { "observatory", "\u2609" }, { "laboratory", "\u2609" },
+            { "guild_hall", "\u265F" }, { "embassy", "\u265F" },
+        };
+        private static readonly Color CategoryIconColor = new(1f, 0.92f, 0.72f, 0.85f);
 
         private void OnEnable()
         {
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildingUpgradeCompleted);
             _demolishedSub = EventBus.Subscribe<BuildingDemolishedEvent>(OnBuildingDemolished);
+            _doubleTapZoomSub = EventBus.Subscribe<BuildingDoubleTappedEvent>(OnDoubleTapZoom);
         }
 
         private void OnDisable()
         {
             _upgradeCompletedSub?.Dispose();
             _demolishedSub?.Dispose();
+            _doubleTapZoomSub?.Dispose();
         }
 
         private void Start()
@@ -298,6 +319,7 @@ namespace AshenThrone.Empire
         private void UpdateZoomDetailVisibility()
         {
             bool showDetails = _currentZoom >= 1.0f;
+            bool showCategoryIcons = _currentZoom >= 0.6f && _currentZoom < 1.3f;
             foreach (var p in _placements)
             {
                 if (p.VisualGO == null) continue;
@@ -305,7 +327,107 @@ namespace AshenThrone.Empire
                 if (badge != null) badge.gameObject.SetActive(showDetails);
                 var nameLabel = p.VisualGO.transform.Find("NameLabel");
                 if (nameLabel != null) nameLabel.gameObject.SetActive(showDetails);
+                // P&C: Category mini-icons visible at medium zoom
+                var catIcon = p.VisualGO.transform.Find("CategoryIcon");
+                if (catIcon != null) catIcon.gameObject.SetActive(showCategoryIcons);
             }
+        }
+
+        /// <summary>P&C: On double-tap, smoothly zoom in and center on the building.</summary>
+        private void OnDoubleTapZoom(BuildingDoubleTappedEvent evt)
+        {
+            CityBuildingPlacement target = null;
+            foreach (var p in _placements)
+                if (p.InstanceId == evt.InstanceId) { target = p; break; }
+            if (target?.VisualGO == null || contentContainer == null) return;
+
+            if (_smoothZoomCoroutine != null) StopCoroutine(_smoothZoomCoroutine);
+            _smoothZoomCoroutine = StartCoroutine(SmoothZoomToBuilding(target));
+
+            // P&C: Haptic feedback on double-tap
+            #if UNITY_IOS || UNITY_ANDROID
+            Handheld.Vibrate();
+            #endif
+        }
+
+        private IEnumerator SmoothZoomToBuilding(CityBuildingPlacement target)
+        {
+            var buildingRect = target.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect == null) yield break;
+
+            float startZoom = _currentZoom;
+            float endZoom = Mathf.Max(startZoom, DoubleTapZoomTarget);
+            Vector2 startPos = contentContainer.anchoredPosition;
+            Vector2 targetBuildingPos = buildingRect.anchoredPosition * endZoom;
+            Vector2 endPos = -targetBuildingPos;
+
+            float elapsed = 0f;
+            while (elapsed < SmoothZoomDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / SmoothZoomDuration;
+                // Ease-out cubic
+                float ease = 1f - (1f - t) * (1f - t) * (1f - t);
+
+                float zoom = Mathf.Lerp(startZoom, endZoom, ease);
+                _currentZoom = zoom;
+                _targetZoom = endZoom;
+                contentContainer.localScale = Vector3.one * zoom;
+
+                Vector2 pos = Vector2.Lerp(startPos, endPos, ease);
+                contentContainer.anchoredPosition = pos;
+
+                UpdateZoomDetailVisibility();
+                yield return null;
+            }
+
+            _currentZoom = endZoom;
+            _targetZoom = endZoom;
+            contentContainer.localScale = Vector3.one * endZoom;
+            contentContainer.anchoredPosition = endPos;
+            UpdateZoomDetailVisibility();
+            _smoothZoomCoroutine = null;
+        }
+
+        /// <summary>P&C: Create a small category icon on a building for at-a-glance identification at medium zoom.</summary>
+        private void EnsureCategoryIcon(CityBuildingPlacement placement)
+        {
+            if (placement?.VisualGO == null) return;
+            if (placement.VisualGO.transform.Find("CategoryIcon") != null) return;
+            if (!CategoryIcons.TryGetValue(placement.BuildingId, out var symbol)) return;
+
+            var iconGO = new GameObject("CategoryIcon");
+            iconGO.transform.SetParent(placement.VisualGO.transform, false);
+
+            var rect = iconGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.35f, 0.02f);
+            rect.anchorMax = new Vector2(0.65f, 0.18f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark pill background
+            var bg = iconGO.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.05f, 0.14f, 0.75f);
+            bg.raycastTarget = false;
+
+            var textGO = new GameObject("Symbol");
+            textGO.transform.SetParent(iconGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = symbol;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 10;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = CategoryIconColor;
+            text.raycastTarget = false;
+
+            // Start hidden — UpdateZoomDetailVisibility controls visibility
+            bool visible = _currentZoom >= 0.6f && _currentZoom < 1.3f;
+            iconGO.SetActive(visible);
         }
 
         /// <summary>Current zoom level (1.0 = default).</summary>
@@ -420,6 +542,7 @@ namespace AshenThrone.Empire
             MarkCells(origin, size, instanceId);
             _placements.Add(placement);
             CreateBuildingVisual(placement);
+            EnsureCategoryIcon(placement);
 
             return placement;
         }
@@ -686,6 +809,7 @@ namespace AshenThrone.Empire
                     }
                 }
                 _placements.Add(placement);
+                EnsureCategoryIcon(placement);
             }
         }
 
@@ -984,6 +1108,11 @@ namespace AshenThrone.Empire
 
             // P&C: Show footprint highlight on tapped building
             ShowBuildingFootprint(tapped);
+
+            // P&C: Haptic feedback on building tap
+            #if UNITY_IOS || UNITY_ANDROID
+            Handheld.Vibrate();
+            #endif
 
             // Bounce animation
             if (tapped.VisualGO != null)

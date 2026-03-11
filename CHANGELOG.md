@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.25.0] — 2026-03-11 (Ralph Loop Iteration 20: Double-Tap Zoom, Category Icons, Haptics)
+
+### ADDED
+- **Double-tap zoom to building** — double-tapping a building smoothly zooms in (ease-out cubic, 0.35s) and centers the viewport on it, alongside triggering quick upgrade
+- **Building category mini-icons** — small symbol icons on buildings (sword=military, pickaxe=resource, star=magic, sun=research, chess=social) visible at medium zoom (0.6-1.3x) for at-a-glance identification
+- **Haptic feedback** — building taps and double-taps trigger device vibration on iOS/Android
+
+### CHANGED
+- UpdateZoomDetailVisibility now manages three LOD tiers: category icons (medium zoom), level badges + name labels (close zoom)
+- EnsureCategoryIcon called on both scene registration and dynamic placement
+
+---
+
 ## [0.24.0] — 2026-03-11 (Ralph Loop Iteration 19: Smooth Zoom, Elastic Scroll, Detail LOD)
 
 ### ADDED
