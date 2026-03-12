@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.87.0] — 2026-03-12 (Ralph Loop Iteration 82: Clean City View, Full-Width Upgrade Button)
+
+### CHANGED
+- **Removed permanent event timer banners** — Build queue strips and event countdown strips removed from left-side display. Build queue info now exclusively accessible via tapping the BuilderCountHUD pill (expands the queue panel). Event timers accessible via Event Hub circular icon. Dramatically cleans up left side to match P&C's minimal overlay style.
+- **Mini-map relocated to bottom-right** — Moved from bottom-left (0.02-0.16, 0.11-0.23) to bottom-right (0.82-0.98, 0.115-0.215), freeing left side for circular event icon column.
+- **Auto-collect toggle shrunk** — Reduced from 35% width bar to 20% compact pill, repositioned above nav bar right-aligned. Less visual noise.
+- **Upgrade button full-width with cost display** — Info panel upgrade button now spans full panel width (0.05-0.95) with two-line layout: "⬆ UPGRADE" on top and resource cost string below, matching P&C's prominent upgrade CTA.
+- **Demolish button repositioned** — Moved above upgrade button to avoid overlap (0.05-0.35, 0.13-0.20).
+
+---
+
 ## [0.86.0] — 2026-03-12 (Ralph Loop Iteration 81: P&C Circular Event Icons, Unified HUD)
 
 ### ADDED
