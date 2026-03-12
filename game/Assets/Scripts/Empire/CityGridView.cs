@@ -945,6 +945,9 @@ namespace AshenThrone.Empire
             // P&C-style production rate label on resource buildings
             CreateProductionLabel(go, placement.BuildingId, placement.Tier);
 
+            // P&C: Garrison display on military buildings
+            CreateGarrisonLabel(go, placement.BuildingId, placement.Tier);
+
             // P&C: Stronghold gets a special golden glow aura
             if (placement.BuildingId == "stronghold")
                 CreateStrongholdGlow(go);
@@ -1219,6 +1222,72 @@ namespace AshenThrone.Empire
             shadow.effectDistance = new Vector2(0.5f, -0.5f);
         }
 
+        /// <summary>P&C: Garrison troop count label on military buildings.</summary>
+        private void CreateGarrisonLabel(GameObject parent, string buildingId, int tier)
+        {
+            bool isMilitary = buildingId == "barracks" || buildingId == "training_ground" || buildingId == "armory";
+            if (!isMilitary) return;
+
+            int troops = buildingId switch
+            {
+                "barracks" => 500 * (tier + 1),
+                "training_ground" => 300 * (tier + 1),
+                "armory" => 200 * (tier + 1),
+                _ => 0
+            };
+            string troopStr = troops >= 1000 ? $"{troops / 1000f:F1}K" : $"{troops}";
+
+            var labelGO = new GameObject("GarrisonLabel");
+            labelGO.transform.SetParent(parent.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0.40f, 0.85f);
+            labelRect.anchorMax = new Vector2(1.05f, 1.02f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            var bgImg = labelGO.AddComponent<Image>();
+            bgImg.color = new Color(0.06f, 0.04f, 0.10f, 0.78f);
+            bgImg.raycastTarget = false;
+            var outline = labelGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.30f, 0.25f, 0.50f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Sword icon
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(labelGO.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.02f, 0.10f);
+            iconRect.anchorMax = new Vector2(0.20f, 0.90f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = "\u2694"; // ⚔
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = 9;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = new Color(0.90f, 0.40f, 0.35f);
+            iconText.raycastTarget = false;
+
+            var textGO = new GameObject("TroopText");
+            textGO.transform.SetParent(labelGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.20f, 0f);
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = troopStr;
+            text.fontSize = 9;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.90f, 0.40f, 0.35f);
+            text.fontStyle = FontStyle.Bold;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
         private void CreateLevelBadge(GameObject parent, int tier)
         {
             var badge = new GameObject("LevelBadge");
@@ -1310,6 +1379,66 @@ namespace AshenThrone.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = current >= maxCount ? new Color(0.85f, 0.4f, 0.3f) : new Color(0.70f, 0.75f, 0.80f);
             text.raycastTarget = false;
+        }
+
+        /// <summary>P&C: Temporary "NEW" badge that appears after upgrade and fades after 10s.</summary>
+        private void CreateNewBadge(GameObject building)
+        {
+            // Remove existing NEW badge if any
+            var existing = building.transform.Find("NewBadge");
+            if (existing != null) Destroy(existing.gameObject);
+
+            var badge = new GameObject("NewBadge");
+            badge.transform.SetParent(building.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.60f, 0.80f);
+            rect.anchorMax = new Vector2(0.95f, 0.98f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.90f, 0.20f, 0.15f, 0.95f);
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.5f, 0.3f, 0.6f);
+            outline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = "NEW";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            StartCoroutine(FadeAndDestroyNewBadge(badge));
+        }
+
+        private IEnumerator FadeAndDestroyNewBadge(GameObject badge)
+        {
+            // Stay visible for 8 seconds
+            yield return new WaitForSeconds(8f);
+            if (badge == null) yield break;
+
+            // Fade out over 2 seconds
+            var cg = badge.AddComponent<CanvasGroup>();
+            float elapsed = 0f;
+            while (elapsed < 2f && badge != null)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = 1f - (elapsed / 2f);
+                yield return null;
+            }
+            if (badge != null) Destroy(badge);
         }
 
         private void PositionBuildingRect(RectTransform rect, CityBuildingPlacement placement)
@@ -1451,6 +1580,14 @@ namespace AshenThrone.Empire
 
                 // P&C: Celebration burst particle effect
                 StartCoroutine(UpgradeCelebrationBurst(placement.VisualGO));
+
+                // P&C: "NEW" badge that fades after 10 seconds
+                CreateNewBadge(placement.VisualGO);
+
+                // Update count badges (tier changed)
+                var oldCountBadge = placement.VisualGO.transform.Find("CountBadge");
+                if (oldCountBadge != null) Destroy(oldCountBadge.gameObject);
+                CreateBuildingCountBadge(placement.VisualGO, placement.BuildingId);
             }
         }
 
@@ -3404,8 +3541,18 @@ namespace AshenThrone.Empire
             {
                 float rowBot = yTop - rowHeight;
 
-                // Category label
-                AddInfoPanelText(panel.transform, $"Cat_{category}", category, 10, FontStyle.Bold, color,
+                // Category icon + label
+                string catIcon = category switch
+                {
+                    "Military" => "\u2694", // ⚔
+                    "Resource" => "\u26CF", // ⛏
+                    "Research" => "\u2697", // ⚗
+                    "Magic" => "\u2728",    // ✨
+                    "Defense" => "\u26E8",  // ⛨
+                    "Social" => "\u2764",   // ❤
+                    _ => "\u25A0"
+                };
+                AddInfoPanelText(panel.transform, $"Cat_{category}", $"{catIcon} {category}", 10, FontStyle.Bold, color,
                     new Vector2(0.03f, rowBot), new Vector2(0.18f, yTop), TextAnchor.MiddleLeft);
 
                 // Building buttons in row

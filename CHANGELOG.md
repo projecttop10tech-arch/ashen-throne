@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.47.0] — 2026-03-12 (Ralph Loop Iteration 42: NEW Badge, Garrison Labels, Category Icons)
+
+### ADDED
+- **"NEW" badge on upgrade completion** — when a building finishes upgrading, a red "NEW" badge appears in the top-right corner. Stays visible for 8 seconds, then fades out over 2 seconds using CanvasGroup alpha. Count badges also refresh on upgrade completion.
+- **Garrison troop count on military buildings** — barracks, training_ground, and armory now show a troop count label (⚔ icon + count) in the top-right. Barracks: 500×tier, Training Ground: 300×tier, Armory: 200×tier. Red-tinted text with dark pill background.
+- **Category icons in build selector** — each category row in the building placement selector now shows a Unicode icon: ⚔ Military, ⛏ Resource, ⚗ Research, ✨ Magic, ⛨ Defense, ❤ Social.
+
+### CHANGED
+- `OnBuildingUpgradeCompleted` now calls `CreateNewBadge()` and refreshes count badges
+- `CreateGarrisonLabel()` added to building creation pipeline alongside production labels
+- Build selector category labels now include icon prefix
+
+---
+
 ## [0.46.0] — 2026-03-12 (Ralph Loop Iteration 41: Stronghold Requirements, Offline Banner, Tap Ripple)
 
 ### ADDED
