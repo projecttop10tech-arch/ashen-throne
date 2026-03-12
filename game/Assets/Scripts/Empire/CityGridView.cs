@@ -95,6 +95,9 @@ namespace AshenThrone.Empire
         private const float LongPressTime = 0.5f;
         private const float DragThreshold = 10f;
 
+        // P&C: Free instant-complete threshold (seconds)
+        private const int FreeSpeedUpThresholdSeconds = 300; // 5 minutes
+
         // Placement highlight (shows snap target during drag) — iso diamond cells
         private static readonly Color HighlightValid = new(0.15f, 0.9f, 0.3f, 0.25f);
         private static readonly Color HighlightInvalid = new(0.95f, 0.15f, 0.15f, 0.25f);
@@ -1433,11 +1436,107 @@ namespace AshenThrone.Empire
                     // P&C: Upgrade completion celebration — flash + burst + bounce
                     StartCoroutine(UpgradeCompletionCelebration(p.VisualGO));
 
+                    // P&C: Show slide-in banner notification
+                    string displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
+                    ShowUpgradeCompleteBanner(displayName, evt.NewTier);
+
                     RefreshInstanceCountBadges();
                     UpdateBuilderCountHUD();
                     break;
                 }
             }
+        }
+
+        /// <summary>P&C: Slide-in banner from top when an upgrade completes.</summary>
+        private void ShowUpgradeCompleteBanner(string buildingName, int newTier)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            var banner = new GameObject("UpgradeCompleteBanner");
+            banner.transform.SetParent(canvas.transform, false);
+            var rect = banner.AddComponent<RectTransform>();
+            // Start off-screen above, slide to top area
+            rect.anchorMin = new Vector2(0.08f, 0.88f);
+            rect.anchorMax = new Vector2(0.92f, 0.95f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = banner.AddComponent<Image>();
+            bg.color = new Color(0.10f, 0.08f, 0.18f, 0.92f);
+            bg.raycastTarget = false;
+
+            var outline = banner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.70f, 0.20f, 0.8f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(banner.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(8, 0);
+            textRect.offsetMax = new Vector2(-8, 0);
+            var text = textGO.AddComponent<Text>();
+            string tierStar = newTier > 1 ? $" \u2605{newTier}" : "";
+            text.text = $"\u2714 {buildingName} upgraded to Lv {newTier}{tierStar}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 13;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.95f, 0.85f, 0.35f);
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(0.6f, -0.6f);
+
+            StartCoroutine(AnimateUpgradeCompleteBanner(banner, rect));
+        }
+
+        private IEnumerator AnimateUpgradeCompleteBanner(GameObject banner, RectTransform rect)
+        {
+            // Slide in from above
+            float slideIn = 0.3f;
+            float hold = 2.5f;
+            float slideOut = 0.4f;
+
+            Vector2 offMin = rect.anchorMin;
+            Vector2 offMax = rect.anchorMax;
+            float height = offMax.y - offMin.y;
+
+            // Start above screen
+            rect.anchorMin = new Vector2(offMin.x, 1f);
+            rect.anchorMax = new Vector2(offMax.x, 1f + height);
+
+            // Slide down
+            float elapsed = 0f;
+            while (elapsed < slideIn && banner != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / slideIn);
+                rect.anchorMin = Vector2.Lerp(new Vector2(offMin.x, 1f), offMin, t);
+                rect.anchorMax = Vector2.Lerp(new Vector2(offMax.x, 1f + height), offMax, t);
+                yield return null;
+            }
+
+            // Hold
+            yield return new WaitForSeconds(hold);
+
+            // Slide back up
+            elapsed = 0f;
+            var cg = banner.AddComponent<CanvasGroup>();
+            while (elapsed < slideOut && banner != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / slideOut;
+                rect.anchorMin = Vector2.Lerp(offMin, new Vector2(offMin.x, 1f), t);
+                rect.anchorMax = Vector2.Lerp(offMax, new Vector2(offMax.x, 1f + height), t);
+                cg.alpha = 1f - t;
+                yield return null;
+            }
+
+            if (banner != null) Destroy(banner);
         }
 
         /// <summary>P&C: Celebration when upgrade completes — white flash, golden burst particles, big bounce.</summary>
@@ -1817,10 +1916,15 @@ namespace AshenThrone.Empire
             string capturedId = instanceId;
             int capturedSecs = buildTimeSeconds;
             speedBtn.onClick.AddListener(() => {
-                // Estimate gem cost: 1 gem per 60 seconds remaining
+                if (capturedId == null) return;
+                // P&C: Free instant complete for timers under 5 minutes
+                if (capturedSecs <= FreeSpeedUpThresholdSeconds)
+                {
+                    EventBus.Publish(new SpeedupRequestedEvent(capturedId, 0, capturedSecs));
+                    return;
+                }
                 int gemCost = Mathf.Max(1, Mathf.CeilToInt(capturedSecs / 60f));
-                if (capturedId != null)
-                    ShowSpeedUpDialog(capturedId, gemCost, capturedSecs);
+                ShowSpeedUpDialog(capturedId, gemCost, capturedSecs);
             });
 
             var speedTextGO = new GameObject("Label");
@@ -1832,12 +1936,14 @@ namespace AshenThrone.Empire
             speedTextRect.offsetMax = Vector2.zero;
 
             var speedText = speedTextGO.AddComponent<Text>();
-            speedText.text = "\u26A1"; // ⚡ lightning bolt
+            // P&C: Show "FREE" for short timers, lightning bolt otherwise
+            speedText.text = buildTimeSeconds <= FreeSpeedUpThresholdSeconds ? "FREE" : "\u26A1";
             speedText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            speedText.fontSize = 11;
+            speedText.fontSize = buildTimeSeconds <= FreeSpeedUpThresholdSeconds ? 8 : 11;
             speedText.fontStyle = FontStyle.Bold;
             speedText.alignment = TextAnchor.MiddleCenter;
-            speedText.color = Color.white;
+            speedText.color = buildTimeSeconds <= FreeSpeedUpThresholdSeconds
+                ? new Color(0.3f, 1f, 0.4f) : Color.white;
             speedText.raycastTarget = false;
 
             // --- P&C: Alliance help (handshake) button below speed-up ---
@@ -2203,10 +2309,13 @@ namespace AshenThrone.Empire
                     DismissInfoPopup();
                 });
 
+            string capBuildingId = evt.BuildingId;
+            string capInstanceId = evt.InstanceId;
+            int capTier = evt.Tier;
             CreatePopupButton(popup.transform, "Info", "\u2139", new Vector2(0.35f, btnY0), new Vector2(0.65f, btnY1),
                 new Color(0.20f, 0.35f, 0.65f, 0.9f), () => {
-                    // Info button — future feature, just dismiss for now
                     DismissInfoPopup();
+                    ShowBuildingInfoPanel(capBuildingId, capInstanceId, capTier);
                 });
 
             CreatePopupButton(popup.transform, "Move", "\u2725", new Vector2(0.66f, btnY0), new Vector2(0.98f, btnY1),
@@ -2288,6 +2397,194 @@ namespace AshenThrone.Empire
                 _infoPopup = null;
             }
             _infoPopupInstanceId = null;
+        }
+
+        // ====================================================================
+        // P&C: Building Info Detail Panel
+        // ====================================================================
+
+        private GameObject _buildingInfoPanel;
+
+        /// <summary>P&C: Full-screen building info panel with stats, description, production info.</summary>
+        private void ShowBuildingInfoPanel(string buildingId, string instanceId, int tier)
+        {
+            DismissBuildingInfoPanel();
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _buildingInfoPanel = new GameObject("BuildingInfoPanel");
+            _buildingInfoPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _buildingInfoPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _buildingInfoPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _buildingInfoPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissBuildingInfoPanel);
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_buildingInfoPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.06f, 0.15f);
+            panelRect.anchorMax = new Vector2(0.94f, 0.85f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelImg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            Color headerColor = GetCategoryHeaderColor(buildingId);
+
+            // Title bar
+            AddInfoPanelText(panel.transform, "Title", displayName, 18, FontStyle.Bold, headerColor,
+                new Vector2(0.05f, 0.88f), new Vector2(0.70f, 0.97f), TextAnchor.MiddleLeft);
+
+            // Level display
+            string tierStar = tier > 1 ? $" \u2605" : "";
+            AddInfoPanelText(panel.transform, "Level", $"Level {tier}{tierStar}", 14, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.72f, 0.88f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleRight);
+
+            // Separator line
+            var sepGO = new GameObject("Separator");
+            sepGO.transform.SetParent(panel.transform, false);
+            var sepRect = sepGO.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.05f, 0.865f);
+            sepRect.anchorMax = new Vector2(0.95f, 0.87f);
+            sepRect.offsetMin = Vector2.zero;
+            sepRect.offsetMax = Vector2.zero;
+            var sepImg = sepGO.AddComponent<Image>();
+            sepImg.color = new Color(0.85f, 0.65f, 0.15f, 0.4f);
+            sepImg.raycastTarget = false;
+
+            // Building description
+            string desc = GetBuildingDescription(buildingId);
+            AddInfoPanelText(panel.transform, "Description", desc, 12, FontStyle.Normal,
+                new Color(0.80f, 0.78f, 0.75f),
+                new Vector2(0.05f, 0.72f), new Vector2(0.95f, 0.85f), TextAnchor.UpperLeft);
+
+            // Stats section
+            float statsY = 0.68f;
+            AddInfoPanelText(panel.transform, "StatsHeader", "STATS", 12, FontStyle.Bold,
+                new Color(0.70f, 0.85f, 1f),
+                new Vector2(0.05f, statsY - 0.02f), new Vector2(0.50f, statsY + 0.04f), TextAnchor.MiddleLeft);
+
+            // Resource production info (if applicable)
+            if (ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo))
+            {
+                int rate = (tier + 1) * 250;
+                string rateText = rate >= 1000 ? $"{rate / 1000f:F1}K" : $"{rate}";
+                AddInfoPanelText(panel.transform, "ProdRate",
+                    $"Production: +{rateText}/hr ({resInfo.Name})", 11, FontStyle.Normal, resInfo.Tint,
+                    new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
+                statsY -= 0.07f;
+            }
+
+            // Upgrade costs for next tier
+            string costStr = GetUpgradeCostString(instanceId, tier);
+            if (costStr != null)
+            {
+                string costLabel = costStr == "MAX LEVEL" ? "Upgrade: MAX LEVEL" : $"Next upgrade: {costStr}";
+                Color costColor = costStr == "MAX LEVEL"
+                    ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.90f, 0.85f, 0.70f);
+                AddInfoPanelText(panel.transform, "UpgradeCost", costLabel, 11, FontStyle.Normal, costColor,
+                    new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
+            }
+
+            // Close button (X in top-right)
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(DismissBuildingInfoPanel);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _buildingInfoPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void AddInfoPanelText(Transform parent, string name, string content, int fontSize,
+            FontStyle style, Color color, Vector2 anchorMin, Vector2 anchorMax, TextAnchor alignment)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var text = go.AddComponent<Text>();
+            text.text = content;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize;
+            text.fontStyle = style;
+            text.alignment = alignment;
+            text.color = color;
+            text.raycastTarget = false;
+            var shadow = go.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        private void DismissBuildingInfoPanel()
+        {
+            if (_buildingInfoPanel != null)
+            {
+                Destroy(_buildingInfoPanel);
+                _buildingInfoPanel = null;
+            }
+        }
+
+        private static string GetBuildingDescription(string buildingId)
+        {
+            return buildingId switch
+            {
+                "stronghold" => "The heart of your empire. Upgrade to unlock new buildings and raise level caps for all structures.",
+                "barracks" => "Trains soldiers for your armies. Higher tiers unlock elite troop types and increase training speed.",
+                "forge" => "Crafts weapons and armor for your heroes. Upgrade for access to higher quality equipment.",
+                "marketplace" => "Facilitates trade between players. Higher tiers reduce trade fees and unlock rare goods.",
+                "academy" => "Research facility for unlocking technology upgrades that enhance your empire.",
+                "grain_farm" => "Produces grain to sustain your population and armies. Upgrade for higher yields.",
+                "iron_mine" => "Extracts iron ore for military equipment and construction. Higher tiers boost output.",
+                "stone_quarry" => "Quarries stone for building construction. Essential for expanding your empire.",
+                "arcane_tower" => "Channels arcane essence from ley lines. Required for magical research and enchanting.",
+                "wall" => "Fortified perimeter defense. Higher tiers increase durability and unlock guard towers.",
+                "watch_tower" => "Provides scouting intelligence on approaching threats. Upgrade for longer detection range.",
+                "guild_hall" => "Coordinates alliance operations. Upgrade to increase rally capacity for joint attacks.",
+                "embassy" => "Houses allied reinforcements. Higher tiers allow more troops from alliance members.",
+                "training_ground" => "Military staging area for drills. Provides passive combat stat bonuses.",
+                "hero_shrine" => "Revives and heals fallen heroes. Higher tiers reduce revival time and costs.",
+                "laboratory" => "Conducts advanced experiments. Unlocks special abilities and enhancement recipes.",
+                "library" => "Repository of ancient knowledge. Provides research speed bonuses.",
+                "armory" => "Stores and maintains equipment. Upgrade to increase gear storage capacity.",
+                "enchanting_tower" => "Imbues equipment with magical properties. Higher tiers unlock stronger enchantments.",
+                "observatory" => "Monitors the skies for celestial events and incoming threats from afar.",
+                "archive" => "Preserves historical records and tactical manuals. Provides experience bonuses.",
+                _ => "A building in your empire."
+            };
         }
 
         /// <summary>P&C: Get formatted upgrade cost string for next tier from BuildingData.</summary>

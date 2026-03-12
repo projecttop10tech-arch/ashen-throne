@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.38.0] — 2026-03-11 (Ralph Loop Iteration 33: Free Speed-Up, Completion Banner, Info Panel)
+
+### ADDED
+- **Free speed-up for timers under 5 minutes** — P&C standard: upgrades with < 300s remaining show green "FREE" label on speed-up button and complete instantly without gem cost. Threshold constant `FreeSpeedUpThresholdSeconds`.
+- **Upgrade completion banner** — gold-bordered notification banner slides in from top of screen with building name + new tier, holds 2.5s, then slides out with fade. Uses `SmoothStep` easing for polished motion.
+- **Building info detail panel** — tapping "Info" button in popup opens a full overlay panel with: building name (category-colored), level with star, description text for all 21 building types, production rate for resource buildings, next upgrade costs, and close (X) button. Tap outside to dismiss. P&C-style dark panel with gold border.
+
+### CHANGED
+- Speed-up button `onClick` now checks `FreeSpeedUpThresholdSeconds` before showing gem dialog
+- Speed-up button label shows "FREE" (green, 8pt) for short timers vs lightning bolt for longer ones
+- Info popup "Info" button now calls `ShowBuildingInfoPanel` instead of dismissing
+- `OnUpgradeCompletedSfx` now calls `ShowUpgradeCompleteBanner` with building display name
+
+---
+
 ## [0.37.0] — 2026-03-11 (Ralph Loop Iteration 32: Upgrade Celebration, Tap Sparkles, Speed-Up Dialog)
 
 ### ADDED
