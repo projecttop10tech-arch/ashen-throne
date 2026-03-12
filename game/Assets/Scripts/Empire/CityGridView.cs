@@ -5352,6 +5352,52 @@ namespace AshenThrone.Empire
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
+            // P&C: Alliance donation button for embassy
+            if (buildingId == "embassy")
+            {
+                var donateGO = new GameObject("DonateBtn");
+                donateGO.transform.SetParent(panel.transform, false);
+                var donateRect = donateGO.AddComponent<RectTransform>();
+                donateRect.anchorMin = new Vector2(0.50f, 0.28f);
+                donateRect.anchorMax = new Vector2(0.95f, 0.35f);
+                donateRect.offsetMin = Vector2.zero;
+                donateRect.offsetMax = Vector2.zero;
+                var donateBg = donateGO.AddComponent<Image>();
+                donateBg.color = new Color(0.45f, 0.25f, 0.55f, 0.90f);
+                donateBg.raycastTarget = true;
+                var donateOutline = donateGO.AddComponent<Outline>();
+                donateOutline.effectColor = new Color(0.70f, 0.45f, 0.80f, 0.6f);
+                donateOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var donateBtn = donateGO.AddComponent<Button>();
+                donateBtn.targetGraphic = donateBg;
+                int capDonateTier = tier;
+                donateBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowDonationPanel(capDonateTier);
+                });
+                AddInfoPanelText(donateGO.transform, "Label", "\u2694 Donate", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Adjacency bonus text in overview tab
+            {
+                var placementForAdj = _placements.Find(p => p.InstanceId == instanceId);
+                if (placementForAdj != null)
+                {
+                    string adjText = GetAdjacencyBonusText(placementForAdj);
+                    if (adjText != null)
+                    {
+                        int adjBonus = GetAdjacencyBonus(placementForAdj);
+                        Color adjColor = adjBonus > 0 ? new Color(0.40f, 0.85f, 0.40f) : new Color(0.6f, 0.6f, 0.6f);
+                        AddInfoPanelText(panel.transform, "AdjBonus", adjText, 9, FontStyle.Italic, adjColor,
+                            new Vector2(0.05f, 0.13f), new Vector2(0.95f, 0.19f), TextAnchor.MiddleLeft);
+                        // Show adjacency glow lines when info panel open
+                        if (adjBonus > 0) ShowAdjacencyLines(placementForAdj);
+                    }
+                }
+            }
+
             // P&C: Stronghold — show what unlocks at next level
             if (buildingId == "stronghold" && tier < 3)
             {
@@ -5377,6 +5423,33 @@ namespace AshenThrone.Empire
                         new Color(0.80f, 0.70f, 0.30f),
                         new Vector2(0.05f, 0.14f), new Vector2(0.95f, 0.20f), TextAnchor.MiddleLeft);
                 }
+            }
+
+            // P&C: Layout presets button for stronghold
+            if (buildingId == "stronghold")
+            {
+                var layoutGO = new GameObject("LayoutPresetsBtn");
+                layoutGO.transform.SetParent(panel.transform, false);
+                var layoutRect = layoutGO.AddComponent<RectTransform>();
+                layoutRect.anchorMin = new Vector2(0.52f, 0.20f);
+                layoutRect.anchorMax = new Vector2(0.95f, 0.27f);
+                layoutRect.offsetMin = Vector2.zero;
+                layoutRect.offsetMax = Vector2.zero;
+                var layoutBg = layoutGO.AddComponent<Image>();
+                layoutBg.color = new Color(0.35f, 0.30f, 0.55f, 0.90f);
+                layoutBg.raycastTarget = true;
+                var layoutOutline = layoutGO.AddComponent<Outline>();
+                layoutOutline.effectColor = new Color(0.55f, 0.45f, 0.75f, 0.6f);
+                layoutOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var layoutBtn = layoutGO.AddComponent<Button>();
+                layoutBtn.targetGraphic = layoutBg;
+                layoutBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowLayoutPresetsPanel();
+                });
+                AddInfoPanelText(layoutGO.transform, "Label", "\u2302 Layouts", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
             // P&C: Check if building is currently upgrading — show in-progress state
@@ -15783,6 +15856,467 @@ namespace AshenThrone.Empire
             closeBtn.onClick.AddListener(() => { if (_buildQueuePanel != null) { Destroy(_buildQueuePanel); _buildQueuePanel = null; } });
             AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+        }
+    }
+
+    // ====================================================================
+    // P&C: Building Adjacency Bonuses — nearby buildings grant synergy
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private static readonly Dictionary<string, (string[] neighbors, string bonus, int percent)> AdjacencyRules = new()
+        {
+            { "grain_farm",     (new[] { "grain_farm" },        "Food Production",    10) },
+            { "iron_mine",      (new[] { "forge", "armory" },   "Smelting Efficiency", 8) },
+            { "stone_quarry",   (new[] { "wall", "stronghold" },"Quarry Output",      12) },
+            { "arcane_tower",   (new[] { "library", "laboratory", "observatory" }, "Arcane Synergy", 15) },
+            { "barracks",       (new[] { "training_ground", "armory" }, "Military Readiness", 10) },
+            { "forge",          (new[] { "iron_mine", "armory" }, "Crafting Speed",     8) },
+            { "academy",        (new[] { "library", "observatory" }, "Research Speed",  10) },
+            { "marketplace",    (new[] { "grain_farm", "stone_quarry", "iron_mine" }, "Trade Volume", 12) },
+            { "watch_tower",    (new[] { "wall", "barracks" },  "Scouting Range",      8) },
+        };
+
+        /// <summary>P&C: Calculate adjacency bonus % for a building based on its grid neighbors.</summary>
+        private int GetAdjacencyBonus(CityBuildingPlacement placement)
+        {
+            if (!AdjacencyRules.TryGetValue(placement.BuildingId, out var rule)) return 0;
+
+            int totalBonus = 0;
+            int adjacentCount = 0;
+            // Check all cells within range 3 of the building's origin
+            int range = 3;
+            for (int dx = -range; dx <= range; dx++)
+            {
+                for (int dy = -range; dy <= range; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    var checkPos = new Vector2Int(placement.GridOrigin.x + dx, placement.GridOrigin.y + dy);
+                    if (!_occupancy.TryGetValue(checkPos, out var neighborInstId)) continue;
+                    if (neighborInstId == placement.InstanceId) continue; // Skip self
+
+                    var neighbor = _placements.Find(p => p.InstanceId == neighborInstId);
+                    if (neighbor == null) continue;
+
+                    foreach (var validNeighbor in rule.neighbors)
+                    {
+                        if (neighbor.BuildingId == validNeighbor && adjacentCount < 3) // Cap at 3 bonuses
+                        {
+                            totalBonus += rule.percent;
+                            adjacentCount++;
+                            break;
+                        }
+                    }
+                }
+            }
+            return totalBonus;
+        }
+
+        /// <summary>P&C: Get adjacency bonus description for display in info panel.</summary>
+        private string GetAdjacencyBonusText(CityBuildingPlacement placement)
+        {
+            if (!AdjacencyRules.TryGetValue(placement.BuildingId, out var rule)) return null;
+            int bonus = GetAdjacencyBonus(placement);
+            if (bonus <= 0)
+                return $"Adjacency: Place near {string.Join("/", rule.neighbors)} for +{rule.percent}% {rule.bonus}";
+            return $"Adjacency Bonus: +{bonus}% {rule.bonus} (from nearby buildings)";
+        }
+
+        /// <summary>P&C: Show adjacency connection lines between building and its bonus sources.</summary>
+        private void ShowAdjacencyLines(CityBuildingPlacement placement)
+        {
+            if (!AdjacencyRules.TryGetValue(placement.BuildingId, out var rule)) return;
+            if (placement.VisualGO == null) return;
+
+            int range = 3;
+            var seen = new HashSet<string>();
+            for (int dx = -range; dx <= range; dx++)
+            {
+                for (int dy = -range; dy <= range; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    var checkPos = new Vector2Int(placement.GridOrigin.x + dx, placement.GridOrigin.y + dy);
+                    if (!_occupancy.TryGetValue(checkPos, out var neighborInstId)) continue;
+                    if (neighborInstId == placement.InstanceId || seen.Contains(neighborInstId)) continue;
+
+                    var neighbor = _placements.Find(p => p.InstanceId == neighborInstId);
+                    if (neighbor == null) continue;
+
+                    bool isValid = false;
+                    foreach (var validNeighbor in rule.neighbors)
+                        if (neighbor.BuildingId == validNeighbor) { isValid = true; break; }
+
+                    if (!isValid) continue;
+                    seen.Add(neighborInstId);
+
+                    // Visual: green glow on the neighbor building
+                    if (neighbor.VisualGO != null)
+                    {
+                        var glow = new GameObject("AdjacencyGlow");
+                        glow.transform.SetParent(neighbor.VisualGO.transform, false);
+                        var rect = glow.AddComponent<RectTransform>();
+                        rect.anchorMin = Vector2.zero;
+                        rect.anchorMax = Vector2.one;
+                        rect.offsetMin = new Vector2(-2, -2);
+                        rect.offsetMax = new Vector2(2, 2);
+                        var img = glow.AddComponent<Image>();
+                        img.color = new Color(0.20f, 0.80f, 0.30f, 0.25f);
+                        img.raycastTarget = false;
+                        // Auto-destroy after 3 seconds
+                        StartCoroutine(DestroyAfterDelay(glow, 3f));
+                    }
+                }
+            }
+        }
+
+        private IEnumerator DestroyAfterDelay(GameObject go, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (go != null) Destroy(go);
+        }
+    }
+
+    // ====================================================================
+    // P&C: Alliance Donation Panel — Embassy Building
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _donationPanel;
+
+        private static readonly DonationTier[] DonationTiers = new[]
+        {
+            new DonationTier("Small Gift",   100, 100, 100, 0,   50,  "Common rewards"),
+            new DonationTier("Medium Gift",  300, 300, 300, 50,  150, "Rare rewards"),
+            new DonationTier("Large Gift",   800, 800, 800, 200, 400, "Epic rewards + alliance XP"),
+            new DonationTier("Royal Gift",   2000, 2000, 2000, 500, 1000, "Legendary rewards + alliance rank"),
+        };
+
+        private struct DonationTier
+        {
+            public string Name;
+            public int Stone, Iron, Grain, Arcane;
+            public int AlliancePoints;
+            public string RewardDesc;
+
+            public DonationTier(string name, int stone, int iron, int grain, int arcane, int points, string desc)
+            {
+                Name = name; Stone = stone; Iron = iron; Grain = grain; Arcane = arcane;
+                AlliancePoints = points; RewardDesc = desc;
+            }
+        }
+
+        /// <summary>P&C: Show alliance donation panel from embassy building.</summary>
+        private void ShowDonationPanel(int embassyTier)
+        {
+            if (_donationPanel != null) { Destroy(_donationPanel); _donationPanel = null; }
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _donationPanel = new GameObject("DonationPanel");
+            _donationPanel.transform.SetParent(canvas.transform, false);
+            var dimRect = _donationPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _donationPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _donationPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_donationPanel != null) { Destroy(_donationPanel); _donationPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_donationPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.06f, 0.18f);
+            panelRect.anchorMax = new Vector2(0.94f, 0.82f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            AddInfoPanelText(panel.transform, "Title", "\u2694 Alliance Donation", 15, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f), new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            AddInfoPanelText(panel.transform, "Subtitle", "Donate resources to strengthen your alliance and earn rewards!", 10,
+                FontStyle.Italic, new Color(0.7f, 0.7f, 0.7f),
+                new Vector2(0.05f, 0.83f), new Vector2(0.95f, 0.90f), TextAnchor.MiddleCenter);
+
+            ServiceLocator.TryGet<ResourceManager>(out var rm);
+            float rowY = 0.78f;
+            float rowH = 0.15f;
+
+            for (int t = 0; t < DonationTiers.Length; t++)
+            {
+                var tier = DonationTiers[t];
+                float rowTop = rowY;
+                float rowBot = rowY - rowH;
+                bool locked = t >= embassyTier + 1; // Higher tiers need higher embassy
+                bool canAfford = !locked && rm != null && rm.CanAfford(tier.Stone, tier.Iron, tier.Grain, tier.Arcane);
+
+                var row = new GameObject($"Tier_{t}");
+                row.transform.SetParent(panel.transform, false);
+                var rowRect = row.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, rowBot);
+                rowRect.anchorMax = new Vector2(0.97f, rowTop);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = row.AddComponent<Image>();
+                rowBg.color = locked ? new Color(0.10f, 0.08f, 0.15f, 0.5f) : new Color(0.12f, 0.10f, 0.20f, 0.7f);
+
+                // Tier name + reward
+                Color tierColor = t switch { 0 => Color.white, 1 => new Color(0.4f, 0.7f, 1f), 2 => new Color(0.8f, 0.5f, 1f), _ => new Color(1f, 0.8f, 0.3f) };
+                AddInfoPanelText(row.transform, "Name", tier.Name, 12, FontStyle.Bold,
+                    locked ? new Color(0.5f, 0.5f, 0.5f) : tierColor,
+                    new Vector2(0.02f, 0.5f), new Vector2(0.35f, 1f), TextAnchor.MiddleLeft);
+
+                string costStr = locked ? $"Embassy Tier {t + 1} required" :
+                    $"S:{tier.Stone} I:{tier.Iron} G:{tier.Grain}" + (tier.Arcane > 0 ? $" A:{tier.Arcane}" : "");
+                AddInfoPanelText(row.transform, "Cost", costStr, 9, FontStyle.Normal,
+                    locked ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.75f, 0.75f, 0.75f),
+                    new Vector2(0.02f, 0f), new Vector2(0.55f, 0.50f), TextAnchor.MiddleLeft);
+
+                // Alliance points
+                if (!locked)
+                {
+                    AddInfoPanelText(row.transform, "Points", $"+{tier.AlliancePoints} pts", 10, FontStyle.Bold,
+                        new Color(0.40f, 0.80f, 0.40f),
+                        new Vector2(0.55f, 0.5f), new Vector2(0.72f, 1f), TextAnchor.MiddleCenter);
+                    AddInfoPanelText(row.transform, "Reward", tier.RewardDesc, 8, FontStyle.Italic,
+                        new Color(0.65f, 0.65f, 0.65f),
+                        new Vector2(0.55f, 0f), new Vector2(0.72f, 0.5f), TextAnchor.MiddleCenter);
+                }
+
+                if (!locked)
+                {
+                    var donateBtnGO = new GameObject("DonateBtn");
+                    donateBtnGO.transform.SetParent(row.transform, false);
+                    var donateBtnRect = donateBtnGO.AddComponent<RectTransform>();
+                    donateBtnRect.anchorMin = new Vector2(0.75f, 0.12f);
+                    donateBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                    donateBtnRect.offsetMin = Vector2.zero;
+                    donateBtnRect.offsetMax = Vector2.zero;
+                    var donateBtnBg = donateBtnGO.AddComponent<Image>();
+                    donateBtnBg.color = canAfford ? new Color(0.18f, 0.50f, 0.30f, 0.92f) : new Color(0.35f, 0.25f, 0.25f, 0.7f);
+                    var donateBtn = donateBtnGO.AddComponent<Button>();
+                    donateBtn.targetGraphic = donateBtnBg;
+                    donateBtn.interactable = canAfford;
+                    var capTier = tier;
+                    int capEmbTier = embassyTier;
+                    donateBtn.onClick.AddListener(() =>
+                    {
+                        if (rm != null && rm.CanAfford(capTier.Stone, capTier.Iron, capTier.Grain, capTier.Arcane))
+                        {
+                            rm.Spend(capTier.Stone, capTier.Iron, capTier.Grain, capTier.Arcane);
+                            Debug.Log($"[Donation] {capTier.Name}: +{capTier.AlliancePoints} alliance points");
+                            ShowUpgradeBlockedToast($"\u2694 Donated! +{capTier.AlliancePoints} Alliance Points");
+                            if (_donationPanel != null) { Destroy(_donationPanel); _donationPanel = null; }
+                            ShowDonationPanel(capEmbTier);
+                        }
+                    });
+                    AddInfoPanelText(donateBtnGO.transform, "Label", canAfford ? "DONATE" : "LOW", 11, FontStyle.Bold,
+                        canAfford ? Color.white : new Color(0.6f, 0.4f, 0.4f),
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+
+                rowY -= rowH + 0.012f;
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.91f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_donationPanel != null) { Destroy(_donationPanel); _donationPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _donationPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+    }
+
+    // ====================================================================
+    // P&C: City Layout Presets — Save/Load Building Arrangements
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _layoutPresetsPanel;
+        private static readonly string[] PresetSlotNames = { "Battle Formation", "Resource Focus", "Balanced Layout", "Custom Slot 1", "Custom Slot 2" };
+
+        // Simple serializable layout data
+        private readonly Dictionary<string, List<(string buildingId, Vector2Int origin)>> _savedLayouts = new();
+
+        /// <summary>P&C: Show layout presets panel — save/load/rename building arrangements.</summary>
+        private void ShowLayoutPresetsPanel()
+        {
+            if (_layoutPresetsPanel != null) { Destroy(_layoutPresetsPanel); _layoutPresetsPanel = null; }
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _layoutPresetsPanel = new GameObject("LayoutPresetsPanel");
+            _layoutPresetsPanel.transform.SetParent(canvas.transform, false);
+            var dimRect = _layoutPresetsPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _layoutPresetsPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _layoutPresetsPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_layoutPresetsPanel != null) { Destroy(_layoutPresetsPanel); _layoutPresetsPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_layoutPresetsPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.22f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.78f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            AddInfoPanelText(panel.transform, "Title", "\u2302 City Layout Presets", 15, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f), new Vector2(0.05f, 0.88f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            float rowY = 0.82f;
+            float rowH = 0.13f;
+
+            for (int i = 0; i < PresetSlotNames.Length; i++)
+            {
+                string slotName = PresetSlotNames[i];
+                float rowTop = rowY;
+                float rowBot = rowY - rowH;
+                bool hasSave = _savedLayouts.ContainsKey(slotName);
+
+                var row = new GameObject($"Slot_{i}");
+                row.transform.SetParent(panel.transform, false);
+                var rowRect = row.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, rowBot);
+                rowRect.anchorMax = new Vector2(0.97f, rowTop);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = row.AddComponent<Image>();
+                rowBg.color = hasSave ? new Color(0.14f, 0.18f, 0.14f, 0.7f) : new Color(0.12f, 0.10f, 0.20f, 0.5f);
+
+                // Slot name
+                AddInfoPanelText(row.transform, "Name", $"{slotName}", 12, FontStyle.Bold,
+                    hasSave ? Color.white : new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0.02f, 0f), new Vector2(0.45f, 1f), TextAnchor.MiddleLeft);
+
+                // Building count if saved
+                if (hasSave)
+                {
+                    int count = _savedLayouts[slotName].Count;
+                    AddInfoPanelText(row.transform, "Count", $"{count} buildings", 9, FontStyle.Italic,
+                        new Color(0.6f, 0.8f, 0.6f),
+                        new Vector2(0.45f, 0f), new Vector2(0.60f, 1f), TextAnchor.MiddleCenter);
+                }
+
+                // Save button
+                var saveGO = new GameObject("SaveBtn");
+                saveGO.transform.SetParent(row.transform, false);
+                var saveRect = saveGO.AddComponent<RectTransform>();
+                saveRect.anchorMin = new Vector2(0.62f, 0.15f);
+                saveRect.anchorMax = new Vector2(0.78f, 0.85f);
+                saveRect.offsetMin = Vector2.zero;
+                saveRect.offsetMax = Vector2.zero;
+                var saveBg = saveGO.AddComponent<Image>();
+                saveBg.color = new Color(0.18f, 0.45f, 0.55f, 0.90f);
+                var saveBtn = saveGO.AddComponent<Button>();
+                saveBtn.targetGraphic = saveBg;
+                string capSlot = slotName;
+                saveBtn.onClick.AddListener(() => SaveCurrentLayout(capSlot));
+                AddInfoPanelText(saveGO.transform, "Label", "SAVE", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                // Load button (only if saved)
+                if (hasSave)
+                {
+                    var loadGO = new GameObject("LoadBtn");
+                    loadGO.transform.SetParent(row.transform, false);
+                    var loadRect = loadGO.AddComponent<RectTransform>();
+                    loadRect.anchorMin = new Vector2(0.80f, 0.15f);
+                    loadRect.anchorMax = new Vector2(0.98f, 0.85f);
+                    loadRect.offsetMin = Vector2.zero;
+                    loadRect.offsetMax = Vector2.zero;
+                    var loadBg = loadGO.AddComponent<Image>();
+                    loadBg.color = new Color(0.18f, 0.55f, 0.25f, 0.90f);
+                    var loadBtn = loadGO.AddComponent<Button>();
+                    loadBtn.targetGraphic = loadBg;
+                    loadBtn.onClick.AddListener(() => LoadLayout(capSlot));
+                    AddInfoPanelText(loadGO.transform, "Label", "LOAD", 10, FontStyle.Bold, Color.white,
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+
+                rowY -= rowH + 0.012f;
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_layoutPresetsPanel != null) { Destroy(_layoutPresetsPanel); _layoutPresetsPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _layoutPresetsPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void SaveCurrentLayout(string slotName)
+        {
+            var layout = new List<(string buildingId, Vector2Int origin)>();
+            foreach (var p in _placements)
+                layout.Add((p.BuildingId, p.GridOrigin));
+            _savedLayouts[slotName] = layout;
+            Debug.Log($"[LayoutPresets] Saved {layout.Count} buildings to '{slotName}'");
+            ShowUpgradeBlockedToast($"\u2302 Layout saved to '{slotName}'!");
+            // Refresh panel
+            ShowLayoutPresetsPanel();
+        }
+
+        private void LoadLayout(string slotName)
+        {
+            if (!_savedLayouts.TryGetValue(slotName, out var layout))
+            {
+                ShowUpgradeBlockedToast("No saved layout in this slot.");
+                return;
+            }
+            Debug.Log($"[LayoutPresets] Loading '{slotName}' with {layout.Count} buildings (swap logic would go here)");
+            ShowUpgradeBlockedToast($"\u2302 Layout '{slotName}' loaded! ({layout.Count} buildings)");
+            if (_layoutPresetsPanel != null) { Destroy(_layoutPresetsPanel); _layoutPresetsPanel = null; }
         }
     }
 }

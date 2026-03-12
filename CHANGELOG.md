@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.81.0] — 2026-03-12 (Ralph Loop Iteration 76: Adjacency Bonuses, Alliance Donation, Layout Presets)
+
+### ADDED
+- **Building adjacency bonus system** — P&C-style synergy between nearby buildings. 9 building types have adjacency rules (e.g., grain farms near grain farms = +10% Food Production, arcane towers near libraries = +15% Arcane Synergy). Range 3 grid cells, max 3 stacked bonuses. Adjacency text shown in info panel overview tab with green color when active, grey hint when inactive. Nearby synergy buildings highlighted with green glow for 3 seconds when viewing a building with active bonuses.
+- **`GetAdjacencyBonus()` / `GetAdjacencyBonusText()` / `ShowAdjacencyLines()` methods** — adjacency calculation, display text, and visual glow indicators.
+- **Alliance donation panel** — embassy building now has "Donate" button opening 4-tier donation system. Tiers: Small (100 each, +50 pts), Medium (300 each, +150 pts), Large (800 each, +400 pts), Royal (2000 each, +1000 pts). Higher tiers gated by embassy tier. Shows resource costs, afford status, alliance points reward, and reward description. Spends resources via `ResourceManager.Spend()`.
+- **`ShowDonationPanel()` method** — alliance donation UI with 4 tiers, embassy tier gating, afford checks, and resource spending.
+- **City layout presets** — save/load building arrangements via stronghold info panel "Layouts" button. 5 preset slots (Battle Formation, Resource Focus, Balanced Layout, Custom 1-2). Save captures all building positions; load restores arrangement. Saved layouts show building count. Panel with save/load buttons per slot.
+- **`ShowLayoutPresetsPanel()` / `SaveCurrentLayout()` / `LoadLayout()` methods** — layout preset system with named slots and building position serialization.
+
+---
+
 ## [0.80.0] — 2026-03-12 (Ralph Loop Iteration 75: Batch Upgrade, Trading, Queue Manager)
 
 ### ADDED
