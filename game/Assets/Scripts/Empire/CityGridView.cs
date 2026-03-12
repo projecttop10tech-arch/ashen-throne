@@ -241,6 +241,8 @@ namespace AshenThrone.Empire
             CreateBuilderCountHUD();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
+            // P&C: Show "Welcome back" offline earnings banner
+            StartCoroutine(ShowOfflineEarningsBanner());
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -281,6 +283,121 @@ namespace AshenThrone.Empire
         {
             if (scrollRect == null || contentContainer == null) return;
             contentContainer.anchoredPosition = Vector2.zero;
+        }
+
+        /// <summary>P&C: "Welcome back" banner showing simulated offline resource earnings.</summary>
+        private IEnumerator ShowOfflineEarningsBanner()
+        {
+            yield return new WaitForSeconds(1.5f); // Wait for scene to settle
+
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) yield break;
+
+            // Simulate offline earnings (placeholder — real data comes from PlayFab)
+            long grainEarned = rm.Grain > 0 ? (long)Mathf.Min(500, rm.Grain) : 100L;
+            long ironEarned = rm.Iron > 0 ? (long)Mathf.Min(300, rm.Iron) : 50L;
+            long stoneEarned = rm.Stone > 0 ? (long)Mathf.Min(300, rm.Stone) : 50L;
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) yield break;
+
+            var banner = new GameObject("OfflineEarningsBanner");
+            banner.transform.SetParent(canvas.transform, false);
+            var bannerRect = banner.AddComponent<RectTransform>();
+            bannerRect.anchorMin = new Vector2(0.08f, 0.35f);
+            bannerRect.anchorMax = new Vector2(0.92f, 0.65f);
+            bannerRect.offsetMin = Vector2.zero;
+            bannerRect.offsetMax = Vector2.zero;
+
+            var bg = banner.AddComponent<Image>();
+            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.95f);
+            bg.raycastTarget = true;
+            var outline = banner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.8f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            AddInfoPanelText(banner.transform, "Title", "\u2728 Welcome Back!", 16, FontStyle.Bold,
+                new Color(1f, 0.88f, 0.35f),
+                new Vector2(0.05f, 0.75f), new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
+
+            // Resource earnings
+            string earnings = $"While you were away, your empire earned:\n" +
+                $"+{grainEarned} Grain  |  +{ironEarned} Iron  |  +{stoneEarned} Stone";
+            AddInfoPanelText(banner.transform, "Earnings", earnings, 11, FontStyle.Normal,
+                new Color(0.80f, 0.82f, 0.75f),
+                new Vector2(0.05f, 0.35f), new Vector2(0.95f, 0.72f), TextAnchor.MiddleCenter);
+
+            // Collect button
+            var collectGO = new GameObject("CollectBtn");
+            collectGO.transform.SetParent(banner.transform, false);
+            var collectRect = collectGO.AddComponent<RectTransform>();
+            collectRect.anchorMin = new Vector2(0.25f, 0.06f);
+            collectRect.anchorMax = new Vector2(0.75f, 0.28f);
+            collectRect.offsetMin = Vector2.zero;
+            collectRect.offsetMax = Vector2.zero;
+            var collectImg = collectGO.AddComponent<Image>();
+            collectImg.color = new Color(0.15f, 0.60f, 0.25f, 0.92f);
+            collectImg.raycastTarget = true;
+            var collectOutline = collectGO.AddComponent<Outline>();
+            collectOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.6f);
+            collectOutline.effectDistance = new Vector2(0.8f, -0.8f);
+            var collectBtn = collectGO.AddComponent<Button>();
+            collectBtn.targetGraphic = collectImg;
+            collectBtn.onClick.AddListener(() => { if (banner != null) Destroy(banner); });
+            AddInfoPanelText(collectGO.transform, "Label", "COLLECT", 13, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = banner.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+
+            // Auto-dismiss after 8 seconds
+            yield return new WaitForSeconds(8f);
+            if (banner != null) Destroy(banner);
+        }
+
+        /// <summary>P&C: Expanding circle ripple VFX when a building is tapped.</summary>
+        private void SpawnTapRipple(GameObject building)
+        {
+            if (building == null) return;
+            var ripple = new GameObject("TapRipple");
+            ripple.transform.SetParent(building.transform, false);
+            var rect = ripple.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.3f, 0.3f);
+            rect.anchorMax = new Vector2(0.7f, 0.7f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var img = ripple.AddComponent<Image>();
+            img.color = new Color(1f, 0.85f, 0.30f, 0.5f);
+            img.raycastTarget = false;
+            // Load radial gradient for circle shape
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) img.sprite = spr;
+            StartCoroutine(AnimateTapRipple(ripple, rect, img));
+        }
+
+        private IEnumerator AnimateTapRipple(GameObject ripple, RectTransform rect, Image img)
+        {
+            float duration = 0.4f;
+            float elapsed = 0f;
+            while (elapsed < duration && ripple != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Expand from center
+                float expand = Mathf.Lerp(0.3f, -0.2f, t);
+                rect.anchorMin = new Vector2(expand, expand);
+                rect.anchorMax = new Vector2(1f - expand, 1f - expand);
+                // Fade out
+                img.color = new Color(1f, 0.85f, 0.30f, 0.5f * (1f - t));
+                yield return null;
+            }
+            if (ripple != null) Destroy(ripple);
         }
 
         /// <summary>
@@ -3397,6 +3514,23 @@ namespace AshenThrone.Empire
             var nextTier = placed.Data.GetTier(currentTier);
             if (nextTier == null) return "Already at max level";
 
+            // P&C: Check stronghold level requirement
+            if (placed.Data.buildingId != "stronghold")
+            {
+                int requiredStrongholdTier = currentTier + 1; // Buildings need stronghold >= their target tier
+                int strongholdTier = 0;
+                foreach (var pb in bm.PlacedBuildings.Values)
+                {
+                    if (pb.Data != null && pb.Data.buildingId == "stronghold")
+                    {
+                        strongholdTier = pb.CurrentTier;
+                        break;
+                    }
+                }
+                if (strongholdTier < requiredStrongholdTier)
+                    return $"Requires Stronghold Lv.{requiredStrongholdTier + 1}";
+            }
+
             // Check builder queue capacity
             if (bm.BuildQueue.Count >= 2)
                 return "Build queue full (2/2)";
@@ -4426,6 +4560,7 @@ namespace AshenThrone.Empire
             {
                 StartCoroutine(BounceBuilding(tapped.VisualGO.transform, GetCategoryBounceScale(tapped.BuildingId)));
                 SpawnTapSparkles(tapped.VisualGO);
+                SpawnTapRipple(tapped.VisualGO);
             }
 
             // P&C: Double-tap quick-upgrade detection

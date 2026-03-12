@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.46.0] — 2026-03-12 (Ralph Loop Iteration 41: Stronghold Requirements, Offline Banner, Tap Ripple)
+
+### ADDED
+- **Stronghold level requirements** — `GetUpgradeBlockReason` now checks that the Stronghold tier is high enough before allowing building upgrades. Non-stronghold buildings need Stronghold at least as high as their target tier. Shows "Requires Stronghold Lv.X" toast when blocked.
+- **Offline earnings "Welcome Back" banner** — on scene load, a P&C-style center-screen banner shows "While you were away..." with simulated resource earnings (grain/iron/stone). Has a green COLLECT button and auto-dismisses after 8 seconds.
+- **Tap ripple VFX** — tapping a building spawns an expanding gold radial gradient circle that fades out over 0.4s. Uses `radial_gradient.png` sprite for smooth circle shape. Added alongside existing tap sparkles and bounce animation.
+
+### CHANGED
+- `GetUpgradeBlockReason` now iterates `PlacedBuildings` to find stronghold tier for requirement check
+- `Start()` triggers `ShowOfflineEarningsBanner()` coroutine after 1.5s delay
+- Building tap handler now calls `SpawnTapRipple()` alongside `SpawnTapSparkles()`
+
+---
+
 ## [0.45.0] — 2026-03-12 (Ralph Loop Iteration 40: Demolish Dialog, Power Display, Info Panel Actions)
 
 ### ADDED
