@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.60.0] — 2026-03-12 (Ralph Loop Iteration 55: Info Panel Upgrade-In-Progress, Prerequisite Display)
+
+### ADDED
+- **Info panel upgrade-in-progress state** — when tapping a building that is currently upgrading, the info panel now shows a green progress bar with percentage, remaining time text ("⏱ Upgrading to Lv.X — Xh Xm"), speed-up button (green "FREE" if <60s, purple otherwise), alliance "❤ Help" button, and close button. Replaces the normal demolish/upgrade buttons for buildings in the queue. Matches P&C's building info while upgrading.
+- **Prerequisite/block reason display on info panel** — when a building cannot be upgraded, the reason (e.g., "Requires Stronghold Lv.3", "Build queue full", "Not enough: Iron") is shown in red/gray text above the upgrade button, so players know what's blocking before tapping.
+- **Upgrade button dimming** — the upgrade button now shows in a darker gray when prerequisites are not met, providing visual feedback that the upgrade is blocked even before tapping.
+
+### CHANGED
+- Info panel bottom section now branches into two states: upgrading (progress + controls) vs normal (demolish + upgrade + prereq text)
+
+---
+
 ## [0.59.0] — 2026-03-12 (Ralph Loop Iteration 54: Alliance Help Visual, Category Selection Glow)
 
 ### ADDED

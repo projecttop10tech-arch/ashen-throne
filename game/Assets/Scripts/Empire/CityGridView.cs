@@ -3903,65 +3903,197 @@ namespace AshenThrone.Empire
                     new Vector2(0.05f, 0.20f), new Vector2(0.50f, 0.27f), TextAnchor.MiddleLeft);
             }
 
-            // P&C: Demolish button (not for stronghold)
-            if (buildingId != "stronghold")
+            // P&C: Check if building is currently upgrading — show in-progress state
+            BuildQueueEntry activeQueueEntry = null;
+            if (ServiceLocator.TryGet<BuildingManager>(out var infoBm))
             {
-                var demGO = new GameObject("DemolishBtn");
-                demGO.transform.SetParent(panel.transform, false);
-                var demRect = demGO.AddComponent<RectTransform>();
-                demRect.anchorMin = new Vector2(0.05f, 0.03f);
-                demRect.anchorMax = new Vector2(0.45f, 0.12f);
-                demRect.offsetMin = Vector2.zero;
-                demRect.offsetMax = Vector2.zero;
-                var demImg = demGO.AddComponent<Image>();
-                demImg.color = new Color(0.65f, 0.18f, 0.15f, 0.85f);
-                demImg.raycastTarget = true;
-                var demOutline = demGO.AddComponent<Outline>();
-                demOutline.effectColor = new Color(0.9f, 0.3f, 0.2f, 0.5f);
-                demOutline.effectDistance = new Vector2(0.6f, -0.6f);
-                var demBtn = demGO.AddComponent<Button>();
-                demBtn.targetGraphic = demImg;
-                string demInstanceId = instanceId;
-                string demBuildingId = buildingId;
-                demBtn.onClick.AddListener(() => ShowDemolishConfirmDialog(demInstanceId, demBuildingId));
-                AddInfoPanelText(demGO.transform, "Label", "\u2620 Demolish", 11, FontStyle.Bold, Color.white,
-                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                foreach (var qe in infoBm.BuildQueue)
+                {
+                    if (qe.PlacedId == instanceId) { activeQueueEntry = qe; break; }
+                }
             }
 
-            // P&C: Upgrade button in info panel
+            if (activeQueueEntry != null)
             {
-                string infoCostStr = GetUpgradeCostString(instanceId, tier);
-                bool infoMaxLevel = infoCostStr == "MAX LEVEL";
-                var upgGO = new GameObject("UpgradeBtn");
-                upgGO.transform.SetParent(panel.transform, false);
-                var upgRect = upgGO.AddComponent<RectTransform>();
-                upgRect.anchorMin = new Vector2(0.55f, 0.03f);
-                upgRect.anchorMax = new Vector2(0.95f, 0.12f);
-                upgRect.offsetMin = Vector2.zero;
-                upgRect.offsetMax = Vector2.zero;
-                var upgImg = upgGO.AddComponent<Image>();
-                upgImg.color = infoMaxLevel
-                    ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
-                    : new Color(0.15f, 0.60f, 0.20f, 0.90f);
-                upgImg.raycastTarget = true;
-                var upgOutline = upgGO.AddComponent<Outline>();
-                upgOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
-                upgOutline.effectDistance = new Vector2(0.6f, -0.6f);
-                var upgBtn = upgGO.AddComponent<Button>();
-                upgBtn.targetGraphic = upgImg;
-                string upgInstanceId = instanceId;
-                string upgBuildingIdLocal = buildingId;
-                int upgTierLocal = tier;
-                upgBtn.onClick.AddListener(() =>
+                // ─── UPGRADING STATE: progress bar + timer + speed-up/help ───
+                // Progress bar background
+                var progBgGO = new GameObject("ProgBg");
+                progBgGO.transform.SetParent(panel.transform, false);
+                var progBgRect = progBgGO.AddComponent<RectTransform>();
+                progBgRect.anchorMin = new Vector2(0.05f, 0.14f);
+                progBgRect.anchorMax = new Vector2(0.95f, 0.19f);
+                progBgRect.offsetMin = Vector2.zero;
+                progBgRect.offsetMax = Vector2.zero;
+                var progBgImg = progBgGO.AddComponent<Image>();
+                progBgImg.color = new Color(0.12f, 0.10f, 0.18f, 0.9f);
+                progBgImg.raycastTarget = false;
+
+                // Progress bar fill
+                var progFillGO = new GameObject("ProgFill");
+                progFillGO.transform.SetParent(progBgGO.transform, false);
+                var progFillRect = progFillGO.AddComponent<RectTransform>();
+                float totalSec = (float)(System.DateTime.Now - activeQueueEntry.StartTime).TotalSeconds + activeQueueEntry.RemainingSeconds;
+                float elapsed = totalSec - activeQueueEntry.RemainingSeconds;
+                float progress = totalSec > 0 ? Mathf.Clamp01(elapsed / totalSec) : 0f;
+                progFillRect.anchorMin = Vector2.zero;
+                progFillRect.anchorMax = new Vector2(progress, 1f);
+                progFillRect.offsetMin = Vector2.zero;
+                progFillRect.offsetMax = Vector2.zero;
+                var progFillImg = progFillGO.AddComponent<Image>();
+                progFillImg.color = new Color(0.20f, 0.70f, 0.35f, 0.90f);
+                progFillImg.raycastTarget = false;
+
+                // Progress percentage text
+                AddInfoPanelText(progBgGO.transform, "ProgPct", $"{(int)(progress * 100)}%", 10, FontStyle.Bold,
+                    Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                // Timer text
+                string timeLeft = FormatTimeRemaining(Mathf.RoundToInt(activeQueueEntry.RemainingSeconds));
+                AddInfoPanelText(panel.transform, "UpgTimer",
+                    $"\u23F1 Upgrading to Lv.{activeQueueEntry.TargetTier}  —  {timeLeft}",
+                    12, FontStyle.Bold, new Color(0.90f, 0.82f, 0.40f),
+                    new Vector2(0.05f, 0.07f), new Vector2(0.95f, 0.14f), TextAnchor.MiddleCenter);
+
+                // Speed-up button
+                var speedGO = new GameObject("SpeedUpBtn");
+                speedGO.transform.SetParent(panel.transform, false);
+                var speedRect = speedGO.AddComponent<RectTransform>();
+                speedRect.anchorMin = new Vector2(0.05f, 0.00f);
+                speedRect.anchorMax = new Vector2(0.38f, 0.07f);
+                speedRect.offsetMin = Vector2.zero;
+                speedRect.offsetMax = Vector2.zero;
+                var speedImg = speedGO.AddComponent<Image>();
+                bool isFreeSpeedup = activeQueueEntry.RemainingSeconds <= 60f;
+                speedImg.color = isFreeSpeedup
+                    ? new Color(0.15f, 0.65f, 0.25f, 0.90f)
+                    : new Color(0.50f, 0.22f, 0.70f, 0.90f);
+                speedImg.raycastTarget = true;
+                var speedOutline = speedGO.AddComponent<Outline>();
+                speedOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
+                speedOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var speedBtn = speedGO.AddComponent<Button>();
+                speedBtn.targetGraphic = speedImg;
+                string speedLabel = isFreeSpeedup ? "\u26A1 FREE" : $"\u26A1 Speed Up";
+                AddInfoPanelText(speedGO.transform, "Label", speedLabel, 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                // Help button (alliance)
+                var helpGO = new GameObject("HelpBtn");
+                helpGO.transform.SetParent(panel.transform, false);
+                var helpRect = helpGO.AddComponent<RectTransform>();
+                helpRect.anchorMin = new Vector2(0.40f, 0.00f);
+                helpRect.anchorMax = new Vector2(0.70f, 0.07f);
+                helpRect.offsetMin = Vector2.zero;
+                helpRect.offsetMax = Vector2.zero;
+                var helpImg = helpGO.AddComponent<Image>();
+                helpImg.color = new Color(0.18f, 0.40f, 0.72f, 0.90f);
+                helpImg.raycastTarget = true;
+                var helpOutline = helpGO.AddComponent<Outline>();
+                helpOutline.effectColor = new Color(0.30f, 0.55f, 0.90f, 0.5f);
+                helpOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var helpBtn = helpGO.AddComponent<Button>();
+                helpBtn.targetGraphic = helpImg;
+                string helpPlacedId = instanceId;
+                helpBtn.onClick.AddListener(() =>
                 {
-                    if (infoMaxLevel) return;
-                    string warning = GetUpgradeBlockReason(upgInstanceId, upgTierLocal);
-                    if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
-                    DismissBuildingInfoPanel();
-                    ShowUpgradeConfirmDialog(upgInstanceId, upgBuildingIdLocal, upgTierLocal);
+                    EventBus.Publish(new AllianceHelpRequestedEvent(helpPlacedId));
                 });
-                AddInfoPanelText(upgGO.transform, "Label", infoMaxLevel ? "MAX LEVEL" : "\u2B06 Upgrade", 11,
-                    FontStyle.Bold, Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                AddInfoPanelText(helpGO.transform, "Label", "\u2764 Help", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                // Close/dismiss button
+                var dismissGO = new GameObject("DismissBtn");
+                dismissGO.transform.SetParent(panel.transform, false);
+                var dismissRect = dismissGO.AddComponent<RectTransform>();
+                dismissRect.anchorMin = new Vector2(0.72f, 0.00f);
+                dismissRect.anchorMax = new Vector2(0.95f, 0.07f);
+                dismissRect.offsetMin = Vector2.zero;
+                dismissRect.offsetMax = Vector2.zero;
+                var dismissImg = dismissGO.AddComponent<Image>();
+                dismissImg.color = new Color(0.35f, 0.30f, 0.30f, 0.85f);
+                dismissImg.raycastTarget = true;
+                var dismissBtn = dismissGO.AddComponent<Button>();
+                dismissBtn.targetGraphic = dismissImg;
+                dismissBtn.onClick.AddListener(DismissBuildingInfoPanel);
+                AddInfoPanelText(dismissGO.transform, "Label", "Close", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                // ─── NORMAL STATE: demolish + upgrade + prereq text ───
+
+                // P&C: Prerequisite requirements text near upgrade button
+                string blockReason = GetUpgradeBlockReason(instanceId, tier);
+                if (blockReason != null)
+                {
+                    Color reqColor = blockReason.StartsWith("Already") || blockReason.StartsWith("Build queue")
+                        ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.95f, 0.45f, 0.35f);
+                    AddInfoPanelText(panel.transform, "Prereq", blockReason, 9, FontStyle.Normal, reqColor,
+                        new Vector2(0.05f, 0.12f), new Vector2(0.95f, 0.18f), TextAnchor.MiddleCenter);
+                }
+
+                // P&C: Demolish button (not for stronghold)
+                if (buildingId != "stronghold")
+                {
+                    var demGO = new GameObject("DemolishBtn");
+                    demGO.transform.SetParent(panel.transform, false);
+                    var demRect = demGO.AddComponent<RectTransform>();
+                    demRect.anchorMin = new Vector2(0.05f, 0.03f);
+                    demRect.anchorMax = new Vector2(0.45f, 0.12f);
+                    demRect.offsetMin = Vector2.zero;
+                    demRect.offsetMax = Vector2.zero;
+                    var demImg = demGO.AddComponent<Image>();
+                    demImg.color = new Color(0.65f, 0.18f, 0.15f, 0.85f);
+                    demImg.raycastTarget = true;
+                    var demOutline = demGO.AddComponent<Outline>();
+                    demOutline.effectColor = new Color(0.9f, 0.3f, 0.2f, 0.5f);
+                    demOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                    var demBtn = demGO.AddComponent<Button>();
+                    demBtn.targetGraphic = demImg;
+                    string demInstanceId = instanceId;
+                    string demBuildingId = buildingId;
+                    demBtn.onClick.AddListener(() => ShowDemolishConfirmDialog(demInstanceId, demBuildingId));
+                    AddInfoPanelText(demGO.transform, "Label", "\u2620 Demolish", 11, FontStyle.Bold, Color.white,
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+
+                // P&C: Upgrade button in info panel
+                {
+                    string infoCostStr = GetUpgradeCostString(instanceId, tier);
+                    bool infoMaxLevel = infoCostStr == "MAX LEVEL";
+                    var upgGO = new GameObject("UpgradeBtn");
+                    upgGO.transform.SetParent(panel.transform, false);
+                    var upgRect = upgGO.AddComponent<RectTransform>();
+                    upgRect.anchorMin = new Vector2(0.55f, 0.03f);
+                    upgRect.anchorMax = new Vector2(0.95f, 0.12f);
+                    upgRect.offsetMin = Vector2.zero;
+                    upgRect.offsetMax = Vector2.zero;
+                    var upgImg = upgGO.AddComponent<Image>();
+                    upgImg.color = infoMaxLevel
+                        ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
+                        : blockReason != null
+                            ? new Color(0.40f, 0.40f, 0.40f, 0.75f)
+                            : new Color(0.15f, 0.60f, 0.20f, 0.90f);
+                    upgImg.raycastTarget = true;
+                    var upgOutline = upgGO.AddComponent<Outline>();
+                    upgOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
+                    upgOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                    var upgBtn = upgGO.AddComponent<Button>();
+                    upgBtn.targetGraphic = upgImg;
+                    string upgInstanceId = instanceId;
+                    string upgBuildingIdLocal = buildingId;
+                    int upgTierLocal = tier;
+                    upgBtn.onClick.AddListener(() =>
+                    {
+                        if (infoMaxLevel) return;
+                        string warning = GetUpgradeBlockReason(upgInstanceId, upgTierLocal);
+                        if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
+                        DismissBuildingInfoPanel();
+                        ShowUpgradeConfirmDialog(upgInstanceId, upgBuildingIdLocal, upgTierLocal);
+                    });
+                    AddInfoPanelText(upgGO.transform, "Label", infoMaxLevel ? "MAX LEVEL" : "\u2B06 Upgrade", 11,
+                        FontStyle.Bold, Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
             }
 
             // Close button (X in top-right)
