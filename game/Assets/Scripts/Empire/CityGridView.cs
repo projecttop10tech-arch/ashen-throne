@@ -2917,7 +2917,7 @@ namespace AshenThrone.Empire
             { "enchanting_tower", "Enchanting Tower" }, { "observatory", "Observatory" }, { "archive", "Archive" },
         };
 
-        /// <summary>P&C: Show floating info popup above tapped building with name, level, and action buttons.</summary>
+        /// <summary>P&C: Show radial context menu above tapped building — circular buttons in a semicircle arc.</summary>
         private void OnBuildingTappedShowPopup(BuildingTappedEvent evt)
         {
             DismissInfoPopup();
@@ -2929,7 +2929,7 @@ namespace AshenThrone.Empire
 
             _infoPopupInstanceId = evt.InstanceId;
 
-            // Create popup above the building
+            // Container positioned at building center
             var popup = new GameObject("InfoPopup");
             popup.transform.SetParent(evt.VisualGO.transform.parent, false);
             popup.transform.SetAsLastSibling();
@@ -2938,69 +2938,44 @@ namespace AshenThrone.Empire
             var buildingRect = evt.VisualGO.GetComponent<RectTransform>();
             Vector2 buildingPos = buildingRect != null ? buildingRect.anchoredPosition : Vector2.zero;
             float buildingHeight = buildingRect != null ? buildingRect.sizeDelta.y : 80f;
-            popupRect.anchoredPosition = buildingPos + new Vector2(0, buildingHeight * 0.55f);
-            popupRect.sizeDelta = new Vector2(170, 95);
+            popupRect.anchoredPosition = buildingPos + new Vector2(0, buildingHeight * 0.35f);
+            popupRect.sizeDelta = new Vector2(200, 200); // Large enough to contain radial
 
-            // Dark panel background
-            var bg = popup.AddComponent<Image>();
-            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.92f);
-            bg.raycastTarget = true; // Block clicks through
-
-            // Gold border outline
-            var bgOutline = popup.AddComponent<Outline>();
-            bgOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.8f);
-            bgOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-            // Second outline for depth
-            var bgOutline2 = popup.AddComponent<Outline>();
-            bgOutline2.effectColor = new Color(0.4f, 0.3f, 0.1f, 0.5f);
-            bgOutline2.effectDistance = new Vector2(-1f, 1f);
-
-            // Building name + level
+            // Name plate in center (pill-shaped)
             string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
-            var nameGO = new GameObject("Name");
-            nameGO.transform.SetParent(popup.transform, false);
-            var nameRect = nameGO.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.05f, 0.72f);
-            nameRect.anchorMax = new Vector2(0.95f, 0.97f);
+            var namePlate = new GameObject("NamePlate");
+            namePlate.transform.SetParent(popup.transform, false);
+            var nameRect = namePlate.AddComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0.15f, 0.38f);
+            nameRect.anchorMax = new Vector2(0.85f, 0.52f);
             nameRect.offsetMin = Vector2.zero;
             nameRect.offsetMax = Vector2.zero;
-            var nameText = nameGO.AddComponent<Text>();
+            var nameBg = namePlate.AddComponent<Image>();
+            nameBg.color = new Color(0.06f, 0.04f, 0.12f, 0.92f);
+            nameBg.raycastTarget = false;
+            var nameOutline = namePlate.AddComponent<Outline>();
+            nameOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.7f);
+            nameOutline.effectDistance = new Vector2(1f, -1f);
+            var nameTextGO = new GameObject("Text");
+            nameTextGO.transform.SetParent(namePlate.transform, false);
+            var nameTextRect = nameTextGO.AddComponent<RectTransform>();
+            nameTextRect.anchorMin = Vector2.zero;
+            nameTextRect.anchorMax = Vector2.one;
+            nameTextRect.offsetMin = Vector2.zero;
+            nameTextRect.offsetMax = Vector2.zero;
+            var nameText = nameTextGO.AddComponent<Text>();
             nameText.text = $"{displayName}  Lv.{evt.Tier}";
             nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = 12;
+            nameText.fontSize = 10;
             nameText.fontStyle = FontStyle.Bold;
             nameText.alignment = TextAnchor.MiddleCenter;
             nameText.color = GetCategoryHeaderColor(evt.BuildingId);
             nameText.raycastTarget = false;
-            var nameOutline = nameGO.AddComponent<Outline>();
-            nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
-            nameOutline.effectDistance = new Vector2(1f, -1f);
+            var nameTextOutline = nameTextGO.AddComponent<Outline>();
+            nameTextOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            nameTextOutline.effectDistance = new Vector2(1f, -1f);
 
-            // P&C: Upgrade cost preview line
-            string costStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
-            if (!string.IsNullOrEmpty(costStr))
-            {
-                var costGO = new GameObject("CostLine");
-                costGO.transform.SetParent(popup.transform, false);
-                var costRect = costGO.AddComponent<RectTransform>();
-                costRect.anchorMin = new Vector2(0.05f, 0.52f);
-                costRect.anchorMax = new Vector2(0.95f, 0.72f);
-                costRect.offsetMin = Vector2.zero;
-                costRect.offsetMax = Vector2.zero;
-                var costText = costGO.AddComponent<Text>();
-                costText.text = costStr;
-                costText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                costText.fontSize = 8;
-                costText.alignment = TextAnchor.MiddleCenter;
-                costText.color = new Color(0.75f, 0.72f, 0.65f);
-                costText.raycastTarget = false;
-                var costOutline = costGO.AddComponent<Outline>();
-                costOutline.effectColor = new Color(0, 0, 0, 0.7f);
-                costOutline.effectDistance = new Vector2(0.7f, -0.7f);
-            }
-
-            // P&C: Check if building is currently upgrading — show live timer instead of Upgrade button
+            // P&C: Check upgrade state
             bool isUpgrading = false;
             float upgradeRemaining = 0f;
             if (ServiceLocator.TryGet<BuildingManager>(out var popupBm))
@@ -3016,91 +2991,196 @@ namespace AshenThrone.Empire
                 }
             }
 
-            // Action buttons row
-            float btnY0 = 0.06f, btnY1 = 0.50f;
+            string costStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
+            bool isMaxLevel = costStr == "MAX LEVEL";
+
+            // Build radial button list
+            var radialButtons = new List<(string Icon, string Label, Color BgColor, System.Action OnClick)>();
+
             string upgInstanceId = evt.InstanceId;
             string upgBuildingId = evt.BuildingId;
             int upgTier = evt.Tier;
 
             if (isUpgrading)
             {
-                // Show live countdown timer instead of upgrade button
-                var timerGO = new GameObject("PopupTimer");
-                timerGO.transform.SetParent(popup.transform, false);
-                var timerRect = timerGO.AddComponent<RectTransform>();
-                timerRect.anchorMin = new Vector2(0.02f, btnY0);
-                timerRect.anchorMax = new Vector2(0.34f, btnY1);
-                timerRect.offsetMin = Vector2.zero;
-                timerRect.offsetMax = Vector2.zero;
-                var timerBg = timerGO.AddComponent<Image>();
-                timerBg.color = new Color(0.15f, 0.12f, 0.25f, 0.85f);
-                timerBg.raycastTarget = false;
-                var timerOutline = timerGO.AddComponent<Outline>();
-                timerOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
-                timerOutline.effectDistance = new Vector2(0.6f, -0.6f);
-                var timerTextGO = new GameObject("Text");
-                timerTextGO.transform.SetParent(timerGO.transform, false);
-                var timerTextRect = timerTextGO.AddComponent<RectTransform>();
-                timerTextRect.anchorMin = Vector2.zero;
-                timerTextRect.anchorMax = Vector2.one;
-                timerTextRect.offsetMin = Vector2.zero;
-                timerTextRect.offsetMax = Vector2.zero;
-                var timerText = timerTextGO.AddComponent<Text>();
-                timerText.text = "\u2692 " + FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
-                timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                timerText.fontSize = 9;
-                timerText.fontStyle = FontStyle.Bold;
-                timerText.alignment = TextAnchor.MiddleCenter;
-                timerText.color = new Color(0.95f, 0.82f, 0.35f);
-                timerText.raycastTarget = false;
-                // Start live countdown coroutine
-                string timerInstanceId = evt.InstanceId;
-                StartCoroutine(UpdatePopupTimer(timerText, timerInstanceId, popup));
+                string timerLabel = FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
+                radialButtons.Add(("\u2692", timerLabel, new Color(0.55f, 0.45f, 0.15f, 0.9f), null));
             }
             else
             {
-                bool isMaxLevel = costStr == "MAX LEVEL";
-                Color upgBtnColor = isMaxLevel
-                    ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
-                    : new Color(0.15f, 0.55f, 0.15f, 0.9f);
-                CreatePopupButton(popup.transform, isMaxLevel ? "MAX" : "Upgrade", "\u2B06",
-                    new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1), upgBtnColor, () => {
-                        if (isMaxLevel) return;
-                    string warning = GetUpgradeBlockReason(upgInstanceId, upgTier);
-                    if (warning != null)
-                    {
-                        ShowUpgradeBlockedToast(warning);
-                        return;
-                    }
-                    EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingId, upgTier));
-                    DismissInfoPopup();
-                });
-            } // end else (not upgrading)
+                radialButtons.Add(("\u2B06", isMaxLevel ? "MAX" : "Upgrade",
+                    isMaxLevel ? new Color(0.30f, 0.30f, 0.30f, 0.7f) : new Color(0.15f, 0.60f, 0.20f, 0.9f),
+                    isMaxLevel ? (System.Action)null : () => {
+                        string warning = GetUpgradeBlockReason(upgInstanceId, upgTier);
+                        if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
+                        EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingId, upgTier));
+                        DismissInfoPopup();
+                    }));
+            }
 
             string capBuildingId = evt.BuildingId;
             string capInstanceId = evt.InstanceId;
             int capTier = evt.Tier;
-            CreatePopupButton(popup.transform, "Info", "\u2139", new Vector2(0.35f, btnY0), new Vector2(0.65f, btnY1),
-                new Color(0.20f, 0.35f, 0.65f, 0.9f), () => {
-                    DismissInfoPopup();
-                    ShowBuildingInfoPanel(capBuildingId, capInstanceId, capTier);
-                });
+            radialButtons.Add(("\u2139", "Info", new Color(0.20f, 0.35f, 0.65f, 0.9f), () => {
+                DismissInfoPopup();
+                ShowBuildingInfoPanel(capBuildingId, capInstanceId, capTier);
+            }));
+            radialButtons.Add(("\u2725", "Move", new Color(0.55f, 0.40f, 0.15f, 0.9f), () => {
+                DismissInfoPopup();
+                EnterMoveModeForBuilding(evt.InstanceId);
+            }));
 
-            CreatePopupButton(popup.transform, "Move", "\u2725", new Vector2(0.66f, btnY0), new Vector2(0.98f, btnY1),
-                new Color(0.55f, 0.40f, 0.15f, 0.9f), () => {
-                    DismissInfoPopup();
-                    EnterMoveModeForBuilding(evt.InstanceId);
-                });
+            // P&C: Arrange buttons in semicircle arc above the name plate
+            float radius = 55f; // pixels from center
+            float startAngle = 150f; // degrees — leftmost position
+            float endAngle = 30f;    // degrees — rightmost position
+            float btnSize = 38f;
 
-            // Fade-in animation
+            for (int i = 0; i < radialButtons.Count; i++)
+            {
+                var (icon, label, bgColor, onClick) = radialButtons[i];
+                float t = radialButtons.Count > 1 ? (float)i / (radialButtons.Count - 1) : 0.5f;
+                float angle = Mathf.Lerp(startAngle, endAngle, t) * Mathf.Deg2Rad;
+                float x = Mathf.Cos(angle) * radius;
+                float y = Mathf.Sin(angle) * radius + 15f; // offset upward
+
+                CreateRadialButton(popup.transform, icon, label, bgColor, onClick,
+                    new Vector2(100f + x - btnSize * 0.5f, 90f + y - btnSize * 0.5f), btnSize);
+            }
+
+            // P&C: Upgrade cost line below name plate
+            if (!string.IsNullOrEmpty(costStr) && costStr != "MAX LEVEL")
+            {
+                var costGO = new GameObject("CostLine");
+                costGO.transform.SetParent(popup.transform, false);
+                var costRect = costGO.AddComponent<RectTransform>();
+                costRect.anchorMin = new Vector2(0.10f, 0.28f);
+                costRect.anchorMax = new Vector2(0.90f, 0.38f);
+                costRect.offsetMin = Vector2.zero;
+                costRect.offsetMax = Vector2.zero;
+                var costText = costGO.AddComponent<Text>();
+                costText.text = costStr;
+                costText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                costText.fontSize = 8;
+                costText.alignment = TextAnchor.MiddleCenter;
+                costText.color = new Color(0.75f, 0.72f, 0.65f);
+                costText.raycastTarget = false;
+                var costOutline = costGO.AddComponent<Outline>();
+                costOutline.effectColor = new Color(0, 0, 0, 0.7f);
+                costOutline.effectDistance = new Vector2(0.7f, -0.7f);
+            }
+
+            // Upgrading? Start live timer on the timer button
+            if (isUpgrading)
+            {
+                var timerBtnText = popup.transform.Find("RadialBtn_0")?.GetComponentInChildren<Text>();
+                if (timerBtnText != null)
+                {
+                    string timerInstanceId = evt.InstanceId;
+                    StartCoroutine(UpdatePopupTimer(timerBtnText, timerInstanceId, popup));
+                }
+            }
+
+            // Fade-in + scale-up animation
             var cg = popup.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             _infoPopup = popup;
-            StartCoroutine(FadeInPopup(cg));
+            StartCoroutine(AnimateRadialPopupIn(popup, cg));
 
             // P&C: Auto-dismiss popup after 5 seconds of no interaction
             if (_popupAutoDismiss != null) StopCoroutine(_popupAutoDismiss);
             _popupAutoDismiss = StartCoroutine(AutoDismissPopup(5f));
+        }
+
+        /// <summary>P&C: Create a circular radial menu button at a pixel offset from parent origin.</summary>
+        private void CreateRadialButton(Transform parent, string icon, string label, Color bgColor,
+            System.Action onClick, Vector2 pixelPos, float size)
+        {
+            int idx = parent.childCount;
+            var btnGO = new GameObject($"RadialBtn_{idx}");
+            btnGO.transform.SetParent(parent, false);
+            var rect = btnGO.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = pixelPos + new Vector2(size * 0.5f, size * 0.5f);
+            rect.sizeDelta = new Vector2(size, size);
+
+            // Circular background
+            var bg = btnGO.AddComponent<Image>();
+            bg.color = bgColor;
+            bg.raycastTarget = true;
+
+            // Gold ring border
+            var outline = btnGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.75f);
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
+            var outline2 = btnGO.AddComponent<Outline>();
+            outline2.effectColor = new Color(0.4f, 0.3f, 0.1f, 0.4f);
+            outline2.effectDistance = new Vector2(-0.8f, 0.8f);
+
+            // Icon text (large)
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(btnGO.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.1f, 0.30f);
+            iconRect.anchorMax = new Vector2(0.9f, 0.95f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = icon;
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = 14;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = Color.white;
+            iconText.raycastTarget = false;
+
+            // Label text (small, below icon)
+            var lblGO = new GameObject("Label");
+            lblGO.transform.SetParent(btnGO.transform, false);
+            var lblRect = lblGO.AddComponent<RectTransform>();
+            lblRect.anchorMin = new Vector2(0.0f, 0.0f);
+            lblRect.anchorMax = new Vector2(1.0f, 0.32f);
+            lblRect.offsetMin = Vector2.zero;
+            lblRect.offsetMax = Vector2.zero;
+            var lblText = lblGO.AddComponent<Text>();
+            lblText.text = label;
+            lblText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            lblText.fontSize = 7;
+            lblText.alignment = TextAnchor.MiddleCenter;
+            lblText.color = new Color(0.90f, 0.88f, 0.82f);
+            lblText.raycastTarget = false;
+            var lblShadow = lblGO.AddComponent<Shadow>();
+            lblShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            lblShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            if (onClick != null)
+            {
+                var btn = btnGO.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                btn.onClick.AddListener(() => onClick());
+            }
+        }
+
+        /// <summary>P&C: Animate radial popup: scale from 0.3 to 1.0 + fade in over 0.2s.</summary>
+        private IEnumerator AnimateRadialPopupIn(GameObject popup, CanvasGroup cg)
+        {
+            float duration = 0.2f;
+            float elapsed = 0f;
+            popup.transform.localScale = Vector3.one * 0.3f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // Ease-out back (slight overshoot for snappy feel)
+                float ease = 1f + 1.2f * (t - 1f) * (t - 1f) * (t - 1f) + 0.2f * (t - 1f);
+                cg.alpha = Mathf.Clamp01(t * 2f); // Fade in faster than scale
+                popup.transform.localScale = Vector3.one * Mathf.LerpUnclamped(0.3f, 1f, ease);
+                yield return null;
+            }
+            cg.alpha = 1f;
+            popup.transform.localScale = Vector3.one;
         }
 
         private void CreatePopupButton(Transform parent, string label, string icon, Vector2 anchorMin, Vector2 anchorMax,
@@ -3890,22 +3970,42 @@ namespace AshenThrone.Empire
                             BuildingSizes.TryGetValue(capBid, out var sz) ? sz : new Vector2Int(2, 2)));
                     });
 
-                    // Building name text
+                    // P&C: Building sprite thumbnail (top portion of button)
+                    Sprite thumbSprite = LoadBuildingSprite(bid, 1);
+                    if (thumbSprite != null)
+                    {
+                        var thumbGO = new GameObject("Thumb");
+                        thumbGO.transform.SetParent(btnGO.transform, false);
+                        var thumbRect = thumbGO.AddComponent<RectTransform>();
+                        thumbRect.anchorMin = new Vector2(0.15f, 0.28f);
+                        thumbRect.anchorMax = new Vector2(0.85f, 0.92f);
+                        thumbRect.offsetMin = Vector2.zero;
+                        thumbRect.offsetMax = Vector2.zero;
+                        var thumbImg = thumbGO.AddComponent<Image>();
+                        thumbImg.sprite = thumbSprite;
+                        thumbImg.preserveAspect = true;
+                        thumbImg.raycastTarget = false;
+                    }
+
+                    // Building name text (below thumbnail)
                     var lblGO = new GameObject("Label");
                     lblGO.transform.SetParent(btnGO.transform, false);
                     var lblRect = lblGO.AddComponent<RectTransform>();
-                    lblRect.anchorMin = Vector2.zero;
-                    lblRect.anchorMax = Vector2.one;
-                    lblRect.offsetMin = new Vector2(2, 0);
-                    lblRect.offsetMax = new Vector2(-2, 0);
+                    lblRect.anchorMin = new Vector2(0, 0);
+                    lblRect.anchorMax = new Vector2(1, 0.28f);
+                    lblRect.offsetMin = new Vector2(1, 0);
+                    lblRect.offsetMax = new Vector2(-1, 0);
                     var lblText = lblGO.AddComponent<Text>();
                     lblText.text = displayName;
                     lblText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                    lblText.fontSize = 8;
+                    lblText.fontSize = 7;
                     lblText.fontStyle = FontStyle.Bold;
                     lblText.alignment = TextAnchor.MiddleCenter;
                     lblText.color = Color.white;
                     lblText.raycastTarget = false;
+                    var lblShadow = lblGO.AddComponent<Shadow>();
+                    lblShadow.effectColor = new Color(0, 0, 0, 0.8f);
+                    lblShadow.effectDistance = new Vector2(0.5f, -0.5f);
                 }
 
                 yTop = rowBot - gap;

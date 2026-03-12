@@ -4,6 +4,23 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.50.0] — 2026-03-12 (Ralph Loop Iteration 45: Radial Context Menu, Build Selector Thumbnails)
+
+### ADDED
+- **P&C radial context menu** — tapping a building now shows a semicircular arc of circular buttons (Upgrade, Info, Move) arranged above the building, replacing the old rectangular popup. Buttons are positioned on a 55px radius arc from 150° to 30°. Each button has a gold-ringed circular background with icon + label. Scale+fade animation (0.3→1.0 with ease-out-back overshoot) for snappy P&C feel.
+- **Radial timer integration** — when a building is upgrading, the Upgrade button becomes a live countdown timer button (⚒ icon) within the radial layout.
+- **Build selector sprite thumbnails** — each building button in the placement selector now shows the tier-1 building sprite above the name label. Uses `LoadBuildingSprite()` with `preserveAspect` for clean display.
+- **`CreateRadialButton()` helper** — pixel-positioned circular button factory with icon, label, gold border, and optional click handler.
+- **`AnimateRadialPopupIn()` coroutine** — scale-from-center animation with ease-out-back easing for radial popup appearance.
+
+### CHANGED
+- `OnBuildingTappedShowPopup()` completely rewritten from rectangular panel to radial semicircle layout
+- Build selector buttons now have sprite thumbnail (top 64%) + name label (bottom 28%) layout instead of text-only
+- Name plate in radial menu is a centered pill below the arc instead of a header row
+- Upgrade cost line positioned below the name plate in the radial layout
+
+---
+
 ## [0.49.0] — 2026-03-12 (Ralph Loop Iteration 44: Zoom Detail Levels, Tier Preview)
 
 ### ADDED
