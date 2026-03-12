@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.80.0] — 2026-03-12 (Ralph Loop Iteration 75: Batch Upgrade, Trading, Queue Manager)
+
+### ADDED
+- **Batch upgrade mode** — P&C-style multi-select upgrade system. Tap buildings to select (up to 10), blue highlight + checkmark on selected buildings. Top banner shows selection count. Confirm to queue all upgrades at once. Accessible from enhanced build queue panel. Cancels on dismiss. Intercepts building tap handler during batch mode.
+- **`ToggleBatchUpgradeMode()` / `BatchSelectBuilding()` / `ExecuteBatchUpgrade()` methods** — batch selection with visual markers, HUD banner, and bulk `StartUpgrade()` calls.
+- **Resource trading panel** — marketplace building now has "Trade" button opening full trading panel. 6 trade offers (Stone↔Iron, Stone↔Grain, Iron↔Arcane, Grain↔Stone, Grain↔Iron) with marketplace tier gating. Shows resource costs, afford status, and locked tier indicators. Executes trades via `ResourceManager.Spend()` + `AddResource()`. Panel refreshes after each trade.
+- **`ShowTradePanel()` / `ExecuteTrade()` methods** — trading system with `TradeOffer` struct array, per-offer tier requirements, afford checks, and resource exchange.
+- **Enhanced build queue manager** — new priority-focused queue panel with numbered entries (#1, #2...), building names, tier targets, time remaining, and per-entry cancel buttons. "BATCH UPGRADE" button at bottom to enter batch mode. Replaces basic queue view with detailed management. Active build highlighted green.
+- **`ShowEnhancedBuildQueuePanel()` method** — priority queue display with cancel per entry and batch upgrade entry point.
+
+---
+
 ## [0.79.0] — 2026-03-12 (Ralph Loop Iteration 74: Favorites, Wall Repair, Auto-Collect)
 
 ### ADDED

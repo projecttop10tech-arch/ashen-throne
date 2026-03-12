@@ -4293,6 +4293,13 @@ namespace AshenThrone.Empire
         /// <summary>P&C: Show radial context menu above tapped building — circular buttons in a semicircle arc.</summary>
         private void OnBuildingTappedShowPopup(BuildingTappedEvent evt)
         {
+            // P&C: Batch upgrade mode — select/deselect instead of showing popup
+            if (_batchUpgradeMode)
+            {
+                BatchSelectBuilding(evt.InstanceId);
+                return;
+            }
+
             DismissInfoPopup();
 
             if (evt.VisualGO == null) return;
@@ -5287,6 +5294,34 @@ namespace AshenThrone.Empire
                     ShowProductionBoostPanel(capBoostInstId, capBoostBid, capBoostTier);
                 });
                 AddInfoPanelText(boostGO.transform, "Label", "\u2191 Boost Production", 9, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Trade button for marketplace
+            if (buildingId == "marketplace")
+            {
+                var tradeGO = new GameObject("TradeBtn");
+                tradeGO.transform.SetParent(panel.transform, false);
+                var tradeRect = tradeGO.AddComponent<RectTransform>();
+                tradeRect.anchorMin = new Vector2(0.50f, 0.28f);
+                tradeRect.anchorMax = new Vector2(0.95f, 0.35f);
+                tradeRect.offsetMin = Vector2.zero;
+                tradeRect.offsetMax = Vector2.zero;
+                var tradeBg = tradeGO.AddComponent<Image>();
+                tradeBg.color = new Color(0.20f, 0.45f, 0.55f, 0.90f);
+                tradeBg.raycastTarget = true;
+                var tradeOutline = tradeGO.AddComponent<Outline>();
+                tradeOutline.effectColor = new Color(0.40f, 0.70f, 0.85f, 0.6f);
+                tradeOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var tradeBtn = tradeGO.AddComponent<Button>();
+                tradeBtn.targetGraphic = tradeBg;
+                int capTradeTier = tier;
+                tradeBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowTradePanel(capTradeTier);
+                });
+                AddInfoPanelText(tradeGO.transform, "Label", "\u2696 Trade", 10, FontStyle.Bold, Color.white,
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
@@ -15207,6 +15242,547 @@ namespace AshenThrone.Empire
 
             spawner.CollectAll();
             Debug.Log("[CityGridView] Auto-collected all resource bubbles.");
+        }
+    }
+
+    // ====================================================================
+    // P&C: Batch Upgrade Mode — select multiple buildings to queue upgrades
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private bool _batchUpgradeMode;
+        private readonly List<string> _batchUpgradeSelection = new();
+        private GameObject _batchUpgradeHUD;
+
+        /// <summary>P&C: Toggle batch upgrade mode — tap buildings to select, confirm to upgrade all.</summary>
+        private void ToggleBatchUpgradeMode()
+        {
+            _batchUpgradeMode = !_batchUpgradeMode;
+            if (_batchUpgradeMode)
+            {
+                _batchUpgradeSelection.Clear();
+                CreateBatchUpgradeHUD();
+            }
+            else
+            {
+                _batchUpgradeSelection.Clear();
+                ClearBatchSelectionVisuals();
+                if (_batchUpgradeHUD != null) { Destroy(_batchUpgradeHUD); _batchUpgradeHUD = null; }
+            }
+        }
+
+        private void CreateBatchUpgradeHUD()
+        {
+            if (_batchUpgradeHUD != null) Destroy(_batchUpgradeHUD);
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _batchUpgradeHUD = new GameObject("BatchUpgradeHUD");
+            _batchUpgradeHUD.transform.SetParent(canvas.transform, false);
+            _batchUpgradeHUD.transform.SetAsLastSibling();
+
+            // Top banner
+            var banner = new GameObject("Banner");
+            banner.transform.SetParent(_batchUpgradeHUD.transform, false);
+            var bannerRect = banner.AddComponent<RectTransform>();
+            bannerRect.anchorMin = new Vector2(0.10f, 0.82f);
+            bannerRect.anchorMax = new Vector2(0.90f, 0.88f);
+            bannerRect.offsetMin = Vector2.zero;
+            bannerRect.offsetMax = Vector2.zero;
+            var bannerBg = banner.AddComponent<Image>();
+            bannerBg.color = new Color(0.15f, 0.40f, 0.60f, 0.92f);
+            var bannerOutline = banner.AddComponent<Outline>();
+            bannerOutline.effectColor = new Color(0.40f, 0.70f, 0.95f, 0.6f);
+            bannerOutline.effectDistance = new Vector2(1f, -1f);
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(banner.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(8, 0);
+            labelRect.offsetMax = new Vector2(-8, 0);
+            var label = labelGO.AddComponent<Text>();
+            label.text = "\u2191 BATCH UPGRADE — Tap buildings to select (0 selected)";
+            label.fontSize = 11;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.raycastTarget = false;
+
+            // Confirm button
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(_batchUpgradeHUD.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.25f, 0.75f);
+            confirmRect.anchorMax = new Vector2(0.52f, 0.81f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmBg = confirmGO.AddComponent<Image>();
+            confirmBg.color = new Color(0.15f, 0.55f, 0.25f, 0.92f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmBg;
+            confirmBtn.onClick.AddListener(ExecuteBatchUpgrade);
+            AddInfoPanelText(confirmGO.transform, "Label", "\u2714 UPGRADE ALL", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Cancel button
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(_batchUpgradeHUD.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.55f, 0.75f);
+            cancelRect.anchorMax = new Vector2(0.75f, 0.81f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelBg = cancelGO.AddComponent<Image>();
+            cancelBg.color = new Color(0.55f, 0.20f, 0.15f, 0.92f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelBg;
+            cancelBtn.onClick.AddListener(ToggleBatchUpgradeMode);
+            AddInfoPanelText(cancelGO.transform, "Label", "\u2716 CANCEL", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>P&C: Select/deselect a building for batch upgrade during batch mode.</summary>
+        private void BatchSelectBuilding(string instanceId)
+        {
+            if (!_batchUpgradeMode) return;
+
+            if (_batchUpgradeSelection.Contains(instanceId))
+            {
+                _batchUpgradeSelection.Remove(instanceId);
+            }
+            else
+            {
+                if (_batchUpgradeSelection.Count >= 10)
+                {
+                    ShowUpgradeBlockedToast("Max 10 buildings per batch.");
+                    return;
+                }
+                _batchUpgradeSelection.Add(instanceId);
+            }
+
+            // Update selection visuals
+            RefreshBatchSelectionVisuals();
+
+            // Update HUD count
+            if (_batchUpgradeHUD != null)
+            {
+                var label = _batchUpgradeHUD.GetComponentInChildren<Text>();
+                if (label != null)
+                    label.text = $"\u2191 BATCH UPGRADE — Tap buildings to select ({_batchUpgradeSelection.Count} selected)";
+            }
+        }
+
+        private void RefreshBatchSelectionVisuals()
+        {
+            // Clear old selection markers
+            ClearBatchSelectionVisuals();
+
+            foreach (var instId in _batchUpgradeSelection)
+            {
+                var placement = _placements.Find(p => p.InstanceId == instId);
+                if (placement?.VisualGO == null) continue;
+
+                var marker = new GameObject("BatchSelect");
+                marker.transform.SetParent(placement.VisualGO.transform, false);
+                var rect = marker.AddComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(-3, -3);
+                rect.offsetMax = new Vector2(3, 3);
+                var img = marker.AddComponent<Image>();
+                img.color = new Color(0.20f, 0.60f, 0.90f, 0.30f);
+                img.raycastTarget = false;
+                var outline = marker.AddComponent<Outline>();
+                outline.effectColor = new Color(0.30f, 0.70f, 1f, 0.7f);
+                outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+                // Checkmark
+                var checkGO = new GameObject("Check");
+                checkGO.transform.SetParent(marker.transform, false);
+                var checkRect = checkGO.AddComponent<RectTransform>();
+                checkRect.anchorMin = new Vector2(0.65f, 0.70f);
+                checkRect.anchorMax = new Vector2(0.95f, 0.95f);
+                checkRect.offsetMin = Vector2.zero;
+                checkRect.offsetMax = Vector2.zero;
+                var checkBg = checkGO.AddComponent<Image>();
+                checkBg.color = new Color(0.15f, 0.55f, 0.25f, 0.9f);
+                checkBg.raycastTarget = false;
+                AddInfoPanelText(checkGO.transform, "Icon", "\u2714", 12, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+        }
+
+        private void ClearBatchSelectionVisuals()
+        {
+            foreach (var placement in _placements)
+            {
+                if (placement.VisualGO == null) continue;
+                var marker = placement.VisualGO.transform.Find("BatchSelect");
+                if (marker != null) Destroy(marker.gameObject);
+            }
+        }
+
+        private void ExecuteBatchUpgrade()
+        {
+            if (_batchUpgradeSelection.Count == 0)
+            {
+                ShowUpgradeBlockedToast("No buildings selected!");
+                return;
+            }
+
+            ServiceLocator.TryGet<BuildingManager>(out var bm);
+            int queued = 0;
+            foreach (var instId in _batchUpgradeSelection)
+            {
+                if (bm != null)
+                {
+                    bm.StartUpgrade(instId);
+                    queued++;
+                }
+            }
+            ShowUpgradeBlockedToast($"\u2191 Queued {queued} upgrades!");
+            ToggleBatchUpgradeMode();
+        }
+    }
+
+    // ====================================================================
+    // P&C: Resource Trading Panel — Marketplace Building
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _tradePanel;
+
+        private static readonly TradeOffer[] TradeOffers = new[]
+        {
+            new TradeOffer("Stone → Iron", ResourceType.Stone, 200, ResourceType.Iron, 150, 1),
+            new TradeOffer("Stone → Grain", ResourceType.Stone, 150, ResourceType.Grain, 200, 1),
+            new TradeOffer("Iron → Stone", ResourceType.Iron, 150, ResourceType.Stone, 200, 1),
+            new TradeOffer("Iron → Arcane", ResourceType.Iron, 300, ResourceType.ArcaneEssence, 100, 2),
+            new TradeOffer("Grain → Stone", ResourceType.Grain, 200, ResourceType.Stone, 150, 1),
+            new TradeOffer("Grain → Iron", ResourceType.Grain, 250, ResourceType.Iron, 100, 2),
+        };
+
+        private struct TradeOffer
+        {
+            public string Name;
+            public ResourceType FromType;
+            public int FromAmount;
+            public ResourceType ToType;
+            public int ToAmount;
+            public int MarketTier; // min marketplace tier required
+
+            public TradeOffer(string name, ResourceType from, int fromAmt, ResourceType to, int toAmt, int tier)
+            {
+                Name = name; FromType = from; FromAmount = fromAmt;
+                ToType = to; ToAmount = toAmt; MarketTier = tier;
+            }
+        }
+
+        /// <summary>P&C: Show resource trading panel for marketplace building.</summary>
+        private void ShowTradePanel(int marketplaceTier)
+        {
+            if (_tradePanel != null) { Destroy(_tradePanel); _tradePanel = null; }
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _tradePanel = new GameObject("TradePanel");
+            _tradePanel.transform.SetParent(canvas.transform, false);
+            var dimRect = _tradePanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _tradePanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _tradePanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_tradePanel != null) { Destroy(_tradePanel); _tradePanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_tradePanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.06f, 0.18f);
+            panelRect.anchorMax = new Vector2(0.94f, 0.82f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", "\u2696 Marketplace — Resource Trading", 14, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f), new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            // Trade offer rows
+            ServiceLocator.TryGet<ResourceManager>(out var rm);
+            float rowY = 0.85f;
+            float rowH = 0.11f;
+
+            foreach (var offer in TradeOffers)
+            {
+                float rowTop = rowY;
+                float rowBot = rowY - rowH;
+                bool locked = offer.MarketTier > marketplaceTier;
+                bool canAfford = rm != null && GetResourceAmount(rm, offer.FromType) >= offer.FromAmount;
+
+                var row = new GameObject($"Trade_{offer.Name}");
+                row.transform.SetParent(panel.transform, false);
+                var rowRect = row.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, rowBot);
+                rowRect.anchorMax = new Vector2(0.97f, rowTop);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = row.AddComponent<Image>();
+                rowBg.color = locked ? new Color(0.10f, 0.08f, 0.15f, 0.5f) : new Color(0.12f, 0.10f, 0.20f, 0.7f);
+
+                // Trade description
+                string desc = locked ? $"\u26BF {offer.Name} (Tier {offer.MarketTier} required)" :
+                    $"{offer.Name}: {offer.FromAmount} → {offer.ToAmount}";
+                AddInfoPanelText(row.transform, "Desc", desc, 11, locked ? FontStyle.Italic : FontStyle.Normal,
+                    locked ? new Color(0.5f, 0.5f, 0.5f) : Color.white,
+                    new Vector2(0.02f, 0f), new Vector2(0.65f, 1f), TextAnchor.MiddleLeft);
+
+                if (!locked)
+                {
+                    // Trade button
+                    var tradeBtnGO = new GameObject("TradeBtn");
+                    tradeBtnGO.transform.SetParent(row.transform, false);
+                    var tradeBtnRect = tradeBtnGO.AddComponent<RectTransform>();
+                    tradeBtnRect.anchorMin = new Vector2(0.68f, 0.12f);
+                    tradeBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                    tradeBtnRect.offsetMin = Vector2.zero;
+                    tradeBtnRect.offsetMax = Vector2.zero;
+                    var tradeBtnBg = tradeBtnGO.AddComponent<Image>();
+                    tradeBtnBg.color = canAfford ? new Color(0.18f, 0.50f, 0.30f, 0.92f) : new Color(0.35f, 0.25f, 0.25f, 0.7f);
+                    var tradeBtn = tradeBtnGO.AddComponent<Button>();
+                    tradeBtn.targetGraphic = tradeBtnBg;
+                    tradeBtn.interactable = canAfford;
+                    var capOffer = offer;
+                    int capTier = marketplaceTier;
+                    tradeBtn.onClick.AddListener(() => ExecuteTrade(capOffer, capTier));
+                    AddInfoPanelText(tradeBtnGO.transform, "Label", canAfford ? "TRADE" : "LOW", 11, FontStyle.Bold,
+                        canAfford ? Color.white : new Color(0.6f, 0.4f, 0.4f),
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+
+                rowY -= rowH + 0.012f;
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.91f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_tradePanel != null) { Destroy(_tradePanel); _tradePanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _tradePanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void ExecuteTrade(TradeOffer offer, int marketTier)
+        {
+            var rm = ServiceLocator.Get<ResourceManager>();
+            if (rm == null) return;
+
+            long current = GetResourceAmount(rm, offer.FromType);
+            if (current < offer.FromAmount)
+            {
+                ShowUpgradeBlockedToast("Not enough resources!");
+                return;
+            }
+
+            // Spend source, add target
+            SpendSingleResource(rm, offer.FromType, offer.FromAmount);
+            rm.AddResource(offer.ToType, offer.ToAmount);
+            Debug.Log($"[Trade] Exchanged {offer.FromAmount} {offer.FromType} for {offer.ToAmount} {offer.ToType}");
+
+            // Refresh panel
+            if (_tradePanel != null) { Destroy(_tradePanel); _tradePanel = null; }
+            ShowTradePanel(marketTier);
+        }
+
+        private static long GetResourceAmount(ResourceManager rm, ResourceType type) => type switch
+        {
+            ResourceType.Stone => rm.Stone,
+            ResourceType.Iron => rm.Iron,
+            ResourceType.Grain => rm.Grain,
+            ResourceType.ArcaneEssence => rm.ArcaneEssence,
+            _ => 0
+        };
+
+        private static void SpendSingleResource(ResourceManager rm, ResourceType type, int amount)
+        {
+            // Use Spend with zeros for other resources
+            switch (type)
+            {
+                case ResourceType.Stone: rm.Spend(amount, 0, 0, 0); break;
+                case ResourceType.Iron: rm.Spend(0, amount, 0, 0); break;
+                case ResourceType.Grain: rm.Spend(0, 0, amount, 0); break;
+                case ResourceType.ArcaneEssence: rm.Spend(0, 0, 0, amount); break;
+            }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Build Queue Priority — Reorder entries by tapping up/down
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        /// <summary>P&C: Enhanced build queue panel with reorder arrows and priority management.</summary>
+        private void ShowEnhancedBuildQueuePanel()
+        {
+            // Reuse existing queue panel infrastructure but add priority controls
+            ServiceLocator.TryGet<BuildingManager>(out var bm);
+            if (bm == null) return;
+
+            if (_buildQueuePanel != null) { Destroy(_buildQueuePanel); _buildQueuePanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _buildQueuePanel = new GameObject("BuildQueuePanel");
+            _buildQueuePanel.transform.SetParent(canvas.transform, false);
+            _buildQueuePanel.transform.SetAsLastSibling();
+
+            var panelRect = _buildQueuePanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.05f, 0.22f);
+            panelRect.anchorMax = new Vector2(0.95f, 0.78f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = _buildQueuePanel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            var panelOutline = _buildQueuePanel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            AddInfoPanelText(_buildQueuePanel.transform, "Title", "\u2692 Build Queue — Priority Manager", 14, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f), new Vector2(0.05f, 0.88f), new Vector2(0.85f, 0.98f), TextAnchor.MiddleCenter);
+
+            var queue = bm.BuildQueue;
+            if (queue == null || queue.Count == 0)
+            {
+                AddInfoPanelText(_buildQueuePanel.transform, "Empty", "No active builds. Start upgrading buildings!",
+                    12, FontStyle.Italic, new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0.05f, 0.40f), new Vector2(0.95f, 0.60f), TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                float rowH = Mathf.Min(0.15f, 0.80f / queue.Count);
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    var entry = queue[i];
+                    float rowTop = 0.85f - i * (rowH + 0.01f);
+                    float rowBot = rowTop - rowH;
+
+                    var row = new GameObject($"QueueRow_{i}");
+                    row.transform.SetParent(_buildQueuePanel.transform, false);
+                    var rowRect = row.AddComponent<RectTransform>();
+                    rowRect.anchorMin = new Vector2(0.03f, rowBot);
+                    rowRect.anchorMax = new Vector2(0.97f, rowTop);
+                    rowRect.offsetMin = Vector2.zero;
+                    rowRect.offsetMax = Vector2.zero;
+                    var rowBg = row.AddComponent<Image>();
+                    rowBg.color = i == 0 ? new Color(0.15f, 0.25f, 0.15f, 0.8f) : new Color(0.12f, 0.10f, 0.20f, 0.7f);
+
+                    // Priority number
+                    AddInfoPanelText(row.transform, "Priority", $"#{i + 1}", 14, FontStyle.Bold,
+                        i == 0 ? new Color(0.40f, 0.85f, 0.40f) : new Color(0.65f, 0.55f, 0.35f),
+                        new Vector2(0.01f, 0f), new Vector2(0.10f, 1f), TextAnchor.MiddleCenter);
+
+                    // Building name + tier
+                    string buildingName = entry.PlacedId;
+                    // Try to find display name from placement
+                    var placement = _placements.Find(p => p.InstanceId == entry.PlacedId);
+                    if (placement != null && BuildingDisplayNames.TryGetValue(placement.BuildingId, out var dn))
+                        buildingName = dn;
+                    AddInfoPanelText(row.transform, "Name", $"{buildingName} \u2192 Tier {entry.TargetTier}", 11, FontStyle.Bold,
+                        Color.white, new Vector2(0.11f, 0.1f), new Vector2(0.60f, 0.9f), TextAnchor.MiddleLeft);
+
+                    // Time remaining
+                    string timeStr = i == 0 ? FormatTimeRemaining((int)entry.RemainingSeconds) : "Queued";
+                    Color timeColor = i == 0 ? new Color(0.40f, 0.85f, 0.40f) : new Color(0.6f, 0.6f, 0.6f);
+                    AddInfoPanelText(row.transform, "Time", timeStr, 10, FontStyle.Normal,
+                        timeColor, new Vector2(0.60f, 0f), new Vector2(0.80f, 1f), TextAnchor.MiddleCenter);
+
+                    // Cancel button for each entry
+                    var cancelGO = new GameObject("CancelBtn");
+                    cancelGO.transform.SetParent(row.transform, false);
+                    var cancelRect = cancelGO.AddComponent<RectTransform>();
+                    cancelRect.anchorMin = new Vector2(0.82f, 0.15f);
+                    cancelRect.anchorMax = new Vector2(0.98f, 0.85f);
+                    cancelRect.offsetMin = Vector2.zero;
+                    cancelRect.offsetMax = Vector2.zero;
+                    var cancelBg = cancelGO.AddComponent<Image>();
+                    cancelBg.color = new Color(0.55f, 0.18f, 0.15f, 0.85f);
+                    var cancelBtn = cancelGO.AddComponent<Button>();
+                    cancelBtn.targetGraphic = cancelBg;
+                    string capPlacedId = entry.PlacedId;
+                    cancelBtn.onClick.AddListener(() =>
+                    {
+                        if (bm != null) bm.CancelUpgrade(capPlacedId);
+                        ShowEnhancedBuildQueuePanel(); // Refresh
+                    });
+                    AddInfoPanelText(cancelGO.transform, "X", "\u2716", 11, FontStyle.Bold, Color.white,
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+            }
+
+            // Batch upgrade mode button
+            var batchGO = new GameObject("BatchBtn");
+            batchGO.transform.SetParent(_buildQueuePanel.transform, false);
+            var batchRect = batchGO.AddComponent<RectTransform>();
+            batchRect.anchorMin = new Vector2(0.10f, 0.02f);
+            batchRect.anchorMax = new Vector2(0.50f, 0.10f);
+            batchRect.offsetMin = Vector2.zero;
+            batchRect.offsetMax = Vector2.zero;
+            var batchBg = batchGO.AddComponent<Image>();
+            batchBg.color = new Color(0.15f, 0.40f, 0.60f, 0.90f);
+            var batchBtn = batchGO.AddComponent<Button>();
+            batchBtn.targetGraphic = batchBg;
+            batchBtn.onClick.AddListener(() =>
+            {
+                if (_buildQueuePanel != null) { Destroy(_buildQueuePanel); _buildQueuePanel = null; }
+                ToggleBatchUpgradeMode();
+            });
+            AddInfoPanelText(batchGO.transform, "Label", "\u2191 BATCH UPGRADE", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(_buildQueuePanel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_buildQueuePanel != null) { Destroy(_buildQueuePanel); _buildQueuePanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
         }
     }
 }
