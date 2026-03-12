@@ -4144,9 +4144,17 @@ namespace AshenThrone.Empire
         private GameObject _strongholdUpgradeBanner;
 
         /// <summary>P&C: Full-screen building info panel with stats, description, production info.</summary>
+        private int _infoPanelActiveTab; // 0=Overview, 1=Production, 2=Boosts
+
         private void ShowBuildingInfoPanel(string buildingId, string instanceId, int tier)
         {
+            ShowBuildingInfoPanel(buildingId, instanceId, tier, 0);
+        }
+
+        private void ShowBuildingInfoPanel(string buildingId, string instanceId, int tier, int activeTab)
+        {
             DismissBuildingInfoPanel();
+            _infoPanelActiveTab = activeTab;
 
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
@@ -4187,26 +4195,93 @@ namespace AshenThrone.Empire
 
             // Title bar
             AddInfoPanelText(panel.transform, "Title", displayName, 18, FontStyle.Bold, headerColor,
-                new Vector2(0.05f, 0.88f), new Vector2(0.70f, 0.97f), TextAnchor.MiddleLeft);
+                new Vector2(0.05f, 0.90f), new Vector2(0.70f, 0.97f), TextAnchor.MiddleLeft);
 
             // Level display
             string tierStar = tier > 1 ? $" \u2605" : "";
             AddInfoPanelText(panel.transform, "Level", $"Level {tier}{tierStar}", 14, FontStyle.Bold,
                 new Color(0.95f, 0.82f, 0.35f),
-                new Vector2(0.72f, 0.88f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleRight);
+                new Vector2(0.72f, 0.90f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleRight);
 
-            // Separator line
-            var sepGO = new GameObject("Separator");
-            sepGO.transform.SetParent(panel.transform, false);
-            var sepRect = sepGO.AddComponent<RectTransform>();
-            sepRect.anchorMin = new Vector2(0.05f, 0.865f);
-            sepRect.anchorMax = new Vector2(0.95f, 0.87f);
-            sepRect.offsetMin = Vector2.zero;
-            sepRect.offsetMax = Vector2.zero;
-            var sepImg = sepGO.AddComponent<Image>();
-            sepImg.color = new Color(0.85f, 0.65f, 0.15f, 0.4f);
-            sepImg.raycastTarget = false;
+            // P&C: Tab bar (Overview | Production | Boosts)
+            string[] tabNames = { "Overview", "Production", "Boosts" };
+            string[] tabIcons = { "\u2139", "\u2609", "\u26A1" };
+            float tabW = 0.30f;
+            float tabStartX = 0.05f;
+            for (int ti = 0; ti < 3; ti++)
+            {
+                int tabIdx = ti;
+                float x0 = tabStartX + ti * tabW;
+                float x1 = x0 + tabW - 0.01f;
+                var tabGO = new GameObject($"Tab_{tabNames[ti]}");
+                tabGO.transform.SetParent(panel.transform, false);
+                var tabRect = tabGO.AddComponent<RectTransform>();
+                tabRect.anchorMin = new Vector2(x0, 0.845f);
+                tabRect.anchorMax = new Vector2(x1, 0.895f);
+                tabRect.offsetMin = Vector2.zero;
+                tabRect.offsetMax = Vector2.zero;
+                var tabImg = tabGO.AddComponent<Image>();
+                bool isActive = ti == activeTab;
+                tabImg.color = isActive
+                    ? new Color(0.25f, 0.20f, 0.40f, 0.95f)
+                    : new Color(0.10f, 0.08f, 0.16f, 0.80f);
+                tabImg.raycastTarget = true;
+                if (isActive)
+                {
+                    var tabOutline = tabGO.AddComponent<Outline>();
+                    tabOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.6f);
+                    tabOutline.effectDistance = new Vector2(0.8f, -0.8f);
+                }
+                var tabBtnComp = tabGO.AddComponent<Button>();
+                tabBtnComp.targetGraphic = tabImg;
+                string capBId = buildingId;
+                string capIId = instanceId;
+                int capTier = tier;
+                tabBtnComp.onClick.AddListener(() => ShowBuildingInfoPanel(capBId, capIId, capTier, tabIdx));
+                Color tabTextColor = isActive ? new Color(0.95f, 0.82f, 0.35f) : new Color(0.60f, 0.58f, 0.55f);
+                AddInfoPanelText(tabGO.transform, "Label", $"{tabIcons[ti]} {tabNames[ti]}", 10, FontStyle.Bold,
+                    tabTextColor, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
 
+            // ─── TAB CONTENT AREA ───
+            if (activeTab == 1)
+            {
+                BuildInfoPanelProductionTab(panel, buildingId, instanceId, tier);
+            }
+            else if (activeTab == 2)
+            {
+                BuildInfoPanelBoostsTab(panel, buildingId, instanceId, tier);
+            }
+            else
+            {
+                BuildInfoPanelOverviewTab(panel, buildingId, instanceId, tier);
+            }
+
+            // Close button (X in top-right) — shared across all tabs
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect2 = closeGO.AddComponent<RectTransform>();
+            closeRect2.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect2.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect2.offsetMin = Vector2.zero;
+            closeRect2.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(DismissBuildingInfoPanel);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _buildingInfoPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void BuildInfoPanelOverviewTab(GameObject panel, string buildingId, string instanceId, int tier)
+        {
             // P&C: Tier sprite preview — current vs next tier side by side
             int nextTier = tier + 1;
             bool hasNextTier = nextTier <= 3;
@@ -4634,27 +4709,259 @@ namespace AshenThrone.Empire
                 }
             }
 
-            // Close button (X in top-right)
-            var closeGO = new GameObject("CloseBtn");
-            closeGO.transform.SetParent(panel.transform, false);
-            var closeRect = closeGO.AddComponent<RectTransform>();
-            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
-            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
-            closeRect.offsetMin = Vector2.zero;
-            closeRect.offsetMax = Vector2.zero;
-            var closeImg = closeGO.AddComponent<Image>();
-            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
-            closeImg.raycastTarget = true;
-            var closeBtn = closeGO.AddComponent<Button>();
-            closeBtn.targetGraphic = closeImg;
-            closeBtn.onClick.AddListener(DismissBuildingInfoPanel);
-            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
-                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+        }
 
-            // Fade in
-            var cg = _buildingInfoPanel.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            StartCoroutine(FadeInDialog(cg));
+        private void BuildInfoPanelProductionTab(GameObject panel, string buildingId, string instanceId, int tier)
+        {
+            float y = 0.80f;
+            AddInfoPanelText(panel.transform, "ProdTitle", "\u2609 Resource Production Overview", 13, FontStyle.Bold,
+                new Color(0.90f, 0.82f, 0.40f),
+                new Vector2(0.05f, y), new Vector2(0.95f, y + 0.05f), TextAnchor.MiddleCenter);
+            y -= 0.06f;
+
+            // Show all resource-producing buildings with their rates
+            foreach (var resKvp in ResourceBuildingTypes)
+            {
+                string bId = resKvp.Key;
+                string resName = resKvp.Value.Name;
+                Color resTint = resKvp.Value.Tint;
+
+                // Find all instances of this building type
+                int totalRate = 0;
+                int count = 0;
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId != bId) continue;
+                    int rate = (p.Tier + 1) * 250;
+                    totalRate += rate;
+                    count++;
+                }
+                if (count == 0) continue;
+
+                // Resource type header
+                string rateStr = totalRate >= 1000 ? $"{totalRate / 1000f:F1}K" : $"{totalRate}";
+                AddInfoPanelText(panel.transform, $"Res_{bId}", $"{resName}: +{rateStr}/hr ({count} buildings)",
+                    11, FontStyle.Bold, resTint,
+                    new Vector2(0.05f, y - 0.04f), new Vector2(0.95f, y + 0.01f), TextAnchor.MiddleLeft);
+                y -= 0.045f;
+
+                // Individual building breakdown
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId != bId) continue;
+                    int pRate = (p.Tier + 1) * 250;
+                    string pRateStr = pRate >= 1000 ? $"{pRate / 1000f:F1}K" : $"{pRate}";
+                    string bName = BuildingDisplayNames.TryGetValue(bId, out var n) ? n : bId;
+                    AddInfoPanelText(panel.transform, $"Detail_{p.InstanceId}",
+                        $"  Lv.{p.Tier} {bName}: +{pRateStr}/hr", 9, FontStyle.Normal,
+                        new Color(resTint.r * 0.7f, resTint.g * 0.7f, resTint.b * 0.7f),
+                        new Vector2(0.08f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                    y -= 0.035f;
+                }
+                y -= 0.02f;
+            }
+
+            // Daily totals summary
+            y -= 0.01f;
+            int grandTotal = 0;
+            foreach (var p in _placements)
+            {
+                if (ResourceBuildingTypes.ContainsKey(p.BuildingId))
+                    grandTotal += (p.Tier + 1) * 250;
+            }
+            int dailyTotal = grandTotal * 24;
+            string dailyStr = dailyTotal >= 1_000_000 ? $"{dailyTotal / 1_000_000f:F1}M"
+                : dailyTotal >= 1000 ? $"{dailyTotal / 1000f:F1}K" : $"{dailyTotal}";
+            AddInfoPanelText(panel.transform, "DailyTotal",
+                $"\u2B50 Total combined: +{grandTotal}/hr | +{dailyStr}/day", 11, FontStyle.Bold,
+                new Color(0.95f, 0.85f, 0.40f),
+                new Vector2(0.05f, y - 0.04f), new Vector2(0.95f, y + 0.01f), TextAnchor.MiddleCenter);
+
+            // Vault status
+            if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+            {
+                y -= 0.06f;
+                AddInfoPanelText(panel.transform, "VaultHeader", "VAULT STATUS", 11, FontStyle.Bold,
+                    new Color(0.70f, 0.85f, 1f),
+                    new Vector2(0.05f, y - 0.02f), new Vector2(0.95f, y + 0.03f), TextAnchor.MiddleLeft);
+                y -= 0.045f;
+                string[] resNames = { "Stone", "Iron", "Grain", "Arcane" };
+                long[] curVals = { rm.Stone, rm.Iron, rm.Grain, rm.ArcaneEssence };
+                long[] maxVals = { rm.MaxStone, rm.MaxIron, rm.MaxGrain, rm.MaxArcaneEssence };
+                Color[] resCols = { new Color(0.85f, 0.82f, 0.76f), new Color(0.78f, 0.80f, 0.90f),
+                    new Color(1f, 0.92f, 0.45f), new Color(0.80f, 0.55f, 1f) };
+                for (int ri = 0; ri < 4; ri++)
+                {
+                    float pct = maxVals[ri] > 0 ? (float)curVals[ri] / maxVals[ri] : 0f;
+                    string curS = curVals[ri] >= 1000 ? $"{curVals[ri] / 1000f:F1}K" : $"{curVals[ri]}";
+                    string maxS = maxVals[ri] >= 1000 ? $"{maxVals[ri] / 1000f:F1}K" : $"{maxVals[ri]}";
+                    Color barCol = pct >= 0.95f ? new Color(0.90f, 0.30f, 0.25f) : resCols[ri];
+                    AddInfoPanelText(panel.transform, $"Vault_{resNames[ri]}",
+                        $"{resNames[ri]}: {curS}/{maxS} ({pct * 100:F0}%)", 10, FontStyle.Normal, barCol,
+                        new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                    y -= 0.04f;
+                }
+            }
+
+            // P&C: Production efficiency rating
+            y -= 0.04f;
+            int maxPossibleRate = 0;
+            int actualRate = 0;
+            foreach (var resKvp in ResourceBuildingTypes)
+            {
+                int maxCount = MaxBuildingCountPerType.TryGetValue(resKvp.Key, out int mc) ? mc : 1;
+                maxPossibleRate += maxCount * 4 * 250; // tier 3, all slots filled
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId == resKvp.Key)
+                        actualRate += (p.Tier + 1) * 250;
+                }
+            }
+            float efficiency = maxPossibleRate > 0 ? (float)actualRate / maxPossibleRate : 0f;
+            string grade = efficiency >= 0.9f ? "S" : efficiency >= 0.75f ? "A" : efficiency >= 0.55f ? "B"
+                : efficiency >= 0.35f ? "C" : "D";
+            Color gradeColor = grade switch
+            {
+                "S" => new Color(1f, 0.85f, 0.20f),
+                "A" => new Color(0.50f, 0.95f, 0.50f),
+                "B" => new Color(0.55f, 0.80f, 1f),
+                "C" => new Color(0.85f, 0.70f, 0.40f),
+                _ => new Color(0.75f, 0.45f, 0.40f),
+            };
+            AddInfoPanelText(panel.transform, "Efficiency",
+                $"Production Efficiency: {grade} ({efficiency * 100:F0}%)", 11, FontStyle.Bold, gradeColor,
+                new Vector2(0.05f, y - 0.04f), new Vector2(0.95f, y + 0.01f), TextAnchor.MiddleCenter);
+            AddInfoPanelText(panel.transform, "EffHint",
+                "Upgrade resource buildings & fill all slots to improve rating", 8, FontStyle.Normal,
+                new Color(0.55f, 0.52f, 0.50f),
+                new Vector2(0.05f, y - 0.07f), new Vector2(0.95f, y - 0.035f), TextAnchor.MiddleCenter);
+        }
+
+        private void BuildInfoPanelBoostsTab(GameObject panel, string buildingId, string instanceId, int tier)
+        {
+            float y = 0.80f;
+            AddInfoPanelText(panel.transform, "BoostTitle", "\u26A1 Active Boosts & Bonuses", 13, FontStyle.Bold,
+                new Color(0.55f, 0.85f, 1f),
+                new Vector2(0.05f, y), new Vector2(0.95f, y + 0.05f), TextAnchor.MiddleCenter);
+            y -= 0.06f;
+
+            // Building-specific bonuses
+            string bName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            AddInfoPanelText(panel.transform, "BuildingBoosts", $"Lv.{tier} {bName} Bonuses:", 12, FontStyle.Bold,
+                new Color(0.85f, 0.75f, 0.40f),
+                new Vector2(0.05f, y - 0.04f), new Vector2(0.95f, y + 0.01f), TextAnchor.MiddleLeft);
+            y -= 0.05f;
+
+            // Power bonus
+            int power = GetBuildingPowerContribution(buildingId, tier);
+            if (power > 0)
+            {
+                string powStr = power >= 1000 ? $"{power / 1000f:F1}K" : $"{power}";
+                AddInfoPanelText(panel.transform, "BoostPower", $"  \u2694 Power: +{powStr}", 10, FontStyle.Normal,
+                    new Color(0.95f, 0.70f, 0.35f),
+                    new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                y -= 0.04f;
+            }
+
+            // Resource production bonus
+            if (ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo))
+            {
+                int rate = (tier + 1) * 250;
+                string rateStr = rate >= 1000 ? $"{rate / 1000f:F1}K" : $"{rate}";
+                AddInfoPanelText(panel.transform, "BoostProd", $"  \u2609 {resInfo.Name} Production: +{rateStr}/hr",
+                    10, FontStyle.Normal, resInfo.Tint,
+                    new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                y -= 0.04f;
+            }
+
+            // Military bonuses
+            if (buildingId == "barracks" || buildingId == "training_ground")
+            {
+                int troops = buildingId == "barracks" ? (tier + 1) * 500 : (tier + 1) * 300;
+                AddInfoPanelText(panel.transform, "BoostTroops", $"  \u2694 Troop Capacity: +{troops}",
+                    10, FontStyle.Normal, new Color(0.80f, 0.35f, 0.35f),
+                    new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                y -= 0.04f;
+            }
+
+            // Defense bonus
+            if (buildingId == "wall" || buildingId == "watch_tower")
+            {
+                int def = (tier + 1) * 800;
+                AddInfoPanelText(panel.transform, "BoostDef", $"  \u25C8 Defense: +{def}",
+                    10, FontStyle.Normal, new Color(0.45f, 0.75f, 0.95f),
+                    new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                y -= 0.04f;
+            }
+
+            // Research bonus
+            if (buildingId == "academy" || buildingId == "library")
+            {
+                int resSpd = (tier + 1) * 5;
+                AddInfoPanelText(panel.transform, "BoostRes", $"  \u2726 Research Speed: +{resSpd}%",
+                    10, FontStyle.Normal, new Color(0.55f, 0.85f, 0.55f),
+                    new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                y -= 0.04f;
+            }
+
+            y -= 0.03f;
+
+            // Empire-wide bonuses section
+            AddInfoPanelText(panel.transform, "EmpireBoosts", "Empire-Wide Bonuses:", 12, FontStyle.Bold,
+                new Color(0.85f, 0.75f, 0.40f),
+                new Vector2(0.05f, y - 0.04f), new Vector2(0.95f, y + 0.01f), TextAnchor.MiddleLeft);
+            y -= 0.05f;
+
+            // Calculate total power
+            int totalPower = 0;
+            foreach (var p in _placements)
+                totalPower += GetBuildingPowerContribution(p.BuildingId, p.Tier);
+            string tpStr = totalPower >= 1000 ? $"{totalPower / 1000f:F1}K" : $"{totalPower}";
+            AddInfoPanelText(panel.transform, "TotalPower", $"  \u2694 Total City Power: {tpStr}",
+                10, FontStyle.Normal, new Color(0.95f, 0.70f, 0.35f),
+                new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+            y -= 0.04f;
+
+            // Stronghold level bonus
+            int shLevel = 1;
+            foreach (var p in _placements) { if (p.BuildingId == "stronghold") { shLevel = p.Tier; break; } }
+            AddInfoPanelText(panel.transform, "SHBonus", $"  \u2B50 Stronghold Lv.{shLevel}: All buildings cap Lv.{shLevel}",
+                10, FontStyle.Normal, new Color(0.90f, 0.82f, 0.40f),
+                new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+            y -= 0.04f;
+
+            // Research bonuses (if ResearchManager available)
+            if (ServiceLocator.TryGet<ResearchManager>(out var researchMgr))
+            {
+                var bonuses = researchMgr.Bonuses;
+                if (bonuses.CombatAttackPercent > 0)
+                {
+                    AddInfoPanelText(panel.transform, "ResAtk", $"  \u2694 Research ATK: +{bonuses.CombatAttackPercent:F0}%",
+                        10, FontStyle.Normal, new Color(0.90f, 0.50f, 0.40f),
+                        new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                    y -= 0.04f;
+                }
+                if (bonuses.CombatDefensePercent > 0)
+                {
+                    AddInfoPanelText(panel.transform, "ResDef", $"  \u25C8 Research DEF: +{bonuses.CombatDefensePercent:F0}%",
+                        10, FontStyle.Normal, new Color(0.45f, 0.75f, 0.95f),
+                        new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                    y -= 0.04f;
+                }
+                if (bonuses.ResearchTimeReductionPercent > 0)
+                {
+                    AddInfoPanelText(panel.transform, "ResSpd", $"  \u2726 Research Speed: +{bonuses.ResearchTimeReductionPercent:F0}%",
+                        10, FontStyle.Normal, new Color(0.55f, 0.85f, 0.55f),
+                        new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
+                    y -= 0.04f;
+                }
+            }
+
+            // Collection streak info
+            AddInfoPanelText(panel.transform, "StreakInfo",
+                $"  \u26A1 Collection Streak: Collect rapidly for +10%/20%/30% bonus",
+                9, FontStyle.Normal, new Color(0.65f, 0.62f, 0.60f),
+                new Vector2(0.05f, y - 0.035f), new Vector2(0.95f, y), TextAnchor.MiddleLeft);
         }
 
         private void AddInfoPanelText(Transform parent, string name, string content, int fontSize,

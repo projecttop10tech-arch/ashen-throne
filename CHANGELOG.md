@@ -4,6 +4,25 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.67.0] — 2026-03-12 (Ralph Loop Iteration 62: Tabbed Info Panel, Production Efficiency)
+
+### ADDED
+- **Tabbed info panel** — P&C-style tab bar (Overview / Production / Boosts) below the building title in the info panel. Tapping a tab re-renders the panel with different content. Active tab gets gold highlight and brighter text; inactive tabs are dimmed. Tab switching is instant with no transition delay.
+- **Production tab** — shows all resource-producing buildings grouped by type with individual rates and totals. Includes daily forecast, vault status for all 4 resources (with red warning at 95%+ fill), and production efficiency rating (S/A/B/C/D grade based on actual production vs theoretical maximum).
+- **Boosts tab** — shows building-specific bonuses (power, production, troops, defense, research speed), empire-wide totals (city power, stronghold level), active research bonuses from ResearchManager, and collection streak info.
+- **Production efficiency rating** — grades your resource production setup from D to S based on how close actual hourly output is to the theoretical maximum (all resource buildings at tier 3, all slots filled). Color-coded: S=gold, A=green, B=blue, C=amber, D=red.
+- **`BuildInfoPanelOverviewTab()` method** — extracted existing info panel content into dedicated overview tab method.
+- **`BuildInfoPanelProductionTab()` method** — resource overview with per-building breakdown, vault status, and efficiency grade.
+- **`BuildInfoPanelBoostsTab()` method** — building-specific and empire-wide bonus display with research integration.
+- **`_infoPanelActiveTab` state** — tracks which tab is currently active for re-rendering on tab switch.
+
+### CHANGED
+- `ShowBuildingInfoPanel()` now accepts optional `activeTab` parameter (0=Overview, 1=Production, 2=Boosts). Default is Overview for backward compatibility.
+- Info panel title bar moved up slightly (0.90-0.97) to make room for tab bar (0.845-0.895).
+- Close button is now shared across all tabs (rendered in main method, not per-tab).
+
+---
+
 ## [0.66.0] — 2026-03-12 (Ralph Loop Iteration 61: Stat Comparison Bars, Vault Overflow Warning)
 
 ### ADDED
