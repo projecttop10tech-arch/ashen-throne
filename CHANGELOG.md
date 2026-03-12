@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.85.0] — 2026-03-12 (Ralph Loop Iteration 80: Compact Sidebar UI, P&C Queue Strips)
+
+### CHANGED
+- **Left-side UI redesigned to P&C-style slim strips** — event timer banners reduced from 28% screen width to 18%. Build queue + Research status shown as compact "⚒ Build IDLE" / "✦ Research IDLE" strips with left accent lines. Event timers shown as slim countdown strips below queue indicators. Dramatically reduces terrain overlap.
+- **Quest button repositioned** — moved from wide standalone button to slim left-edge strip (18% width) matching queue indicator style.
+
+---
+
 ## [0.84.0] — 2026-03-12 (Ralph Loop Iteration 79: Diamond Ground Plates, Name Labels, Visual Polish)
 
 ### ADDED

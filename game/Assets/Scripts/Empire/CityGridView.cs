@@ -14168,115 +14168,154 @@ namespace AshenThrone.Empire
             ("Harvest Festival", "\u26CF", new Color(0.40f, 0.75f, 0.35f), 6f),
         };
 
-        /// <summary>P&C: Create event timer banners on the left side of the screen.</summary>
+        /// <summary>P&C: Create compact queue status indicators on the left side (slim strips like P&C).</summary>
         private void CreateEventTimerBanners()
         {
             // Clean up old banners
             foreach (var b in _eventBanners) { if (b != null) Destroy(b); }
             _eventBanners.Clear();
 
-            Transform canvasRoot = transform;
-            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
-                canvasRoot = canvasRoot.parent;
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
 
-            float yStart = 0.72f;
-            float bannerH = 0.045f;
-            float gap = 0.005f;
-
-            for (int i = 0; i < SimulatedEvents.Length; i++)
+            // P&C-style: Build queue + Research status as slim left-edge strips
+            // These are narrow indicators, NOT wide panels
+            var queueItems = new[]
             {
-                var (name, icon, tint, hours) = SimulatedEvents[i];
-                float yTop = yStart - i * (bannerH + gap);
-                float yBot = yTop - bannerH;
+                ("Build", "\u2692", new Color(0.78f, 0.62f, 0.22f), "IDLE"),
+                ("Build", "\u2692", new Color(0.78f, 0.62f, 0.22f), "IDLE"),
+                ("Research", "\u2726", new Color(0.50f, 0.65f, 0.90f), "IDLE"),
+            };
 
-                var banner = new GameObject($"EventBanner_{i}");
-                banner.transform.SetParent(canvasRoot, false);
-                banner.transform.SetAsLastSibling();
+            float yStart = 0.78f;
+            float stripH = 0.025f;
+            float gap = 0.003f;
 
-                var rect = banner.AddComponent<RectTransform>();
+            for (int i = 0; i < queueItems.Length; i++)
+            {
+                var (label, icon, tint, status) = queueItems[i];
+                float yTop = yStart - i * (stripH + gap);
+                float yBot = yTop - stripH;
+
+                var strip = new GameObject($"QueueStrip_{i}");
+                strip.transform.SetParent(canvas.transform, false);
+
+                var rect = strip.AddComponent<RectTransform>();
+                // Slim strip hugging left edge — only 18% width
                 rect.anchorMin = new Vector2(0.0f, yBot);
-                rect.anchorMax = new Vector2(0.28f, yTop);
+                rect.anchorMax = new Vector2(0.18f, yTop);
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
 
-                var bg = banner.AddComponent<Image>();
-                bg.color = new Color(tint.r * 0.25f, tint.g * 0.25f, tint.b * 0.25f, 0.88f);
+                var bg = strip.AddComponent<Image>();
+                bg.color = new Color(0.06f, 0.05f, 0.10f, 0.75f);
                 bg.raycastTarget = true;
 
-                var outline = banner.AddComponent<Outline>();
-                outline.effectColor = new Color(tint.r, tint.g, tint.b, 0.5f);
-                outline.effectDistance = new Vector2(0.6f, -0.6f);
-
-                // Tap to dismiss (would open event details in full game)
-                var btn = banner.AddComponent<Button>();
-                btn.targetGraphic = bg;
-                int capIdx = i;
-                btn.onClick.AddListener(() =>
-                {
-                    string evtName = SimulatedEvents[capIdx].Name;
-                    ShowUpgradeBlockedToast($"{SimulatedEvents[capIdx].Icon} {evtName} — tap to view details");
-                });
-
-                // Icon + color accent bar on left
-                var accentGO = new GameObject("Accent");
-                accentGO.transform.SetParent(banner.transform, false);
-                var accentRect = accentGO.AddComponent<RectTransform>();
-                accentRect.anchorMin = new Vector2(0f, 0f);
-                accentRect.anchorMax = new Vector2(0.06f, 1f);
+                // Left accent line
+                var accent = new GameObject("Accent");
+                accent.transform.SetParent(strip.transform, false);
+                var accentRect = accent.AddComponent<RectTransform>();
+                accentRect.anchorMin = Vector2.zero;
+                accentRect.anchorMax = new Vector2(0.04f, 1f);
                 accentRect.offsetMin = Vector2.zero;
                 accentRect.offsetMax = Vector2.zero;
-                var accentImg = accentGO.AddComponent<Image>();
+                var accentImg = accent.AddComponent<Image>();
                 accentImg.color = tint;
                 accentImg.raycastTarget = false;
 
-                // Event icon
-                AddInfoPanelText(banner.transform, "Icon", icon, 10, FontStyle.Bold,
-                    tint, new Vector2(0.08f, 0f), new Vector2(0.20f, 1f), TextAnchor.MiddleCenter);
+                // Label text: "⚒ Build  IDLE"
+                var labelGO = new GameObject("Label");
+                labelGO.transform.SetParent(strip.transform, false);
+                var labelRect = labelGO.AddComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0.06f, 0f);
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = new Vector2(2, 0);
+                labelRect.offsetMax = Vector2.zero;
+                var text = labelGO.AddComponent<Text>();
+                text.text = $"{icon} {label}";
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 9;
+                text.fontStyle = FontStyle.Bold;
+                text.alignment = TextAnchor.MiddleLeft;
+                text.color = Color.white;
+                text.raycastTarget = false;
 
-                // Event name
-                AddInfoPanelText(banner.transform, "Name", name, 8, FontStyle.Bold,
-                    Color.white, new Vector2(0.21f, 0.35f), new Vector2(0.75f, 0.95f), TextAnchor.MiddleLeft);
+                // Status on right side
+                var statusGO = new GameObject("Status");
+                statusGO.transform.SetParent(strip.transform, false);
+                var statusRect = statusGO.AddComponent<RectTransform>();
+                statusRect.anchorMin = new Vector2(0.55f, 0f);
+                statusRect.anchorMax = Vector2.one;
+                statusRect.offsetMin = Vector2.zero;
+                statusRect.offsetMax = new Vector2(-3, 0);
+                var statusText = statusGO.AddComponent<Text>();
+                statusText.text = status;
+                statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                statusText.fontSize = 8;
+                statusText.fontStyle = FontStyle.Bold;
+                statusText.alignment = TextAnchor.MiddleRight;
+                statusText.color = tint;
+                statusText.raycastTarget = false;
 
-                // Timer (simulated — countdown from event duration)
-                int totalSec = (int)(hours * 3600f);
-                // Randomize remaining time for visual variety
-                int remaining = (int)(totalSec * (0.3f + Random.value * 0.6f));
-                string timeStr = FormatTimeRemaining(remaining);
+                _eventBanners.Add(strip);
+            }
 
-                var timerGO = new GameObject("Timer");
-                timerGO.transform.SetParent(banner.transform, false);
-                var timerRect = timerGO.AddComponent<RectTransform>();
-                timerRect.anchorMin = new Vector2(0.21f, 0.0f);
-                timerRect.anchorMax = new Vector2(0.75f, 0.40f);
-                timerRect.offsetMin = Vector2.zero;
-                timerRect.offsetMax = Vector2.zero;
-                var timerText = timerGO.AddComponent<Text>();
-                timerText.text = timeStr;
-                timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                timerText.fontSize = 7;
-                timerText.fontStyle = FontStyle.Normal;
-                timerText.alignment = TextAnchor.MiddleLeft;
-                timerText.color = new Color(0.80f, 0.78f, 0.72f);
-                timerText.raycastTarget = false;
+            // Add event timers below queue strips as even slimmer entries
+            float eventY = yStart - queueItems.Length * (stripH + gap) - 0.008f;
+            for (int i = 0; i < SimulatedEvents.Length; i++)
+            {
+                var (name, icon, tint, hours) = SimulatedEvents[i];
+                float yTop = eventY - i * (stripH + gap);
+                float yBot = yTop - stripH;
 
-                // "GO" button on right
-                var goGO = new GameObject("GoBtn");
-                goGO.transform.SetParent(banner.transform, false);
-                var goRect = goGO.AddComponent<RectTransform>();
-                goRect.anchorMin = new Vector2(0.78f, 0.10f);
-                goRect.anchorMax = new Vector2(0.97f, 0.90f);
-                goRect.offsetMin = Vector2.zero;
-                goRect.offsetMax = Vector2.zero;
-                var goBg = goGO.AddComponent<Image>();
-                goBg.color = new Color(tint.r * 0.7f, tint.g * 0.7f, tint.b * 0.7f, 0.85f);
-                goBg.raycastTarget = false;
-                AddInfoPanelText(goGO.transform, "GoText", "\u25B6", 8, FontStyle.Bold,
-                    Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                var strip = new GameObject($"EventStrip_{i}");
+                strip.transform.SetParent(canvas.transform, false);
 
-                _eventBanners.Add(banner);
+                var rect = strip.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.0f, yBot);
+                rect.anchorMax = new Vector2(0.18f, yTop);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
 
-                // Start countdown coroutine
-                StartCoroutine(UpdateEventBannerTimer(timerGO, remaining));
+                var bg = strip.AddComponent<Image>();
+                bg.color = new Color(tint.r * 0.15f, tint.g * 0.15f, tint.b * 0.15f, 0.70f);
+                bg.raycastTarget = true;
+
+                var btn = strip.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                int capIdx = i;
+                btn.onClick.AddListener(() => ShowUpgradeBlockedToast($"{SimulatedEvents[capIdx].Icon} {SimulatedEvents[capIdx].Name}"));
+
+                // Accent
+                var accent = new GameObject("Accent");
+                accent.transform.SetParent(strip.transform, false);
+                var accentRect = accent.AddComponent<RectTransform>();
+                accentRect.anchorMin = Vector2.zero;
+                accentRect.anchorMax = new Vector2(0.04f, 1f);
+                accentRect.offsetMin = Vector2.zero;
+                accentRect.offsetMax = Vector2.zero;
+                accent.AddComponent<Image>().color = tint;
+
+                // Name + timer
+                int remaining = (int)(hours * 3600f * (0.3f + Random.value * 0.6f));
+                var labelGO = new GameObject("Label");
+                labelGO.transform.SetParent(strip.transform, false);
+                var labelRect = labelGO.AddComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0.06f, 0f);
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = new Vector2(2, 0);
+                labelRect.offsetMax = Vector2.zero;
+                var text = labelGO.AddComponent<Text>();
+                text.text = $"{icon} {FormatTimeRemaining(remaining)}";
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 8;
+                text.fontStyle = FontStyle.Normal;
+                text.alignment = TextAnchor.MiddleLeft;
+                text.color = new Color(0.85f, 0.82f, 0.75f);
+                text.raycastTarget = false;
+
+                _eventBanners.Add(strip);
+                StartCoroutine(UpdateEventBannerTimer(labelGO, remaining));
             }
         }
 
@@ -16852,8 +16891,9 @@ namespace AshenThrone.Empire
             _questButton = new GameObject("QuestButton");
             _questButton.transform.SetParent(canvas.transform, false);
             var rect = _questButton.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.02f, 0.55f);
-            rect.anchorMax = new Vector2(0.12f, 0.61f);
+            // P&C-style: slim strip on left edge below queue indicators
+            rect.anchorMin = new Vector2(0.0f, 0.58f);
+            rect.anchorMax = new Vector2(0.18f, 0.605f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
