@@ -102,6 +102,9 @@ namespace AshenThrone.Empire
         private const float LongPressTime = 0.5f;
         private const float DragThreshold = 10f;
 
+        // P&C: Category filter state
+        private string _activeCategoryFilter;
+
         // P&C: Free instant-complete threshold (seconds)
         private const int FreeSpeedUpThresholdSeconds = 300; // 5 minutes
 
@@ -7140,7 +7143,21 @@ namespace AshenThrone.Empire
                 var btn = btnGO.AddComponent<Button>();
                 btn.targetGraphic = btnBg;
                 string targetBuildingId = cat.buildingId;
-                btn.onClick.AddListener(() => ScrollToBuildingType(targetBuildingId));
+                string catLabel = cat.label;
+                btn.onClick.AddListener(() =>
+                {
+                    // Single tap: scroll to building. If already filtered to this category, clear filter.
+                    if (_activeCategoryFilter == catLabel)
+                    {
+                        ClearCategoryFilter();
+                        return;
+                    }
+                    ScrollToBuildingType(targetBuildingId);
+                });
+
+                // Long-press: toggle category filter (dim non-matching buildings)
+                var longPress = btnGO.AddComponent<LongPressDetector>();
+                longPress.OnLongPress = () => ToggleCategoryFilter(catLabel);
 
                 // Icon + label
                 var textGO = new GameObject("Text");
@@ -7222,6 +7239,115 @@ namespace AshenThrone.Empire
                 img.color = original;
                 yield return new WaitForSeconds(0.12f);
             }
+        }
+
+        // ====================================================================
+        // P&C: Building Category Filter
+        // ====================================================================
+
+        private static readonly Dictionary<string, string[]> CategoryBuildingIds = new()
+        {
+            { "SH", new[] { "stronghold" } },
+            { "MIL", new[] { "barracks", "training_ground", "armory" } },
+            { "RES", new[] { "grain_farm", "iron_mine", "stone_quarry" } },
+            { "MAG", new[] { "arcane_tower", "enchanting_tower", "laboratory", "observatory" } },
+            { "DEF", new[] { "wall", "watch_tower" } },
+            { "SCI", new[] { "academy", "library", "archive" } },
+        };
+
+        private void ToggleCategoryFilter(string category)
+        {
+            if (_activeCategoryFilter == category)
+            {
+                ClearCategoryFilter();
+                return;
+            }
+            _activeCategoryFilter = category;
+            ApplyCategoryFilter(category);
+            PlaySfx(_sfxTap);
+        }
+
+        private void ApplyCategoryFilter(string category)
+        {
+            if (!CategoryBuildingIds.TryGetValue(category, out var matchIds)) return;
+            var matchSet = new HashSet<string>(matchIds);
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var img = p.VisualGO.GetComponent<Image>();
+                if (img == null) continue;
+
+                bool matches = matchSet.Contains(p.BuildingId);
+                // Dim non-matching buildings, highlight matching ones
+                img.color = matches ? Color.white : new Color(0.3f, 0.3f, 0.3f, 0.4f);
+
+                // Scale effect: matching buildings slightly larger
+                p.VisualGO.transform.localScale = matches ? Vector3.one * 1.05f : Vector3.one * 0.90f;
+            }
+
+            // Show filter banner
+            ShowCategoryFilterBanner(category);
+        }
+
+        private void ClearCategoryFilter()
+        {
+            _activeCategoryFilter = null;
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var img = p.VisualGO.GetComponent<Image>();
+                if (img != null) img.color = Color.white;
+                p.VisualGO.transform.localScale = Vector3.one;
+            }
+            DismissCategoryFilterBanner();
+            PlaySfx(_sfxTap);
+        }
+
+        private GameObject _categoryFilterBanner;
+
+        private void ShowCategoryFilterBanner(string category)
+        {
+            DismissCategoryFilterBanner();
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _categoryFilterBanner = new GameObject("FilterBanner");
+            _categoryFilterBanner.transform.SetParent(canvas.transform, false);
+            var rect = _categoryFilterBanner.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.20f, 0.82f);
+            rect.anchorMax = new Vector2(0.80f, 0.87f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _categoryFilterBanner.AddComponent<Image>();
+            bg.color = new Color(0.10f, 0.08f, 0.18f, 0.90f);
+            bg.raycastTarget = true;
+            var outline = _categoryFilterBanner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.6f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Tap banner to clear filter
+            var btn = _categoryFilterBanner.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(ClearCategoryFilter);
+
+            int matchCount = 0;
+            if (CategoryBuildingIds.TryGetValue(category, out var ids))
+            {
+                var matchSet = new HashSet<string>(ids);
+                foreach (var p in _placements) { if (matchSet.Contains(p.BuildingId)) matchCount++; }
+            }
+
+            AddInfoPanelText(_categoryFilterBanner.transform, "Text",
+                $"\u25C9 Showing: {category} ({matchCount} buildings)  —  Tap to clear",
+                10, FontStyle.Bold, new Color(0.95f, 0.82f, 0.35f),
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+        }
+
+        private void DismissCategoryFilterBanner()
+        {
+            if (_categoryFilterBanner != null) { Destroy(_categoryFilterBanner); _categoryFilterBanner = null; }
         }
 
         // ====================================================================
@@ -7318,8 +7444,108 @@ namespace AshenThrone.Empire
                 }
             }
 
+            // P&C: Upgrade advisor suggestion
+            if (queue.Count < totalSlots)
+            {
+                var suggestion = GetUpgradeAdvisorSuggestion();
+                if (suggestion.HasValue)
+                {
+                    var sug = suggestion.Value;
+                    var sugGO = new GameObject("AdvisorSuggestion");
+                    sugGO.transform.SetParent(_buildQueuePanel.transform, false);
+                    var sugRect = sugGO.AddComponent<RectTransform>();
+                    sugRect.anchorMin = new Vector2(0.03f, -0.02f);
+                    sugRect.anchorMax = new Vector2(0.97f, 0.08f);
+                    sugRect.offsetMin = Vector2.zero;
+                    sugRect.offsetMax = Vector2.zero;
+                    var sugBg = sugGO.AddComponent<Image>();
+                    sugBg.color = new Color(0.12f, 0.20f, 0.15f, 0.90f);
+                    sugBg.raycastTarget = true;
+                    var sugOutline = sugGO.AddComponent<Outline>();
+                    sugOutline.effectColor = new Color(0.40f, 0.85f, 0.45f, 0.5f);
+                    sugOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                    var sugBtn = sugGO.AddComponent<Button>();
+                    sugBtn.targetGraphic = sugBg;
+                    string sugInstanceId = sug.InstanceId;
+                    string sugBuildingId = sug.BuildingId;
+                    int sugTier = sug.Tier;
+                    sugBtn.onClick.AddListener(() =>
+                    {
+                        Destroy(_buildQueuePanel);
+                        _buildQueuePanel = null;
+                        ShowBuildingInfoPanel(sugBuildingId, sugInstanceId, sugTier);
+                    });
+                    string sugName = BuildingDisplayNames.TryGetValue(sug.BuildingId, out var n) ? n : sug.BuildingId;
+                    AddInfoPanelText(sugGO.transform, "Text",
+                        $"\u2728 Advisor: Upgrade {sugName} Lv.{sug.Tier}\u2192{sug.Tier + 1} ({sug.Reason})", 9,
+                        FontStyle.Bold, new Color(0.60f, 0.95f, 0.65f),
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                }
+            }
+
             // Auto-dismiss after 8 seconds (longer for richer panel)
             StartCoroutine(AutoDismissQueuePanel());
+        }
+
+        private struct UpgradeAdvisorSuggestion
+        {
+            public string InstanceId;
+            public string BuildingId;
+            public int Tier;
+            public string Reason;
+        }
+
+        private UpgradeAdvisorSuggestion? GetUpgradeAdvisorSuggestion()
+        {
+            // Priority: 1) Stronghold if behind, 2) Lowest-tier resource building, 3) Lowest military
+            int shTier = 1;
+            string shId = null;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "stronghold") { shTier = p.Tier; shId = p.InstanceId; break; }
+            }
+
+            // If stronghold isn't max, check if any buildings are at SH level (meaning SH needs upgrade to raise cap)
+            if (shTier < 3 && shId != null)
+            {
+                int atCap = 0;
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId != "stronghold" && p.Tier >= shTier) atCap++;
+                }
+                if (atCap >= 3) // 3+ buildings at cap = suggest SH upgrade
+                    return new UpgradeAdvisorSuggestion
+                    { InstanceId = shId, BuildingId = "stronghold", Tier = shTier, Reason = $"{atCap} buildings at cap" };
+            }
+
+            // Find lowest-tier resource building
+            CityBuildingPlacement lowestRes = null;
+            foreach (var p in _placements)
+            {
+                if (!ResourceBuildingTypes.ContainsKey(p.BuildingId)) continue;
+                if (p.Tier >= 3) continue;
+                if (lowestRes == null || p.Tier < lowestRes.Tier) lowestRes = p;
+            }
+            if (lowestRes != null)
+                return new UpgradeAdvisorSuggestion
+                { InstanceId = lowestRes.InstanceId, BuildingId = lowestRes.BuildingId, Tier = lowestRes.Tier,
+                    Reason = "boost production" };
+
+            // Find lowest-tier military building
+            CityBuildingPlacement lowestMil = null;
+            string[] milTypes = { "barracks", "training_ground", "armory" };
+            foreach (var p in _placements)
+            {
+                if (System.Array.IndexOf(milTypes, p.BuildingId) < 0) continue;
+                if (p.Tier >= 3) continue;
+                if (lowestMil == null || p.Tier < lowestMil.Tier) lowestMil = p;
+            }
+            if (lowestMil != null)
+                return new UpgradeAdvisorSuggestion
+                { InstanceId = lowestMil.InstanceId, BuildingId = lowestMil.BuildingId, Tier = lowestMil.Tier,
+                    Reason = "increase army power" };
+
+            return null;
         }
 
         private void CreateEmptyQueueSlot(Transform parent, int slotNum, float yBot, float yTop)
@@ -9486,5 +9712,36 @@ namespace AshenThrone.Empire
         public readonly Vector2Int GridOrigin;
         public readonly Vector2Int Size;
         public PlacementConfirmedEvent(string id, Vector2Int origin, Vector2Int size) { BuildingId = id; GridOrigin = origin; Size = size; }
+    }
+
+    /// <summary>Simple long-press detector for UI elements. Fires OnLongPress after 0.6s hold.</summary>
+    public class LongPressDetector : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
+    {
+        public System.Action OnLongPress;
+        private float _holdTimer;
+        private bool _holding;
+        private const float LongPressThreshold = 0.6f;
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            _holding = true;
+            _holdTimer = 0f;
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            _holding = false;
+        }
+
+        private void Update()
+        {
+            if (!_holding) return;
+            _holdTimer += Time.deltaTime;
+            if (_holdTimer >= LongPressThreshold)
+            {
+                _holding = false;
+                OnLongPress?.Invoke();
+            }
+        }
     }
 }

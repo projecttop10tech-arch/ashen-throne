@@ -4,6 +4,23 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.68.0] — 2026-03-12 (Ralph Loop Iteration 63: Category Filter, Upgrade Advisor)
+
+### ADDED
+- **Building category filter** — long-press a quick-nav sidebar button (SH/MIL/RES/MAG/DEF/SCI) to filter the city view. Non-matching buildings dim to 30% opacity and scale down to 90%, while matching buildings highlight at full brightness and scale up to 105%. A gold banner shows "Showing: MIL (5 buildings) — Tap to clear" at the top. Tapping the banner or the same nav button again clears the filter.
+- **`CategoryBuildingIds` dictionary** — maps category labels to their building type arrays (e.g., MIL → barracks, training_ground, armory).
+- **`ToggleCategoryFilter()` / `ApplyCategoryFilter()` / `ClearCategoryFilter()` methods** — full filter lifecycle with dimming, scaling, and banner management.
+- **`ShowCategoryFilterBanner()` / `DismissCategoryFilterBanner()` methods** — filter status banner with building count and tap-to-clear.
+- **`LongPressDetector` component** — reusable MonoBehaviour that detects 0.6s hold on UI elements and fires `OnLongPress` action. Implements `IPointerDownHandler` and `IPointerUpHandler`.
+- **Upgrade advisor** — when the build queue panel has an empty slot, an advisor suggestion appears at the bottom recommending the best building to upgrade next. Priority: (1) Stronghold if 3+ buildings are at tier cap, (2) lowest-tier resource building to boost production, (3) lowest-tier military building to increase army power. Tapping the suggestion opens that building's info panel.
+- **`GetUpgradeAdvisorSuggestion()` method** — analyzes all placements and returns the highest-priority upgrade recommendation with reason text.
+- **`UpgradeAdvisorSuggestion` struct** — stores instanceId, buildingId, tier, and reason for advisor recommendations.
+
+### CHANGED
+- Quick-nav sidebar buttons now support both single-tap (scroll to building / clear filter if filtered) and long-press (toggle category filter).
+
+---
+
 ## [0.67.0] — 2026-03-12 (Ralph Loop Iteration 62: Tabbed Info Panel, Production Efficiency)
 
 ### ADDED
