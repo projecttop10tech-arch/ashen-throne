@@ -201,6 +201,27 @@ namespace AshenThrone.Empire
             var shadow = labelGO.AddComponent<Shadow>();
             shadow.effectColor = new Color(0, 0, 0, 0.8f);
             shadow.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // P&C: Pulse animation to draw attention
+            StartCoroutine(PulseCollectAllButton());
+        }
+
+        private System.Collections.IEnumerator PulseCollectAllButton()
+        {
+            while (_collectAllButton != null)
+            {
+                var img = _collectAllButton.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 3f);
+                    float greenBase = 0.65f;
+                    img.color = new Color(0.15f, greenBase * pulse, 0.30f * pulse, 0.92f);
+                }
+                // Subtle scale pulse
+                float scale = 1f + 0.03f * Mathf.Sin(Time.time * 2.5f);
+                _collectAllButton.transform.localScale = Vector3.one * scale;
+                yield return null;
+            }
         }
 
         /// <summary>P&C: Collect ALL active bubbles with staggered cascade animation.</summary>

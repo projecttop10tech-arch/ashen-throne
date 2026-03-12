@@ -420,19 +420,41 @@ namespace AshenThrone.Empire
         /// </summary>
         private void UpdateZoomDetailVisibility()
         {
-            bool showDetails = _currentZoom >= 1.0f;
+            bool showDetails = _currentZoom >= 1.0f;      // Badges, labels at close zoom
+            bool showMedium = _currentZoom >= 0.7f;        // Arrows, production rates
             bool showCategoryIcons = _currentZoom >= 0.6f && _currentZoom < 1.3f;
             foreach (var p in _placements)
             {
                 if (p.VisualGO == null) continue;
+
+                // Level badge — close zoom only
                 var badge = p.VisualGO.transform.Find("LevelBadge");
                 if (badge != null) badge.gameObject.SetActive(showDetails);
+
+                // Name label — close zoom only
                 var nameLabel = p.VisualGO.transform.Find("NameLabel");
                 if (nameLabel != null) nameLabel.gameObject.SetActive(showDetails);
+
                 // P&C: Category mini-icons visible at medium zoom
                 var catIcon = p.VisualGO.transform.Find("CategoryIcon");
                 if (catIcon != null) catIcon.gameObject.SetActive(showCategoryIcons);
+
+                // Upgrade arrow — medium+ zoom
+                var arrow = p.VisualGO.transform.Find("UpgradeArrow");
+                if (arrow != null) arrow.gameObject.SetActive(showMedium);
+
+                // Production rate label — close zoom only
+                var prodRate = p.VisualGO.transform.Find("ProductionRate");
+                if (prodRate != null) prodRate.gameObject.SetActive(showDetails);
+
+                // Instance count badge — medium+ zoom
+                var countBadge = p.VisualGO.transform.Find("CountBadge");
+                if (countBadge != null) countBadge.gameObject.SetActive(showMedium);
+
+                // Upgrade indicator always visible (important info)
             }
+
+            // Builder HUD: show at all zoom levels (it's screen-space UI)
         }
 
         /// <summary>P&C: On double-tap, smoothly zoom in and center on the building.</summary>
@@ -1437,6 +1459,43 @@ namespace AshenThrone.Empire
             speedText.alignment = TextAnchor.MiddleCenter;
             speedText.color = Color.white;
             speedText.raycastTarget = false;
+
+            // --- P&C: Alliance help (handshake) button below speed-up ---
+            var helpBtnGO = new GameObject("AllianceHelpBtn");
+            helpBtnGO.transform.SetParent(indicator.transform, false);
+            var helpRect = helpBtnGO.AddComponent<RectTransform>();
+            helpRect.anchorMin = new Vector2(0.64f, 0.02f);
+            helpRect.anchorMax = new Vector2(0.96f, 0.26f);
+            helpRect.offsetMin = Vector2.zero;
+            helpRect.offsetMax = Vector2.zero;
+
+            var helpImg = helpBtnGO.AddComponent<Image>();
+            helpImg.color = new Color(0.20f, 0.40f, 0.70f, 0.90f); // Blue alliance color
+            helpImg.raycastTarget = true;
+
+            var helpBtn = helpBtnGO.AddComponent<Button>();
+            helpBtn.targetGraphic = helpImg;
+            string helpId = instanceId;
+            helpBtn.onClick.AddListener(() => {
+                if (helpId != null)
+                    EventBus.Publish(new AllianceHelpRequestedEvent(helpId));
+            });
+
+            var helpTextGO = new GameObject("Label");
+            helpTextGO.transform.SetParent(helpBtnGO.transform, false);
+            var helpTextRect = helpTextGO.AddComponent<RectTransform>();
+            helpTextRect.anchorMin = Vector2.zero;
+            helpTextRect.anchorMax = Vector2.one;
+            helpTextRect.offsetMin = Vector2.zero;
+            helpTextRect.offsetMax = Vector2.zero;
+            var helpText = helpTextGO.AddComponent<Text>();
+            helpText.text = "Help";
+            helpText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            helpText.fontSize = 8;
+            helpText.fontStyle = FontStyle.Bold;
+            helpText.alignment = TextAnchor.MiddleCenter;
+            helpText.color = Color.white;
+            helpText.raycastTarget = false;
 
             // Start live countdown + progress fill coroutine
             StartCoroutine(AnimateUpgradeIndicator(indicator, barFillRect, text, buildTimeSeconds));

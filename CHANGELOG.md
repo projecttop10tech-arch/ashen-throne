@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.35.0] — 2026-03-11 (Ralph Loop Iteration 30: Collect-All Pulse, Alliance Help, Zoom LOD)
+
+### ADDED
+- **Collect-all button pulse animation** — COLLECT ALL button gently pulses green brightness and scales ±3% at 2.5Hz to draw attention (P&C style)
+- **Alliance help button on upgrade indicator** — small blue "Help" button below speed-up, publishes `AllianceHelpRequestedEvent`
+- **Enhanced zoom-dependent detail levels** — arrows and count badges hide below 0.7x; production labels hide below 1.0x; upgrade indicators always visible
+
+### CHANGED
+- `UpdateZoomDetailVisibility` manages 6 element types across zoom thresholds
+- Upgrade indicator fits 3 interactive elements: timer, speed-up, alliance help
+
+---
+
 ## [0.34.0] — 2026-03-11 (Ralph Loop Iteration 29: Upgrade Arrows, Builder HUD, Scaffolding)
 
 ### ADDED
