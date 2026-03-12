@@ -148,6 +148,11 @@ namespace AshenThrone.Empire
         private const float EmptyDoubleTapWindow = 0.4f;
         private const float ZoomOverview = 0.6f; // zoomed out overview level
 
+        // P&C: Building info popup on tap
+        private GameObject _infoPopup;
+        private string _infoPopupInstanceId;
+        private EventSubscription _buildingTappedSub;
+
         // P&C: Long-press hold indicator
         private GameObject _holdIndicator;
         private Image _holdFillImage;
@@ -174,6 +179,7 @@ namespace AshenThrone.Empire
             _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(_ => PlaySfx(_sfxCollect));
             _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompletedSfx);
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
+            _buildingTappedSub = EventBus.Subscribe<BuildingTappedEvent>(OnBuildingTappedShowPopup);
         }
 
         private void OnDisable()
@@ -184,6 +190,7 @@ namespace AshenThrone.Empire
             _collectSub?.Dispose();
             _buildCompleteSfxSub?.Dispose();
             _upgradeStartedSub?.Dispose();
+            _buildingTappedSub?.Dispose();
         }
 
         private void Start()
@@ -1264,7 +1271,7 @@ namespace AshenThrone.Empire
             {
                 if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
                 {
-                    CreateUpgradeIndicator(p.VisualGO, evt.BuildTimeSeconds);
+                    CreateUpgradeIndicator(p.VisualGO, evt.BuildTimeSeconds, evt.PlacedId);
                     break;
                 }
             }
@@ -1288,8 +1295,8 @@ namespace AshenThrone.Empire
             }
         }
 
-        /// <summary>P&C: Hammer icon + progress bar overlay on building during upgrade.</summary>
-        private void CreateUpgradeIndicator(GameObject building, int buildTimeSeconds)
+        /// <summary>P&C: Hammer icon + progress bar + speed-up button overlay on building during upgrade.</summary>
+        private void CreateUpgradeIndicator(GameObject building, int buildTimeSeconds, string instanceId = null)
         {
             // Remove any existing indicator first
             RemoveUpgradeIndicator(building);
@@ -1299,8 +1306,8 @@ namespace AshenThrone.Empire
 
             var rect = indicator.AddComponent<RectTransform>();
             // Position at top-center of building
-            rect.anchorMin = new Vector2(0.1f, 0.72f);
-            rect.anchorMax = new Vector2(0.9f, 0.98f);
+            rect.anchorMin = new Vector2(0.05f, 0.70f);
+            rect.anchorMax = new Vector2(0.95f, 1.0f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
@@ -1319,7 +1326,7 @@ namespace AshenThrone.Empire
             barBgGO.transform.SetParent(indicator.transform, false);
             var barBgRect = barBgGO.AddComponent<RectTransform>();
             barBgRect.anchorMin = new Vector2(0.05f, 0.05f);
-            barBgRect.anchorMax = new Vector2(0.95f, 0.30f);
+            barBgRect.anchorMax = new Vector2(0.95f, 0.25f);
             barBgRect.offsetMin = Vector2.zero;
             barBgRect.offsetMax = Vector2.zero;
             var barBgImg = barBgGO.AddComponent<Image>();
@@ -1338,14 +1345,14 @@ namespace AshenThrone.Empire
             barFillImg.color = new Color(0.95f, 0.75f, 0.15f, 0.95f); // Gold fill
             barFillImg.raycastTarget = false;
 
-            // --- Hammer symbol + time text (upper portion) ---
+            // --- Hammer symbol + time text (left portion) ---
             var textGO = new GameObject("TimerText");
             textGO.transform.SetParent(indicator.transform, false);
             var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0f, 0.28f);
-            textRect.anchorMax = Vector2.one;
+            textRect.anchorMin = new Vector2(0f, 0.25f);
+            textRect.anchorMax = new Vector2(0.62f, 1f);
             textRect.offsetMin = new Vector2(2, 0);
-            textRect.offsetMax = new Vector2(-2, 0);
+            textRect.offsetMax = new Vector2(-1, 0);
 
             var text = textGO.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -1358,6 +1365,51 @@ namespace AshenThrone.Empire
             var textOutline = textGO.AddComponent<Outline>();
             textOutline.effectColor = new Color(0, 0, 0, 0.9f);
             textOutline.effectDistance = new Vector2(1f, -1f);
+
+            // --- P&C: Speed-up gem button (right portion) ---
+            var speedBtnGO = new GameObject("SpeedUpBtn");
+            speedBtnGO.transform.SetParent(indicator.transform, false);
+            var speedRect = speedBtnGO.AddComponent<RectTransform>();
+            speedRect.anchorMin = new Vector2(0.64f, 0.28f);
+            speedRect.anchorMax = new Vector2(0.96f, 0.95f);
+            speedRect.offsetMin = Vector2.zero;
+            speedRect.offsetMax = Vector2.zero;
+
+            var speedImg = speedBtnGO.AddComponent<Image>();
+            speedImg.color = new Color(0.20f, 0.65f, 0.25f, 0.95f); // Green "boost" color
+            speedImg.raycastTarget = true;
+
+            var speedOutline = speedBtnGO.AddComponent<Outline>();
+            speedOutline.effectColor = new Color(0.5f, 1f, 0.5f, 0.4f);
+            speedOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var speedBtn = speedBtnGO.AddComponent<Button>();
+            speedBtn.targetGraphic = speedImg;
+            string capturedId = instanceId;
+            int capturedSecs = buildTimeSeconds;
+            speedBtn.onClick.AddListener(() => {
+                // Estimate gem cost: 1 gem per 60 seconds remaining
+                int gemCost = Mathf.Max(1, Mathf.CeilToInt(capturedSecs / 60f));
+                if (capturedId != null)
+                    EventBus.Publish(new SpeedupRequestedEvent(capturedId, gemCost, capturedSecs));
+            });
+
+            var speedTextGO = new GameObject("Label");
+            speedTextGO.transform.SetParent(speedBtnGO.transform, false);
+            var speedTextRect = speedTextGO.AddComponent<RectTransform>();
+            speedTextRect.anchorMin = Vector2.zero;
+            speedTextRect.anchorMax = Vector2.one;
+            speedTextRect.offsetMin = Vector2.zero;
+            speedTextRect.offsetMax = Vector2.zero;
+
+            var speedText = speedTextGO.AddComponent<Text>();
+            speedText.text = "\u26A1"; // ⚡ lightning bolt
+            speedText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            speedText.fontSize = 11;
+            speedText.fontStyle = FontStyle.Bold;
+            speedText.alignment = TextAnchor.MiddleCenter;
+            speedText.color = Color.white;
+            speedText.raycastTarget = false;
 
             // Start live countdown + progress fill coroutine
             StartCoroutine(AnimateUpgradeIndicator(indicator, barFillRect, text, buildTimeSeconds));
@@ -1411,7 +1463,7 @@ namespace AshenThrone.Empire
                 {
                     if (p.InstanceId == entry.PlacedId && p.VisualGO != null)
                     {
-                        CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds));
+                        CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds), entry.PlacedId);
                         break;
                     }
                 }
@@ -1424,6 +1476,176 @@ namespace AshenThrone.Empire
             var existing = building.transform.Find("UpgradeIndicator");
             if (existing != null)
                 Destroy(existing.gameObject);
+        }
+
+        // ====================================================================
+        // P&C: Building info popup on tap
+        // ====================================================================
+
+        private static readonly Dictionary<string, string> BuildingDisplayNames = new()
+        {
+            { "stronghold", "Stronghold" }, { "barracks", "Barracks" }, { "forge", "Forge" },
+            { "marketplace", "Marketplace" }, { "academy", "Academy" }, { "grain_farm", "Grain Farm" },
+            { "iron_mine", "Iron Mine" }, { "stone_quarry", "Stone Quarry" }, { "arcane_tower", "Arcane Tower" },
+            { "wall", "Wall" }, { "watch_tower", "Watch Tower" }, { "guild_hall", "Guild Hall" },
+            { "embassy", "Embassy" }, { "training_ground", "Training Ground" }, { "hero_shrine", "Hero Shrine" },
+            { "laboratory", "Laboratory" }, { "library", "Library" }, { "armory", "Armory" },
+            { "enchanting_tower", "Enchanting Tower" }, { "observatory", "Observatory" }, { "archive", "Archive" },
+        };
+
+        /// <summary>P&C: Show floating info popup above tapped building with name, level, and action buttons.</summary>
+        private void OnBuildingTappedShowPopup(BuildingTappedEvent evt)
+        {
+            DismissInfoPopup();
+
+            if (evt.VisualGO == null) return;
+
+            // Don't show popup if we're in move mode
+            if (_moveMode) return;
+
+            _infoPopupInstanceId = evt.InstanceId;
+
+            // Create popup above the building
+            var popup = new GameObject("InfoPopup");
+            popup.transform.SetParent(evt.VisualGO.transform.parent, false);
+            popup.transform.SetAsLastSibling();
+
+            var popupRect = popup.AddComponent<RectTransform>();
+            var buildingRect = evt.VisualGO.GetComponent<RectTransform>();
+            Vector2 buildingPos = buildingRect != null ? buildingRect.anchoredPosition : Vector2.zero;
+            float buildingHeight = buildingRect != null ? buildingRect.sizeDelta.y : 80f;
+            popupRect.anchoredPosition = buildingPos + new Vector2(0, buildingHeight * 0.55f);
+            popupRect.sizeDelta = new Vector2(160, 80);
+
+            // Dark panel background
+            var bg = popup.AddComponent<Image>();
+            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.92f);
+            bg.raycastTarget = true; // Block clicks through
+
+            // Gold border outline
+            var bgOutline = popup.AddComponent<Outline>();
+            bgOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.8f);
+            bgOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Second outline for depth
+            var bgOutline2 = popup.AddComponent<Outline>();
+            bgOutline2.effectColor = new Color(0.4f, 0.3f, 0.1f, 0.5f);
+            bgOutline2.effectDistance = new Vector2(-1f, 1f);
+
+            // Building name
+            string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
+            var nameGO = new GameObject("Name");
+            nameGO.transform.SetParent(popup.transform, false);
+            var nameRect = nameGO.AddComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0.05f, 0.60f);
+            nameRect.anchorMax = new Vector2(0.95f, 0.95f);
+            nameRect.offsetMin = Vector2.zero;
+            nameRect.offsetMax = Vector2.zero;
+            var nameText = nameGO.AddComponent<Text>();
+            nameText.text = $"{displayName}  Lv.{evt.Tier}";
+            nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            nameText.fontSize = 12;
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.alignment = TextAnchor.MiddleCenter;
+            nameText.color = new Color(1f, 0.90f, 0.50f);
+            nameText.raycastTarget = false;
+            var nameOutline = nameGO.AddComponent<Outline>();
+            nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            nameOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Action buttons row
+            float btnY0 = 0.08f, btnY1 = 0.55f;
+            CreatePopupButton(popup.transform, "Upgrade", "\u2B06", new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1),
+                new Color(0.15f, 0.55f, 0.15f, 0.9f), () => {
+                    EventBus.Publish(new BuildingDoubleTappedEvent(evt.InstanceId, evt.BuildingId, evt.Tier));
+                    DismissInfoPopup();
+                });
+
+            CreatePopupButton(popup.transform, "Info", "\u2139", new Vector2(0.35f, btnY0), new Vector2(0.65f, btnY1),
+                new Color(0.20f, 0.35f, 0.65f, 0.9f), () => {
+                    // Info button — future feature, just dismiss for now
+                    DismissInfoPopup();
+                });
+
+            CreatePopupButton(popup.transform, "Move", "\u2725", new Vector2(0.66f, btnY0), new Vector2(0.98f, btnY1),
+                new Color(0.55f, 0.40f, 0.15f, 0.9f), () => {
+                    DismissInfoPopup();
+                    EnterMoveModeForBuilding(evt.InstanceId);
+                });
+
+            // Fade-in animation
+            var cg = popup.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            _infoPopup = popup;
+            StartCoroutine(FadeInPopup(cg));
+        }
+
+        private void CreatePopupButton(Transform parent, string label, string icon, Vector2 anchorMin, Vector2 anchorMax,
+            Color btnColor, System.Action onClick)
+        {
+            var btnGO = new GameObject($"Btn_{label}");
+            btnGO.transform.SetParent(parent, false);
+            var btnRect = btnGO.AddComponent<RectTransform>();
+            btnRect.anchorMin = anchorMin;
+            btnRect.anchorMax = anchorMax;
+            btnRect.offsetMin = Vector2.zero;
+            btnRect.offsetMax = Vector2.zero;
+
+            var btnImg = btnGO.AddComponent<Image>();
+            btnImg.color = btnColor;
+            btnImg.raycastTarget = true;
+
+            var btnOutline = btnGO.AddComponent<Outline>();
+            btnOutline.effectColor = new Color(1f, 0.85f, 0.35f, 0.4f);
+            btnOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Button using Unity's built-in Button component
+            var btn = btnGO.AddComponent<Button>();
+            btn.targetGraphic = btnImg;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+
+            // Label text
+            var textGO = new GameObject("Label");
+            textGO.transform.SetParent(btnGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = $"{icon}\n{label}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.8f, -0.8f);
+        }
+
+        private IEnumerator FadeInPopup(CanvasGroup cg)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.15f && cg != null)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Clamp01(elapsed / 0.15f);
+                yield return null;
+            }
+            if (cg != null) cg.alpha = 1f;
+        }
+
+        private void DismissInfoPopup()
+        {
+            if (_infoPopup != null)
+            {
+                Destroy(_infoPopup);
+                _infoPopup = null;
+            }
+            _infoPopupInstanceId = null;
         }
 
         /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>
@@ -1834,6 +2056,7 @@ namespace AshenThrone.Empire
             }
             _footprintInstanceId = null;
             if (_selectionRing != null) { Destroy(_selectionRing); _selectionRing = null; }
+            DismissInfoPopup();
         }
 
         public void OnDrag(PointerEventData eventData)

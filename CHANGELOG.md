@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.32.0] — 2026-03-11 (Ralph Loop Iteration 27: Info Popup, Speed-Up Button)
+
+### ADDED
+- **Building info popup on tap** — tapping a building shows a floating popup above it with building name, level, and three action buttons: Upgrade (green), Info (blue), Move (brown). P&C-style dark panel with gold border, fade-in animation. Dismissed on deselect or empty tap.
+- **Speed-up gem button on upgrade indicator** — upgrading buildings now show a green ⚡ speed-up button on the right side of the indicator. Publishes `SpeedupRequestedEvent` with estimated gem cost (1 gem per 60s remaining).
+- **Popup Move button** — triggers `EnterMoveModeForBuilding` directly from the popup, matching P&C's tap → popup → move flow
+- **Popup Upgrade button** — publishes `BuildingDoubleTappedEvent` to trigger upgrade via existing `QuickUpgradeHandler`
+
+### CHANGED
+- Upgrade indicator layout widened (5%-95% anchors) with timer text moved left to make room for speed-up button
+- `ClearBuildingFootprint` now also dismisses info popup
+- `CreateUpgradeIndicator` accepts optional `instanceId` parameter for speed-up event binding
+
+---
+
 ## [0.31.0] — 2026-03-11 (Ralph Loop Iteration 26: Upgrade Indicators, Count Badges, Crossfade)
 
 ### ADDED
