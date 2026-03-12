@@ -4,6 +4,25 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.66.0] — 2026-03-12 (Ralph Loop Iteration 61: Stat Comparison Bars, Vault Overflow Warning)
+
+### ADDED
+- **Stat comparison bars in building info panel** — P&C-style horizontal bars showing current vs next tier values for Power, Production, Troop Capacity, Defense, and Research Speed. Current value shown as solid colored bar, next tier as translucent ghost fill extending beyond current. Delta region has pulsing glow. Values displayed as "current → next" with green text when improving. Building-type-specific: resource buildings show production bars, military shows troop capacity, walls show defense, academies show research speed.
+- **`GetStatComparisonData()` method** — returns list of `StatBarData` structs with label, current/next/max values, and bar color per building type and tier.
+- **`AddStatComparisonBar()` method** — renders a single comparison bar row: label, dark background track, current fill, next tier ghost fill, delta glow, and "cur → next" value text.
+- **`FormatStatValue()` helper** — formats stat values with K/M suffixes for bar labels.
+- **Resource vault overflow warning popup** — when collecting resources pushes vault above 95% capacity, a warning popup appears with resource name, current/max amounts, fill bar, and contextual message. At 100% full, popup turns red with "WASTED!" urgency. Auto-dismisses after 4 seconds with fade-out, or tap to dismiss immediately. 30-second cooldown per resource type prevents spam.
+- **`CheckVaultOverflowWarning()` method** — checks current resource vs vault cap ratio after collection events.
+- **`ShowVaultOverflowWarning()` method** — creates the warning popup with fill bar, warning icon, and contextual messaging.
+- **`AutoDismissVaultWarning()` coroutine** — 4s timer then 0.5s fade-out for auto-dismissal.
+- **`VaultWarningCooldownDecay()` coroutine** — prevents repeated warnings within 30-second window.
+
+### CHANGED
+- `OnResourceCollected()` now calls `CheckVaultOverflowWarning()` after processing collection and streak bonuses.
+- Stats section in info panel now includes visual comparison bars between STATS header and production info rows.
+
+---
+
 ## [0.65.0] — 2026-03-12 (Ralph Loop Iteration 60: Collection Streak Bonus, Building Quick-Nav)
 
 ### ADDED

@@ -2436,6 +2436,169 @@ namespace AshenThrone.Empire
             }
             _collectToastCooldown = 0.8f; // Reset cooldown
             StartCoroutine(ShowCollectToastDelayed());
+
+            // P&C: Vault overflow warning — check if resource is near cap after collection
+            CheckVaultOverflowWarning(evt.Type);
+        }
+
+        // P&C: Vault overflow warning state
+        private GameObject _vaultWarningPopup;
+        private float _vaultWarningCooldown;
+        private const float VaultWarningCooldownDuration = 30f; // Don't spam — once per 30s per type
+        private ResourceType _lastVaultWarningType;
+
+        private void CheckVaultOverflowWarning(ResourceType type)
+        {
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
+            if (_vaultWarningCooldown > 0f && _lastVaultWarningType == type) return;
+
+            long current = type switch
+            {
+                ResourceType.Stone => rm.Stone,
+                ResourceType.Iron => rm.Iron,
+                ResourceType.Grain => rm.Grain,
+                ResourceType.ArcaneEssence => rm.ArcaneEssence,
+                _ => 0
+            };
+            long max = type switch
+            {
+                ResourceType.Stone => rm.MaxStone,
+                ResourceType.Iron => rm.MaxIron,
+                ResourceType.Grain => rm.MaxGrain,
+                ResourceType.ArcaneEssence => rm.MaxArcaneEssence,
+                _ => 0
+            };
+
+            if (max <= 0) return;
+            float ratio = (float)current / max;
+
+            if (ratio >= 0.95f)
+            {
+                _vaultWarningCooldown = VaultWarningCooldownDuration;
+                _lastVaultWarningType = type;
+                StartCoroutine(VaultWarningCooldownDecay());
+                ShowVaultOverflowWarning(type, current, max, ratio >= 1f);
+            }
+        }
+
+        private IEnumerator VaultWarningCooldownDecay()
+        {
+            while (_vaultWarningCooldown > 0f)
+            {
+                _vaultWarningCooldown -= Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        private void ShowVaultOverflowWarning(ResourceType type, long current, long max, bool isFull)
+        {
+            if (_vaultWarningPopup != null) Destroy(_vaultWarningPopup);
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            string resName = type switch
+            {
+                ResourceType.Stone => "Stone",
+                ResourceType.Iron => "Iron",
+                ResourceType.Grain => "Grain",
+                ResourceType.ArcaneEssence => "Arcane Essence",
+                _ => "Resource"
+            };
+
+            _vaultWarningPopup = new GameObject("VaultWarning");
+            _vaultWarningPopup.transform.SetParent(canvas.transform, false);
+            var rect = _vaultWarningPopup.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.08f, 0.40f);
+            rect.anchorMax = new Vector2(0.92f, 0.60f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark bg with warning tint
+            var bg = _vaultWarningPopup.AddComponent<Image>();
+            Color bgColor = isFull
+                ? new Color(0.45f, 0.12f, 0.10f, 0.95f)
+                : new Color(0.40f, 0.30f, 0.08f, 0.95f);
+            bg.color = bgColor;
+            bg.raycastTarget = true;
+
+            // Gold border
+            var outline = _vaultWarningPopup.AddComponent<Outline>();
+            outline.effectColor = isFull
+                ? new Color(0.90f, 0.30f, 0.25f, 0.9f)
+                : new Color(0.78f, 0.62f, 0.22f, 0.9f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Warning icon + title
+            string title = isFull
+                ? $"\u26A0 {resName} VAULT FULL!"
+                : $"\u26A0 {resName} Vault Nearly Full";
+            Color titleColor = isFull
+                ? new Color(1f, 0.40f, 0.35f)
+                : new Color(1f, 0.85f, 0.40f);
+            AddInfoPanelText(_vaultWarningPopup.transform, "Title", title, 14, FontStyle.Bold,
+                titleColor,
+                new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
+
+            // Current/max display with fill bar
+            string curStr = current >= 1000 ? $"{current / 1000f:F1}K" : $"{current}";
+            string maxStr = max >= 1000 ? $"{max / 1000f:F1}K" : $"{max}";
+            float pct = Mathf.Clamp01((float)current / max) * 100f;
+            string body = isFull
+                ? $"{curStr} / {maxStr} ({pct:F0}%) — Production is being WASTED!\nUpgrade vault or spend resources."
+                : $"{curStr} / {maxStr} ({pct:F0}%) — Vault nearly full.\nCollect wisely or upgrade storage.";
+            AddInfoPanelText(_vaultWarningPopup.transform, "Body", body, 11, FontStyle.Normal,
+                new Color(0.90f, 0.88f, 0.82f),
+                new Vector2(0.05f, 0.15f), new Vector2(0.95f, 0.55f), TextAnchor.MiddleCenter);
+
+            // Fill bar visual
+            var fillBgGO = new GameObject("FillBg");
+            fillBgGO.transform.SetParent(_vaultWarningPopup.transform, false);
+            var fillBgRect = fillBgGO.AddComponent<RectTransform>();
+            fillBgRect.anchorMin = new Vector2(0.10f, 0.05f);
+            fillBgRect.anchorMax = new Vector2(0.90f, 0.14f);
+            fillBgRect.offsetMin = Vector2.zero;
+            fillBgRect.offsetMax = Vector2.zero;
+            var fillBgImg = fillBgGO.AddComponent<Image>();
+            fillBgImg.color = new Color(0.08f, 0.06f, 0.10f, 0.9f);
+            fillBgImg.raycastTarget = false;
+
+            var fillGO = new GameObject("Fill");
+            fillGO.transform.SetParent(fillBgGO.transform, false);
+            var fillRect = fillGO.AddComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(Mathf.Clamp01((float)current / max), 1f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fillImg = fillGO.AddComponent<Image>();
+            fillImg.color = isFull
+                ? new Color(0.90f, 0.25f, 0.20f, 0.9f)
+                : new Color(0.85f, 0.70f, 0.20f, 0.9f);
+            fillImg.raycastTarget = false;
+
+            // Auto-dismiss after 4 seconds, or tap to dismiss
+            var btn = _vaultWarningPopup.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(() => { if (_vaultWarningPopup != null) { Destroy(_vaultWarningPopup); _vaultWarningPopup = null; } });
+            StartCoroutine(AutoDismissVaultWarning());
+        }
+
+        private IEnumerator AutoDismissVaultWarning()
+        {
+            yield return new WaitForSeconds(4f);
+            if (_vaultWarningPopup != null)
+            {
+                // Fade out
+                var cg = _vaultWarningPopup.AddComponent<CanvasGroup>();
+                float t = 0f;
+                while (t < 0.5f && _vaultWarningPopup != null)
+                {
+                    t += Time.deltaTime;
+                    cg.alpha = 1f - (t / 0.5f);
+                    yield return null;
+                }
+                if (_vaultWarningPopup != null) { Destroy(_vaultWarningPopup); _vaultWarningPopup = null; }
+            }
         }
 
         private IEnumerator DecayCollectStreak()
@@ -4157,6 +4320,21 @@ namespace AshenThrone.Empire
                     new Vector2(0.55f, statsY - 0.02f), new Vector2(0.95f, statsY + 0.04f), TextAnchor.MiddleRight);
             }
 
+            // P&C: Visual stat comparison bars (current tier vs next tier)
+            if (tier < 3)
+            {
+                int nextT = tier + 1;
+                statsY -= 0.065f;
+                var barStats = GetStatComparisonData(buildingId, tier, nextT);
+                foreach (var stat in barStats)
+                {
+                    AddStatComparisonBar(panel.transform, stat.Label, stat.CurrentVal, stat.NextVal, stat.MaxVal,
+                        stat.BarColor, statsY);
+                    statsY -= 0.055f;
+                }
+                if (barStats.Count > 0) statsY -= 0.01f;
+            }
+
             // Resource production info (if applicable) — P&C-style hourly + daily forecast
             if (ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo))
             {
@@ -4602,6 +4780,160 @@ namespace AshenThrone.Empire
                 _ => 200
             };
             return basePower * (tier + 1);
+        }
+
+        // P&C: Stat comparison bar data
+        private struct StatBarData
+        {
+            public string Label;
+            public float CurrentVal;
+            public float NextVal;
+            public float MaxVal;
+            public Color BarColor;
+        }
+
+        private static List<StatBarData> GetStatComparisonData(string buildingId, int curTier, int nextTier)
+        {
+            var bars = new List<StatBarData>();
+            // Power bar (all buildings have power)
+            int curPow = GetBuildingPowerContribution(buildingId, curTier);
+            int nextPow = GetBuildingPowerContribution(buildingId, nextTier);
+            int maxPow = GetBuildingPowerContribution(buildingId, 3); // tier 3 is max
+            bars.Add(new StatBarData { Label = "\u2694 Power", CurrentVal = curPow, NextVal = nextPow,
+                MaxVal = maxPow, BarColor = new Color(0.95f, 0.70f, 0.35f) });
+
+            // Production bar (resource buildings)
+            if (buildingId == "grain_farm" || buildingId == "iron_mine" ||
+                buildingId == "stone_quarry" || buildingId == "arcane_tower")
+            {
+                int curRate = (curTier + 1) * 250;
+                int nextRate = (nextTier + 1) * 250;
+                int maxRate = 4 * 250; // tier 3
+                Color prodColor = buildingId switch
+                {
+                    "grain_farm" => new Color(1f, 0.92f, 0.45f),
+                    "iron_mine" => new Color(0.78f, 0.80f, 0.90f),
+                    "stone_quarry" => new Color(0.85f, 0.82f, 0.76f),
+                    _ => new Color(0.80f, 0.55f, 1f),
+                };
+                bars.Add(new StatBarData { Label = "\u2609 Prod/hr", CurrentVal = curRate, NextVal = nextRate,
+                    MaxVal = maxRate, BarColor = prodColor });
+            }
+
+            // Troop capacity (military buildings)
+            if (buildingId == "barracks")
+            {
+                float curTroops = (curTier + 1) * 500f;
+                float nextTroops = (nextTier + 1) * 500f;
+                bars.Add(new StatBarData { Label = "\u2694 Troops", CurrentVal = curTroops, NextVal = nextTroops,
+                    MaxVal = 2000f, BarColor = new Color(0.80f, 0.35f, 0.35f) });
+            }
+            else if (buildingId == "training_ground")
+            {
+                float curTroops = (curTier + 1) * 300f;
+                float nextTroops = (nextTier + 1) * 300f;
+                bars.Add(new StatBarData { Label = "\u2694 Troops", CurrentVal = curTroops, NextVal = nextTroops,
+                    MaxVal = 1200f, BarColor = new Color(0.80f, 0.35f, 0.35f) });
+            }
+
+            // Defense (wall, watch tower)
+            if (buildingId == "wall" || buildingId == "watch_tower")
+            {
+                float curDef = (curTier + 1) * 800f;
+                float nextDef = (nextTier + 1) * 800f;
+                bars.Add(new StatBarData { Label = "\u25C8 Defense", CurrentVal = curDef, NextVal = nextDef,
+                    MaxVal = 3200f, BarColor = new Color(0.45f, 0.75f, 0.95f) });
+            }
+
+            // Research speed (academy, library)
+            if (buildingId == "academy" || buildingId == "library")
+            {
+                float curSpd = (curTier + 1) * 5f;
+                float nextSpd = (nextTier + 1) * 5f;
+                bars.Add(new StatBarData { Label = "\u2726 Research%", CurrentVal = curSpd, NextVal = nextSpd,
+                    MaxVal = 20f, BarColor = new Color(0.55f, 0.85f, 0.55f) });
+            }
+
+            return bars;
+        }
+
+        private void AddStatComparisonBar(Transform parent, string label, float curVal, float nextVal,
+            float maxVal, Color barColor, float yPos)
+        {
+            float barH = 0.045f;
+            // Label
+            AddInfoPanelText(parent, $"BarLabel_{label}", label, 9, FontStyle.Normal,
+                new Color(0.75f, 0.73f, 0.70f),
+                new Vector2(0.05f, yPos - barH), new Vector2(0.28f, yPos), TextAnchor.MiddleLeft);
+
+            // Bar background
+            var barBgGO = new GameObject($"BarBg_{label}");
+            barBgGO.transform.SetParent(parent, false);
+            var barBgRect = barBgGO.AddComponent<RectTransform>();
+            barBgRect.anchorMin = new Vector2(0.29f, yPos - barH + 0.005f);
+            barBgRect.anchorMax = new Vector2(0.78f, yPos - 0.005f);
+            barBgRect.offsetMin = Vector2.zero;
+            barBgRect.offsetMax = Vector2.zero;
+            var barBgImg = barBgGO.AddComponent<Image>();
+            barBgImg.color = new Color(0.12f, 0.10f, 0.15f, 0.85f);
+            barBgImg.raycastTarget = false;
+
+            // Current value fill
+            float curFill = maxVal > 0 ? Mathf.Clamp01(curVal / maxVal) : 0f;
+            var curBarGO = new GameObject($"BarCur_{label}");
+            curBarGO.transform.SetParent(barBgGO.transform, false);
+            var curBarRect = curBarGO.AddComponent<RectTransform>();
+            curBarRect.anchorMin = Vector2.zero;
+            curBarRect.anchorMax = new Vector2(curFill, 1f);
+            curBarRect.offsetMin = Vector2.zero;
+            curBarRect.offsetMax = Vector2.zero;
+            var curBarImg = curBarGO.AddComponent<Image>();
+            curBarImg.color = new Color(barColor.r * 0.7f, barColor.g * 0.7f, barColor.b * 0.7f, 0.9f);
+            curBarImg.raycastTarget = false;
+
+            // Next tier fill (ghost bar extending beyond current)
+            float nextFill = maxVal > 0 ? Mathf.Clamp01(nextVal / maxVal) : 0f;
+            if (nextFill > curFill)
+            {
+                var nextBarGO = new GameObject($"BarNext_{label}");
+                nextBarGO.transform.SetParent(barBgGO.transform, false);
+                nextBarGO.transform.SetAsFirstSibling(); // Behind current bar
+                var nextBarRect = nextBarGO.AddComponent<RectTransform>();
+                nextBarRect.anchorMin = Vector2.zero;
+                nextBarRect.anchorMax = new Vector2(nextFill, 1f);
+                nextBarRect.offsetMin = Vector2.zero;
+                nextBarRect.offsetMax = Vector2.zero;
+                var nextBarImg = nextBarGO.AddComponent<Image>();
+                nextBarImg.color = new Color(barColor.r, barColor.g, barColor.b, 0.35f);
+                nextBarImg.raycastTarget = false;
+
+                // Pulsing glow on the delta portion
+                var deltaGlowGO = new GameObject($"BarDelta_{label}");
+                deltaGlowGO.transform.SetParent(barBgGO.transform, false);
+                var deltaRect = deltaGlowGO.AddComponent<RectTransform>();
+                deltaRect.anchorMin = new Vector2(curFill, 0f);
+                deltaRect.anchorMax = new Vector2(nextFill, 1f);
+                deltaRect.offsetMin = Vector2.zero;
+                deltaRect.offsetMax = Vector2.zero;
+                var deltaImg = deltaGlowGO.AddComponent<Image>();
+                deltaImg.color = new Color(barColor.r, barColor.g, barColor.b, 0.55f);
+                deltaImg.raycastTarget = false;
+            }
+
+            // Value text: "current → next"
+            string curStr = FormatStatValue(curVal);
+            string nextStr = FormatStatValue(nextVal);
+            Color valColor = nextVal > curVal ? new Color(0.50f, 0.95f, 0.50f) : new Color(0.80f, 0.78f, 0.75f);
+            AddInfoPanelText(parent, $"BarVal_{label}", $"{curStr} \u2192 {nextStr}", 9, FontStyle.Bold,
+                valColor,
+                new Vector2(0.79f, yPos - barH), new Vector2(0.95f, yPos), TextAnchor.MiddleRight);
+        }
+
+        private static string FormatStatValue(float val)
+        {
+            if (val >= 1_000_000f) return $"{val / 1_000_000f:F1}M";
+            if (val >= 1000f) return $"{val / 1000f:F1}K";
+            return $"{(int)val}";
         }
 
         /// <summary>P&C: Demolish confirmation dialog with "Are you sure?" prompt.</summary>
