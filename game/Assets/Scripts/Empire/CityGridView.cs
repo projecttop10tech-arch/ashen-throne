@@ -4529,6 +4529,64 @@ namespace AshenThrone.Empire
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
+            // P&C: Research quick-access for academy/library
+            if (buildingId == "academy" || buildingId == "library")
+            {
+                var resGO = new GameObject("ResearchBtn");
+                resGO.transform.SetParent(panel.transform, false);
+                var resRect = resGO.AddComponent<RectTransform>();
+                resRect.anchorMin = new Vector2(0.50f, 0.20f);
+                resRect.anchorMax = new Vector2(0.95f, 0.27f);
+                resRect.offsetMin = Vector2.zero;
+                resRect.offsetMax = Vector2.zero;
+                var resBg = resGO.AddComponent<Image>();
+                resBg.color = new Color(0.15f, 0.35f, 0.60f, 0.90f);
+                resBg.raycastTarget = true;
+                var resOutline = resGO.AddComponent<Outline>();
+                resOutline.effectColor = new Color(0.35f, 0.65f, 0.90f, 0.6f);
+                resOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var resBtn = resGO.AddComponent<Button>();
+                resBtn.targetGraphic = resBg;
+                int capAcademyTier = tier;
+                resBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowResearchQuickPanel(capAcademyTier);
+                });
+                AddInfoPanelText(resGO.transform, "Label", "\u2726 Research", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Crafting shortcut for forge/enchanting tower
+            if (buildingId == "forge" || buildingId == "enchanting_tower")
+            {
+                var craftGO = new GameObject("CraftBtn");
+                craftGO.transform.SetParent(panel.transform, false);
+                var craftRect = craftGO.AddComponent<RectTransform>();
+                craftRect.anchorMin = new Vector2(0.50f, 0.20f);
+                craftRect.anchorMax = new Vector2(0.95f, 0.27f);
+                craftRect.offsetMin = Vector2.zero;
+                craftRect.offsetMax = Vector2.zero;
+                var craftBg = craftGO.AddComponent<Image>();
+                craftBg.color = new Color(0.55f, 0.35f, 0.15f, 0.90f);
+                craftBg.raycastTarget = true;
+                var craftOutline = craftGO.AddComponent<Outline>();
+                craftOutline.effectColor = new Color(0.85f, 0.55f, 0.25f, 0.6f);
+                craftOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var craftBtn = craftGO.AddComponent<Button>();
+                craftBtn.targetGraphic = craftBg;
+                string capCraftBid = buildingId;
+                int capCraftTier = tier;
+                craftBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowCraftingPanel(capCraftBid, capCraftTier);
+                });
+                string craftLabel = buildingId == "forge" ? "\u2692 Craft Equipment" : "\u2728 Enchant";
+                AddInfoPanelText(craftGO.transform, "Label", craftLabel, 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
             // P&C: Stronghold — show what unlocks at next level
             if (buildingId == "stronghold" && tier < 3)
             {
@@ -7943,6 +8001,556 @@ namespace AshenThrone.Empire
 
             // Fade in
             var cg = _troopTrainingPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: Research Quick Panel (from academy/library info panel)
+        // ====================================================================
+
+        private GameObject _researchQuickPanel;
+
+        private void ShowResearchQuickPanel(int academyTier)
+        {
+            if (_researchQuickPanel != null) { Destroy(_researchQuickPanel); _researchQuickPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            ServiceLocator.TryGet<ResearchManager>(out var researchMgr);
+            if (researchMgr == null) { ShowUpgradeBlockedToast("Research not available"); return; }
+
+            _researchQuickPanel = new GameObject("ResearchQuickPanel");
+            _researchQuickPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _researchQuickPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _researchQuickPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _researchQuickPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_researchQuickPanel != null) { Destroy(_researchQuickPanel); _researchQuickPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_researchQuickPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.06f, 0.15f);
+            panelRect.anchorMax = new Vector2(0.94f, 0.85f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.04f, 0.06f, 0.14f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.30f, 0.55f, 0.90f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", "\u2726 Research Tree", 15, FontStyle.Bold,
+                new Color(0.50f, 0.75f, 0.95f),
+                new Vector2(0.05f, 0.91f), new Vector2(0.75f, 0.99f), TextAnchor.MiddleLeft);
+
+            // Active research indicator
+            if (researchMgr.ResearchQueue.Count > 0)
+            {
+                var active = researchMgr.ResearchQueue[0];
+                var activeNode = researchMgr.GetNode(active.NodeId);
+                string activeName = activeNode != null ? activeNode.displayName : active.NodeId;
+                string timeLeft = FormatTimeRemaining((int)active.RemainingSeconds);
+                AddInfoPanelText(panel.transform, "ActiveResearch",
+                    $"\u23F1 Researching: {activeName} ({timeLeft})", 10, FontStyle.Italic,
+                    new Color(0.70f, 0.85f, 1.0f),
+                    new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.91f), TextAnchor.MiddleLeft);
+            }
+            else
+            {
+                AddInfoPanelText(panel.transform, "ActiveResearch",
+                    "No active research — pick one below!", 10, FontStyle.Italic,
+                    new Color(0.55f, 0.55f, 0.45f),
+                    new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.91f), TextAnchor.MiddleLeft);
+            }
+
+            // Branch tabs
+            var branches = new[] {
+                (Data.ResearchBranch.Military, "Military", new Color(0.85f, 0.30f, 0.25f)),
+                (Data.ResearchBranch.Resource, "Resource", new Color(0.30f, 0.75f, 0.35f)),
+                (Data.ResearchBranch.Research, "Science", new Color(0.35f, 0.55f, 0.90f)),
+                (Data.ResearchBranch.Hero, "Hero", new Color(0.80f, 0.60f, 0.20f))
+            };
+            float tabX = 0.03f;
+            float tabW = 0.23f;
+            for (int b = 0; b < branches.Length; b++)
+            {
+                var (branch, label, tint) = branches[b];
+                var tabGO = new GameObject($"Tab_{label}");
+                tabGO.transform.SetParent(panel.transform, false);
+                var tabRect = tabGO.AddComponent<RectTransform>();
+                tabRect.anchorMin = new Vector2(tabX + b * tabW + 0.005f, 0.78f);
+                tabRect.anchorMax = new Vector2(tabX + (b + 1) * tabW - 0.005f, 0.84f);
+                tabRect.offsetMin = Vector2.zero;
+                tabRect.offsetMax = Vector2.zero;
+                var tabBg = tabGO.AddComponent<Image>();
+                tabBg.color = new Color(tint.r * 0.4f, tint.g * 0.4f, tint.b * 0.4f, 0.80f);
+                tabBg.raycastTarget = true;
+                var tabOutline = tabGO.AddComponent<Outline>();
+                tabOutline.effectColor = new Color(tint.r, tint.g, tint.b, 0.5f);
+                tabOutline.effectDistance = new Vector2(0.5f, -0.5f);
+                AddInfoPanelText(tabGO.transform, "Label", label, 9, FontStyle.Bold, tint,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // Gather available nodes
+            var available = new List<Data.ResearchNodeData>();
+            var locked = new List<Data.ResearchNodeData>();
+            foreach (var node in researchMgr.AllNodes)
+            {
+                if (researchMgr.IsCompleted(node.nodeId)) continue;
+                if (researchMgr.ResearchQueue.Count > 0 && researchMgr.ResearchQueue[0].NodeId == node.nodeId) continue;
+                if (node.requiredAcademyTier > academyTier)
+                {
+                    locked.Add(node);
+                    continue;
+                }
+                if (researchMgr.IsAvailable(node.nodeId))
+                    available.Add(node);
+                else
+                    locked.Add(node);
+            }
+
+            // Sort available by research time (quickest first)
+            available.Sort((a, b) => a.researchTimeSeconds.CompareTo(b.researchTimeSeconds));
+
+            // Scrollable area for nodes
+            float yPos = 0.75f;
+            float rowH = 0.10f;
+            int maxVisible = 6;
+            int shown = 0;
+
+            // Available nodes
+            if (available.Count > 0)
+            {
+                AddInfoPanelText(panel.transform, "AvailHeader", "AVAILABLE", 9, FontStyle.Bold,
+                    new Color(0.40f, 0.80f, 0.45f),
+                    new Vector2(0.05f, yPos - 0.035f), new Vector2(0.50f, yPos), TextAnchor.MiddleLeft);
+                yPos -= 0.04f;
+
+                foreach (var node in available)
+                {
+                    if (shown >= maxVisible) break;
+
+                    Color branchColor = node.branch switch
+                    {
+                        Data.ResearchBranch.Military => new Color(0.85f, 0.35f, 0.30f),
+                        Data.ResearchBranch.Resource => new Color(0.35f, 0.75f, 0.40f),
+                        Data.ResearchBranch.Research => new Color(0.40f, 0.60f, 0.90f),
+                        Data.ResearchBranch.Hero => new Color(0.85f, 0.65f, 0.25f),
+                        _ => Color.white
+                    };
+
+                    var rowGO = new GameObject($"Node_{node.nodeId}");
+                    rowGO.transform.SetParent(panel.transform, false);
+                    var rowRect = rowGO.AddComponent<RectTransform>();
+                    rowRect.anchorMin = new Vector2(0.03f, yPos - rowH);
+                    rowRect.anchorMax = new Vector2(0.97f, yPos);
+                    rowRect.offsetMin = Vector2.zero;
+                    rowRect.offsetMax = Vector2.zero;
+                    var rowBg = rowGO.AddComponent<Image>();
+                    rowBg.color = new Color(branchColor.r * 0.15f, branchColor.g * 0.15f, branchColor.b * 0.15f, 0.70f);
+                    rowBg.raycastTarget = false;
+                    var rowOutline = rowGO.AddComponent<Outline>();
+                    rowOutline.effectColor = new Color(branchColor.r, branchColor.g, branchColor.b, 0.3f);
+                    rowOutline.effectDistance = new Vector2(0.4f, -0.4f);
+
+                    // Branch pip
+                    string branchPip = node.branch switch
+                    {
+                        Data.ResearchBranch.Military => "\u2694",
+                        Data.ResearchBranch.Resource => "\u2692",
+                        Data.ResearchBranch.Research => "\u2726",
+                        Data.ResearchBranch.Hero => "\u2605",
+                        _ => "\u25CF"
+                    };
+
+                    AddInfoPanelText(rowGO.transform, "Name",
+                        $"{branchPip} {node.displayName}", 10, FontStyle.Bold, branchColor,
+                        new Vector2(0.02f, 0.50f), new Vector2(0.60f, 0.95f), TextAnchor.MiddleLeft);
+
+                    // Cost summary
+                    var costs = new List<string>();
+                    if (node.stoneCost > 0) costs.Add($"{node.stoneCost} St");
+                    if (node.ironCost > 0) costs.Add($"{node.ironCost} Ir");
+                    if (node.grainCost > 0) costs.Add($"{node.grainCost} Gr");
+                    if (node.arcaneEssenceCost > 0) costs.Add($"{node.arcaneEssenceCost} AE");
+                    string costStr = costs.Count > 0 ? string.Join(", ", costs) : "Free";
+
+                    string timeStr = FormatTimeRemaining(node.researchTimeSeconds);
+                    AddInfoPanelText(rowGO.transform, "Info",
+                        $"\u23F1 {timeStr}  |  {costStr}", 8, FontStyle.Normal,
+                        new Color(0.65f, 0.62f, 0.58f),
+                        new Vector2(0.02f, 0.05f), new Vector2(0.65f, 0.48f), TextAnchor.MiddleLeft);
+
+                    // Effects preview
+                    if (node.effects.Count > 0)
+                    {
+                        string effectStr = "";
+                        foreach (var eff in node.effects)
+                        {
+                            if (effectStr.Length > 0) effectStr += ", ";
+                            effectStr += $"+{eff.magnitude}% {eff.effectType.ToString().Replace("Percent", "")}";
+                        }
+                        if (effectStr.Length > 40) effectStr = effectStr.Substring(0, 37) + "...";
+                        AddInfoPanelText(rowGO.transform, "Effects", effectStr, 7, FontStyle.Italic,
+                            new Color(0.55f, 0.75f, 0.55f),
+                            new Vector2(0.02f, 0.05f), new Vector2(0.65f, 0.30f), TextAnchor.MiddleLeft);
+                    }
+
+                    // Research button
+                    bool queueFull = researchMgr.ResearchQueue.Count > 0;
+                    var resBtnGO = new GameObject("ResearchBtn");
+                    resBtnGO.transform.SetParent(rowGO.transform, false);
+                    var resBtnRect = resBtnGO.AddComponent<RectTransform>();
+                    resBtnRect.anchorMin = new Vector2(0.68f, 0.15f);
+                    resBtnRect.anchorMax = new Vector2(0.98f, 0.85f);
+                    resBtnRect.offsetMin = Vector2.zero;
+                    resBtnRect.offsetMax = Vector2.zero;
+                    var resBtnBg = resBtnGO.AddComponent<Image>();
+                    resBtnBg.color = queueFull
+                        ? new Color(0.30f, 0.30f, 0.30f, 0.80f)
+                        : new Color(0.20f, 0.45f, 0.70f, 0.92f);
+                    resBtnBg.raycastTarget = true;
+                    var resBtnOutln = resBtnGO.AddComponent<Outline>();
+                    resBtnOutln.effectColor = queueFull
+                        ? new Color(0.50f, 0.50f, 0.50f, 0.3f)
+                        : new Color(0.40f, 0.70f, 0.95f, 0.5f);
+                    resBtnOutln.effectDistance = new Vector2(0.4f, -0.4f);
+                    var resBtnComp = resBtnGO.AddComponent<Button>();
+                    resBtnComp.targetGraphic = resBtnBg;
+
+                    string capNodeId = node.nodeId;
+                    string capNodeName = node.displayName;
+                    if (queueFull)
+                    {
+                        resBtnComp.onClick.AddListener(() =>
+                        {
+                            ShowUpgradeBlockedToast("Research queue is full");
+                        });
+                        AddInfoPanelText(resBtnGO.transform, "Label", "QUEUE FULL", 8, FontStyle.Normal,
+                            new Color(0.60f, 0.55f, 0.50f), Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                    }
+                    else
+                    {
+                        resBtnComp.onClick.AddListener(() =>
+                        {
+                            if (researchMgr.StartResearch(capNodeId))
+                            {
+                                if (_researchQuickPanel != null) { Destroy(_researchQuickPanel); _researchQuickPanel = null; }
+                                ShowUpgradeBlockedToast($"\u2726 Researching: {capNodeName}");
+                            }
+                            else
+                            {
+                                ShowUpgradeBlockedToast("Cannot start research — check resources");
+                            }
+                        });
+                        AddInfoPanelText(resBtnGO.transform, "Label", "RESEARCH", 9, FontStyle.Bold, Color.white,
+                            Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                    }
+
+                    yPos -= rowH + 0.01f;
+                    shown++;
+                }
+            }
+
+            // Locked nodes summary
+            if (locked.Count > 0 && shown < maxVisible)
+            {
+                AddInfoPanelText(panel.transform, "LockedHeader",
+                    $"\u26D4 {locked.Count} node{(locked.Count != 1 ? "s" : "")} locked (higher Academy / prerequisites needed)",
+                    8, FontStyle.Italic, new Color(0.50f, 0.40f, 0.35f),
+                    new Vector2(0.05f, yPos - 0.035f), new Vector2(0.95f, yPos), TextAnchor.MiddleLeft);
+            }
+
+            // Completed count
+            int completedCount = researchMgr.CompletedNodeIds.Count;
+            int totalNodes = 0;
+            foreach (var _ in researchMgr.AllNodes) totalNodes++;
+            AddInfoPanelText(panel.transform, "CompletedCount",
+                $"\u2714 {completedCount}/{totalNodes} researched", 9, FontStyle.Normal,
+                new Color(0.50f, 0.80f, 0.55f),
+                new Vector2(0.05f, 0.01f), new Vector2(0.50f, 0.06f), TextAnchor.MiddleLeft);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.92f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_researchQuickPanel != null) { Destroy(_researchQuickPanel); _researchQuickPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _researchQuickPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: Crafting Panel (from forge/enchanting tower info panel)
+        // ====================================================================
+
+        private GameObject _craftingPanel;
+
+        private void ShowCraftingPanel(string buildingId, int tier)
+        {
+            if (_craftingPanel != null) { Destroy(_craftingPanel); _craftingPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _craftingPanel = new GameObject("CraftingPanel");
+            _craftingPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _craftingPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _craftingPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _craftingPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_craftingPanel != null) { Destroy(_craftingPanel); _craftingPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_craftingPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.20f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.80f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.raycastTarget = true;
+
+            bool isForge = buildingId == "forge";
+            Color accentColor = isForge
+                ? new Color(0.90f, 0.55f, 0.20f)
+                : new Color(0.60f, 0.35f, 0.85f);
+            panelBg.color = isForge
+                ? new Color(0.10f, 0.06f, 0.03f, 0.96f)
+                : new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(accentColor.r, accentColor.g, accentColor.b, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string panelTitle = isForge ? "\u2692 Equipment Forge" : "\u2728 Enchanting Workshop";
+            AddInfoPanelText(panel.transform, "Title", panelTitle, 15, FontStyle.Bold,
+                accentColor,
+                new Vector2(0.05f, 0.88f), new Vector2(0.80f, 0.98f), TextAnchor.MiddleLeft);
+
+            // Crafting categories depend on building type
+            if (isForge)
+            {
+                // Forge: Weapon, Armor, Accessory crafting
+                var categories = new[]
+                {
+                    ("Weapons", "\u2694", new Color(0.85f, 0.35f, 0.25f), new[] { ("Iron Sword", 80, 60, 120), ("Steel Blade", 160, 120, 240), ("Runic Greataxe", 320, 240, 480) }),
+                    ("Armor", "\u26E8", new Color(0.45f, 0.60f, 0.80f), new[] { ("Leather Vest", 60, 40, 90), ("Chainmail", 120, 100, 180), ("Plate Armor", 250, 200, 360) }),
+                    ("Accessories", "\u2B50", new Color(0.80f, 0.70f, 0.25f), new[] { ("Bronze Ring", 40, 30, 60), ("Silver Amulet", 100, 80, 150), ("Gold Talisman", 200, 160, 300) })
+                };
+
+                float yPos = 0.84f;
+                foreach (var (catName, icon, catColor, items) in categories)
+                {
+                    AddInfoPanelText(panel.transform, $"Cat_{catName}",
+                        $"{icon} {catName}", 11, FontStyle.Bold, catColor,
+                        new Vector2(0.04f, yPos - 0.05f), new Vector2(0.50f, yPos), TextAnchor.MiddleLeft);
+                    yPos -= 0.06f;
+
+                    int itemIdx = 0;
+                    foreach (var (itemName, ironCost, stoneCost, craftSec) in items)
+                    {
+                        if (itemIdx >= tier) break; // Higher tier unlocks more items
+                        string timeStr = FormatTimeRemaining(craftSec);
+                        int power = (itemIdx + 1) * 15;
+
+                        var rowGO = new GameObject($"Item_{itemName}");
+                        rowGO.transform.SetParent(panel.transform, false);
+                        var rowRect = rowGO.AddComponent<RectTransform>();
+                        rowRect.anchorMin = new Vector2(0.03f, yPos - 0.07f);
+                        rowRect.anchorMax = new Vector2(0.97f, yPos);
+                        rowRect.offsetMin = Vector2.zero;
+                        rowRect.offsetMax = Vector2.zero;
+                        var rowBg = rowGO.AddComponent<Image>();
+                        rowBg.color = new Color(catColor.r * 0.12f, catColor.g * 0.12f, catColor.b * 0.12f, 0.65f);
+                        rowBg.raycastTarget = false;
+
+                        AddInfoPanelText(rowGO.transform, "Name", itemName, 9, FontStyle.Bold,
+                            new Color(0.90f, 0.85f, 0.75f),
+                            new Vector2(0.03f, 0.50f), new Vector2(0.50f, 0.95f), TextAnchor.MiddleLeft);
+                        AddInfoPanelText(rowGO.transform, "Stats",
+                            $"\u2694+{power}  |  {ironCost} Ir, {stoneCost} St  |  \u23F1{timeStr}",
+                            7, FontStyle.Normal, new Color(0.65f, 0.60f, 0.55f),
+                            new Vector2(0.03f, 0.05f), new Vector2(0.65f, 0.48f), TextAnchor.MiddleLeft);
+
+                        // Craft button
+                        var craftBtnGO = new GameObject("CraftBtn");
+                        craftBtnGO.transform.SetParent(rowGO.transform, false);
+                        var craftBtnRect = craftBtnGO.AddComponent<RectTransform>();
+                        craftBtnRect.anchorMin = new Vector2(0.70f, 0.12f);
+                        craftBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                        craftBtnRect.offsetMin = Vector2.zero;
+                        craftBtnRect.offsetMax = Vector2.zero;
+                        var craftBtnBg = craftBtnGO.AddComponent<Image>();
+                        craftBtnBg.color = new Color(accentColor.r * 0.6f, accentColor.g * 0.6f, accentColor.b * 0.6f, 0.92f);
+                        craftBtnBg.raycastTarget = true;
+                        var craftBtnOutln = craftBtnGO.AddComponent<Outline>();
+                        craftBtnOutln.effectColor = new Color(accentColor.r, accentColor.g, accentColor.b, 0.4f);
+                        craftBtnOutln.effectDistance = new Vector2(0.3f, -0.3f);
+                        var craftBtnComp = craftBtnGO.AddComponent<Button>();
+                        craftBtnComp.targetGraphic = craftBtnBg;
+                        string capItemName = itemName;
+                        craftBtnComp.onClick.AddListener(() =>
+                        {
+                            Debug.Log($"[Crafting] Started crafting {capItemName} at forge.");
+                            if (_craftingPanel != null) { Destroy(_craftingPanel); _craftingPanel = null; }
+                            ShowUpgradeBlockedToast($"\u2692 Crafting {capItemName}...");
+                        });
+                        AddInfoPanelText(craftBtnGO.transform, "Label", "CRAFT", 8, FontStyle.Bold, Color.white,
+                            Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                        yPos -= 0.08f;
+                        itemIdx++;
+                    }
+                    yPos -= 0.01f;
+                }
+            }
+            else
+            {
+                // Enchanting Tower: enchant existing equipment, add runes
+                var enchantOptions = new[]
+                {
+                    ("Sharpen Edge", "+5% ATK", 40, 30, 90),
+                    ("Reinforce Plate", "+5% DEF", 40, 30, 90),
+                    ("Arcane Infusion", "+3% Crit", 60, 50, 150),
+                    ("Elemental Imbue", "+Fire/Ice/Shadow dmg", 80, 70, 200),
+                    ("Rune Carving", "Add rune slot", 120, 100, 300),
+                    ("Masterwork Polish", "+8% all stats", 200, 160, 480)
+                };
+
+                AddInfoPanelText(panel.transform, "SubTitle",
+                    "Enhance equipment with magical enchantments", 9, FontStyle.Italic,
+                    new Color(0.60f, 0.50f, 0.75f),
+                    new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.88f), TextAnchor.MiddleLeft);
+
+                float yPos = 0.80f;
+                int shown = 0;
+                foreach (var (name, effect, aeCost, ironCost, craftSec) in enchantOptions)
+                {
+                    if (shown >= tier * 2) break; // 2 enchants per tier unlocked
+                    string timeStr = FormatTimeRemaining(craftSec);
+
+                    var rowGO = new GameObject($"Enchant_{name}");
+                    rowGO.transform.SetParent(panel.transform, false);
+                    var rowRect = rowGO.AddComponent<RectTransform>();
+                    rowRect.anchorMin = new Vector2(0.03f, yPos - 0.09f);
+                    rowRect.anchorMax = new Vector2(0.97f, yPos);
+                    rowRect.offsetMin = Vector2.zero;
+                    rowRect.offsetMax = Vector2.zero;
+                    var rowBg = rowGO.AddComponent<Image>();
+                    rowBg.color = new Color(0.10f, 0.06f, 0.18f, 0.70f);
+                    rowBg.raycastTarget = false;
+                    var rowOutline = rowGO.AddComponent<Outline>();
+                    rowOutline.effectColor = new Color(0.55f, 0.30f, 0.75f, 0.25f);
+                    rowOutline.effectDistance = new Vector2(0.3f, -0.3f);
+
+                    AddInfoPanelText(rowGO.transform, "Name",
+                        $"\u2728 {name}", 10, FontStyle.Bold, new Color(0.75f, 0.55f, 0.90f),
+                        new Vector2(0.03f, 0.50f), new Vector2(0.55f, 0.95f), TextAnchor.MiddleLeft);
+                    AddInfoPanelText(rowGO.transform, "Effect", effect, 9, FontStyle.Normal,
+                        new Color(0.60f, 0.85f, 0.65f),
+                        new Vector2(0.03f, 0.05f), new Vector2(0.45f, 0.48f), TextAnchor.MiddleLeft);
+                    AddInfoPanelText(rowGO.transform, "Cost",
+                        $"{aeCost} AE, {ironCost} Ir  |  \u23F1{timeStr}", 7, FontStyle.Normal,
+                        new Color(0.60f, 0.55f, 0.50f),
+                        new Vector2(0.45f, 0.05f), new Vector2(0.68f, 0.48f), TextAnchor.MiddleRight);
+
+                    // Enchant button
+                    var enchBtnGO = new GameObject("EnchantBtn");
+                    enchBtnGO.transform.SetParent(rowGO.transform, false);
+                    var enchBtnRect = enchBtnGO.AddComponent<RectTransform>();
+                    enchBtnRect.anchorMin = new Vector2(0.72f, 0.12f);
+                    enchBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                    enchBtnRect.offsetMin = Vector2.zero;
+                    enchBtnRect.offsetMax = Vector2.zero;
+                    var enchBtnBg = enchBtnGO.AddComponent<Image>();
+                    enchBtnBg.color = new Color(0.40f, 0.22f, 0.55f, 0.92f);
+                    enchBtnBg.raycastTarget = true;
+                    var enchBtnOutln = enchBtnGO.AddComponent<Outline>();
+                    enchBtnOutln.effectColor = new Color(0.65f, 0.40f, 0.85f, 0.4f);
+                    enchBtnOutln.effectDistance = new Vector2(0.3f, -0.3f);
+                    var enchBtnComp = enchBtnGO.AddComponent<Button>();
+                    enchBtnComp.targetGraphic = enchBtnBg;
+                    string capName = name;
+                    enchBtnComp.onClick.AddListener(() =>
+                    {
+                        Debug.Log($"[Enchanting] Started {capName} enchantment.");
+                        if (_craftingPanel != null) { Destroy(_craftingPanel); _craftingPanel = null; }
+                        ShowUpgradeBlockedToast($"\u2728 Enchanting: {capName}...");
+                    });
+                    AddInfoPanelText(enchBtnGO.transform, "Label", "ENCHANT", 8, FontStyle.Bold, Color.white,
+                        Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                    yPos -= 0.10f;
+                    shown++;
+                }
+
+                // Locked enchants hint
+                int remaining = enchantOptions.Length - shown;
+                if (remaining > 0)
+                {
+                    AddInfoPanelText(panel.transform, "LockedHint",
+                        $"\u26D4 {remaining} more at higher tier", 8, FontStyle.Italic,
+                        new Color(0.45f, 0.40f, 0.35f),
+                        new Vector2(0.05f, yPos - 0.04f), new Vector2(0.95f, yPos), TextAnchor.MiddleLeft);
+                }
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.91f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_craftingPanel != null) { Destroy(_craftingPanel); _craftingPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _craftingPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
         }

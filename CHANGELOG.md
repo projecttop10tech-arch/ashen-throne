@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.70.0] — 2026-03-12 (Ralph Loop Iteration 65: Research Panel, Crafting Panel)
+
+### ADDED
+- **Research quick-access panel** — tapping "Research" button on academy or library info panel opens a full research tree browser. Shows active research with time remaining, branch tabs (Military/Resource/Science/Hero) with color-coded headers, available nodes sorted by research time with branch icons, cost summaries, effect previews, and "RESEARCH" buttons that start research via `ResearchManager.StartResearch()`. Locked nodes show a summary count. Completed/total node counter at bottom.
+- **`ShowResearchQuickPanel(int academyTier)` method** — full research panel with node filtering by academy tier, prerequisite checking, queue-full detection, and live research status.
+- **Research button in Overview tab** — academy and library info panels now show a blue "Research" button that opens the research panel.
+- **Equipment crafting panel** — tapping "Craft Equipment" on forge or "Enchant" on enchanting tower info panels opens a dedicated crafting interface. Forge shows 3 categories (Weapons/Armor/Accessories) with tier-gated items, each showing power gain, resource cost, craft time, and "CRAFT" button. Enchanting tower shows enchantment options (Sharpen Edge, Reinforce Plate, Arcane Infusion, Elemental Imbue, Rune Carving, Masterwork Polish) with effect descriptions, arcane essence costs, and "ENCHANT" buttons. Higher tiers unlock more options.
+- **`ShowCraftingPanel(string buildingId, int tier)` method** — dual-mode crafting panel: forge mode with equipment categories and enchanting tower mode with magical enchantments.
+- **Crafting button in Overview tab** — forge and enchanting_tower info panels now show themed action buttons (orange for forge, purple for enchanting).
+
+---
+
 ## [0.69.0] — 2026-03-12 (Ralph Loop Iteration 64: Resource Ticker, Troop Training)
 
 ### ADDED
