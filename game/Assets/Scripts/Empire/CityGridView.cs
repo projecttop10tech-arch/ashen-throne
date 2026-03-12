@@ -952,6 +952,9 @@ namespace AshenThrone.Empire
             if (placement.BuildingId == "stronghold")
                 CreateStrongholdGlow(go);
 
+            // P&C: Buff indicator icons (research/alliance bonuses)
+            CreateBuffIndicators(go, placement.BuildingId);
+
             // P&C: Subtle idle breathing animation for life
             StartCoroutine(IdleBreathAnimation(go, placement.BuildingId));
 
@@ -1382,6 +1385,57 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>P&C: Temporary "NEW" badge that appears after upgrade and fades after 10s.</summary>
+        /// <summary>P&C: Small buff icons on buildings that benefit from research/alliance bonuses.</summary>
+        private void CreateBuffIndicators(GameObject building, string buildingId)
+        {
+            // Determine which buffs apply to this building type
+            var buffs = new List<(string Icon, Color Tint)>();
+
+            // Research buffs (simulated — real data from ResearchManager)
+            if (ServiceLocator.TryGet<ResearchManager>(out var rm))
+            {
+                // Check if any relevant research is complete
+                if (buildingId == "grain_farm" || buildingId == "iron_mine" || buildingId == "stone_quarry")
+                    buffs.Add(("\u2B06", new Color(0.40f, 0.85f, 0.45f))); // ⬆ green = production boost
+                if (buildingId == "barracks" || buildingId == "training_ground")
+                    buffs.Add(("\u2694", new Color(0.90f, 0.45f, 0.35f))); // ⚔ red = combat boost
+            }
+
+            if (buffs.Count == 0) return;
+
+            for (int i = 0; i < buffs.Count && i < 3; i++)
+            {
+                var (icon, tint) = buffs[i];
+                var buffGO = new GameObject($"Buff_{i}");
+                buffGO.transform.SetParent(building.transform, false);
+                var rect = buffGO.AddComponent<RectTransform>();
+                float x0 = 0.02f + i * 0.12f;
+                rect.anchorMin = new Vector2(x0, 0.14f);
+                rect.anchorMax = new Vector2(x0 + 0.10f, 0.26f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var bg = buffGO.AddComponent<Image>();
+                bg.color = new Color(0.08f, 0.06f, 0.14f, 0.75f);
+                bg.raycastTarget = false;
+
+                var textGO = new GameObject("Icon");
+                textGO.transform.SetParent(buffGO.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                var text = textGO.AddComponent<Text>();
+                text.text = icon;
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 8;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.color = tint;
+                text.raycastTarget = false;
+            }
+        }
+
         private void CreateNewBadge(GameObject building)
         {
             // Remove existing NEW badge if any
@@ -1767,6 +1821,9 @@ namespace AshenThrone.Empire
         {
             PlaySfx(_sfxCollect);
 
+            // P&C: Spawn fly-to-bar particle
+            SpawnResourceFlyParticle(evt.Type, evt.BuildingInstanceId);
+
             // Accumulate collections within a short window to batch into one toast
             if (_collectToastCooldown > 0f && _collectToastType == evt.Type)
             {
@@ -1859,6 +1916,90 @@ namespace AshenThrone.Empire
                 yield return null;
             }
             if (toast != null) Destroy(toast);
+        }
+
+        /// <summary>P&C: Spawn a small colored particle that flies from the building toward the resource bar at top.</summary>
+        private void SpawnResourceFlyParticle(ResourceType type, string buildingInstanceId)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // Find source building position
+            Vector2 startAnchor = new Vector2(0.5f, 0.5f);
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == buildingInstanceId && p.VisualGO != null)
+                {
+                    var bRect = p.VisualGO.GetComponent<RectTransform>();
+                    if (bRect != null)
+                    {
+                        // Convert building world position to screen-space normalized anchor
+                        Vector3 screenPos = RectTransformUtility.WorldToScreenPoint(null, bRect.position);
+                        startAnchor = new Vector2(screenPos.x / Screen.width, screenPos.y / Screen.height);
+                    }
+                    break;
+                }
+            }
+
+            Color particleColor = type switch
+            {
+                ResourceType.Stone => new Color(0.75f, 0.68f, 0.55f),
+                ResourceType.Iron => new Color(0.70f, 0.75f, 0.85f),
+                ResourceType.Grain => new Color(0.55f, 0.85f, 0.40f),
+                ResourceType.ArcaneEssence => new Color(0.65f, 0.45f, 0.90f),
+                _ => Color.white
+            };
+
+            // Spawn 3 particles with slight offset
+            for (int i = 0; i < 3; i++)
+            {
+                var particle = new GameObject($"FlyParticle_{i}");
+                particle.transform.SetParent(canvas.transform, false);
+                var rect = particle.AddComponent<RectTransform>();
+                float xJitter = (i - 1) * 0.02f;
+                rect.anchorMin = startAnchor + new Vector2(xJitter - 0.01f, -0.01f);
+                rect.anchorMax = startAnchor + new Vector2(xJitter + 0.01f, 0.01f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var img = particle.AddComponent<Image>();
+                img.color = particleColor;
+                img.raycastTarget = false;
+
+                // Target: resource bar area at top of screen
+                Vector2 targetAnchor = new Vector2(0.3f + i * 0.1f, 0.96f);
+                StartCoroutine(AnimateFlyParticle(particle, rect, img, startAnchor, targetAnchor, i * 0.05f));
+            }
+        }
+
+        private IEnumerator AnimateFlyParticle(GameObject particle, RectTransform rect, Image img,
+            Vector2 startAnchor, Vector2 targetAnchor, float delay)
+        {
+            if (delay > 0) yield return new WaitForSeconds(delay);
+
+            float duration = 0.5f;
+            float elapsed = 0f;
+            while (elapsed < duration && particle != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Ease-in curve for acceleration effect
+                float curved = t * t;
+                Vector2 pos = Vector2.Lerp(startAnchor, targetAnchor, curved);
+                // Arc upward slightly
+                float arc = Mathf.Sin(t * Mathf.PI) * 0.04f;
+                pos.x += arc;
+                rect.anchorMin = pos + new Vector2(-0.008f, -0.008f);
+                rect.anchorMax = pos + new Vector2(0.008f, 0.008f);
+                // Shrink as it reaches target
+                float scale = 1f - curved * 0.5f;
+                rect.localScale = Vector3.one * scale;
+                // Brighten then fade at end
+                float alpha = t < 0.7f ? 1f : 1f - (t - 0.7f) / 0.3f;
+                img.color = new Color(img.color.r, img.color.g, img.color.b, alpha);
+                yield return null;
+            }
+            if (particle != null) Destroy(particle);
         }
 
         /// <summary>P&C: Play SFX and remove builder indicator when upgrade completes.</summary>

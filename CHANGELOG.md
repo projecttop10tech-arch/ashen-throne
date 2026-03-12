@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.48.0] — 2026-03-12 (Ralph Loop Iteration 43: Buff Icons, Fly-to-Bar, Resource Particles)
+
+### ADDED
+- **Buff indicator icons on buildings** — resource buildings show a green ⬆ production boost icon, military buildings show a red ⚔ combat boost icon. Small dark-pill badges in the bottom-left area. Integrates with ResearchManager to check if bonuses are active.
+- **Resource fly-to-bar particles** — collecting resource bubbles spawns 3 colored particles that fly from the building toward the resource bar at the top of the screen. Particles accelerate with an ease-in curve, arc slightly sideways, shrink as they approach the target, and fade at the end. Each particle staggered by 0.05s for a cascade effect.
+- **Screen-space particle positioning** — fly particles use `WorldToScreenPoint` → normalized screen coords for accurate start position regardless of zoom/scroll state.
+
+### CHANGED
+- `OnResourceCollected` now calls `SpawnResourceFlyParticle()` alongside SFX and toast
+- Building creation pipeline now calls `CreateBuffIndicators()` after garrison labels
+- Fly particle uses `Screen.width/height` normalization instead of non-existent `ScreenPointToNormalizedRectanglePoint`
+
+---
+
 ## [0.47.0] — 2026-03-12 (Ralph Loop Iteration 42: NEW Badge, Garrison Labels, Category Icons)
 
 ### ADDED
