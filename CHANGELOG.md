@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.49.0] — 2026-03-12 (Ralph Loop Iteration 44: Zoom Detail Levels, Tier Preview)
+
+### ADDED
+- **4-tier zoom-dependent detail levels** — city elements now show/hide based on zoom level: far (≥0.55x) shows progress bars; medium (≥0.7x) adds arrows, count badges, NEW badges, queue labels; close (≥1.0x) adds level badges, names, production rates, buff icons; inspection (≥1.4x) adds garrison labels. Keeps strategic overview clean while enabling deep inspection on zoom-in.
+- **Building upgrade tier preview in info panel** — the Info panel now shows current vs next tier building sprites side-by-side with a gold arrow between them. Next tier sprite has a subtle gold glow highlight. Below the preview, stat deltas show what improves (e.g., "+250/hr", "+1.5K ⚔", "+500 troops"). Max-level buildings show only the current sprite centered.
+- **`LoadBuildingSprite()` helper** — static method for loading building sprites by ID + tier, with Editor AssetDatabase fallback.
+- **`GetTierUpgradeStatDelta()` helper** — computes production rate, power, and troop capacity deltas between tiers.
+
+### CHANGED
+- `UpdateZoomDetailVisibility()` expanded from 3 tiers (detail/medium/category) to 4 tiers (far/medium/close/inspection) with 10 element types controlled
+- Info panel layout adjusted: tier preview occupies 0.68-0.86 vertical range, description shifted to 0.55-0.67, stats to 0.52 baseline
+- Category icons now hide at close zoom (>1.3x) to avoid visual clutter with level badges
+
+---
+
 ## [0.48.0] — 2026-03-12 (Ralph Loop Iteration 43: Buff Icons, Fly-to-Bar, Resource Particles)
 
 ### ADDED

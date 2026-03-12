@@ -553,41 +553,68 @@ namespace AshenThrone.Empire
         /// </summary>
         private void UpdateZoomDetailVisibility()
         {
-            bool showDetails = _currentZoom >= 1.0f;      // Badges, labels at close zoom
-            bool showMedium = _currentZoom >= 0.7f;        // Arrows, production rates
+            // P&C: 4-tier zoom detail levels — strategic overview → city view → close-up → inspection
+            bool showFar = _currentZoom >= 0.55f;           // Upgrade progress bars (always important)
+            bool showMedium = _currentZoom >= 0.7f;         // Arrows, count badges, category icons
+            bool showClose = _currentZoom >= 1.0f;          // Level badges, names, production rates, buffs
+            bool showInspection = _currentZoom >= 1.4f;     // Garrison labels, buff details
             bool showCategoryIcons = _currentZoom >= 0.6f && _currentZoom < 1.3f;
+
             foreach (var p in _placements)
             {
                 if (p.VisualGO == null) continue;
+                var t = p.VisualGO.transform;
 
                 // Level badge — close zoom only
-                var badge = p.VisualGO.transform.Find("LevelBadge");
-                if (badge != null) badge.gameObject.SetActive(showDetails);
+                var badge = t.Find("LevelBadge");
+                if (badge != null) badge.gameObject.SetActive(showClose);
 
                 // Name label — close zoom only
-                var nameLabel = p.VisualGO.transform.Find("NameLabel");
-                if (nameLabel != null) nameLabel.gameObject.SetActive(showDetails);
+                var nameLabel = t.Find("NameLabel");
+                if (nameLabel != null) nameLabel.gameObject.SetActive(showClose);
 
-                // P&C: Category mini-icons visible at medium zoom
-                var catIcon = p.VisualGO.transform.Find("CategoryIcon");
+                // P&C: Category mini-icons visible at medium zoom (hides at close to avoid clutter)
+                var catIcon = t.Find("CategoryIcon");
                 if (catIcon != null) catIcon.gameObject.SetActive(showCategoryIcons);
 
                 // Upgrade arrow — medium+ zoom
-                var arrow = p.VisualGO.transform.Find("UpgradeArrow");
+                var arrow = t.Find("UpgradeArrow");
                 if (arrow != null) arrow.gameObject.SetActive(showMedium);
 
                 // Production rate label — close zoom only
-                var prodRate = p.VisualGO.transform.Find("ProductionRate");
-                if (prodRate != null) prodRate.gameObject.SetActive(showDetails);
+                var prodRate = t.Find("ProductionRate");
+                if (prodRate != null) prodRate.gameObject.SetActive(showClose);
 
                 // Instance count badge — medium+ zoom
-                var countBadge = p.VisualGO.transform.Find("CountBadge");
+                var countBadge = t.Find("CountBadge");
                 if (countBadge != null) countBadge.gameObject.SetActive(showMedium);
 
-                // Upgrade indicator always visible (important info)
+                // P&C: Buff indicators — close zoom only (small, need zoom to read)
+                for (int i = 0; i < 3; i++)
+                {
+                    var buff = t.Find($"Buff_{i}");
+                    if (buff != null) buff.gameObject.SetActive(showClose);
+                }
+
+                // P&C: Garrison labels — inspection zoom only (deep detail)
+                var garrison = t.Find("GarrisonLabel");
+                if (garrison != null) garrison.gameObject.SetActive(showInspection);
+
+                // P&C: NEW badge — medium+ zoom (noticeable)
+                var newBadge = t.Find("NewBadge");
+                if (newBadge != null) newBadge.gameObject.SetActive(showMedium);
+
+                // P&C: Scaffolding — always visible (important visual feedback)
+                // Upgrade progress bar — far+ zoom (needs to be visible at overview)
+                var progressBar = t.Find("UpgradeProgressBar");
+                if (progressBar != null) progressBar.gameObject.SetActive(showFar);
+
+                // Queue position label — medium+ zoom
+                var queueLabel = t.Find("QueuePosLabel");
+                if (queueLabel != null) queueLabel.gameObject.SetActive(showMedium);
             }
 
-            // Builder HUD: show at all zoom levels (it's screen-space UI)
+            // Builder HUD + Collect All button: always visible (screen-space UI)
         }
 
         /// <summary>P&C: On double-tap, smoothly zoom in and center on the building.</summary>
@@ -3267,14 +3294,103 @@ namespace AshenThrone.Empire
             sepImg.color = new Color(0.85f, 0.65f, 0.15f, 0.4f);
             sepImg.raycastTarget = false;
 
+            // P&C: Tier sprite preview — current vs next tier side by side
+            int nextTier = tier + 1;
+            bool hasNextTier = nextTier <= 3;
+            {
+                // Container for sprite preview row
+                var previewRow = new GameObject("TierPreview");
+                previewRow.transform.SetParent(panel.transform, false);
+                var previewRect = previewRow.AddComponent<RectTransform>();
+                previewRect.anchorMin = new Vector2(0.05f, 0.68f);
+                previewRect.anchorMax = new Vector2(0.95f, 0.86f);
+                previewRect.offsetMin = Vector2.zero;
+                previewRect.offsetMax = Vector2.zero;
+
+                // Current tier sprite
+                Sprite curSprite = LoadBuildingSprite(buildingId, tier);
+                if (curSprite != null)
+                {
+                    var curGO = new GameObject("CurrentTier");
+                    curGO.transform.SetParent(previewRow.transform, false);
+                    var curRect = curGO.AddComponent<RectTransform>();
+                    curRect.anchorMin = hasNextTier ? new Vector2(0.05f, 0.10f) : new Vector2(0.25f, 0.10f);
+                    curRect.anchorMax = hasNextTier ? new Vector2(0.35f, 0.95f) : new Vector2(0.75f, 0.95f);
+                    curRect.offsetMin = Vector2.zero;
+                    curRect.offsetMax = Vector2.zero;
+                    var curImg = curGO.AddComponent<Image>();
+                    curImg.sprite = curSprite;
+                    curImg.preserveAspect = true;
+                    curImg.raycastTarget = false;
+
+                    // "Current" label below
+                    AddInfoPanelText(previewRow.transform, "CurLabel", $"Lv.{tier}", 9, FontStyle.Normal,
+                        new Color(0.75f, 0.72f, 0.65f),
+                        curRect.anchorMin - new Vector2(0, 0.10f), new Vector2(curRect.anchorMax.x, curRect.anchorMin.y),
+                        TextAnchor.MiddleCenter);
+                }
+
+                // Next tier sprite preview (if not max)
+                if (hasNextTier)
+                {
+                    // Arrow between sprites
+                    AddInfoPanelText(previewRow.transform, "Arrow", "\u2192", 16, FontStyle.Bold,
+                        new Color(0.95f, 0.82f, 0.35f),
+                        new Vector2(0.38f, 0.30f), new Vector2(0.52f, 0.70f), TextAnchor.MiddleCenter);
+
+                    Sprite nextSprite = LoadBuildingSprite(buildingId, nextTier);
+                    if (nextSprite != null)
+                    {
+                        var nextGO = new GameObject("NextTier");
+                        nextGO.transform.SetParent(previewRow.transform, false);
+                        var nextRect = nextGO.AddComponent<RectTransform>();
+                        nextRect.anchorMin = new Vector2(0.55f, 0.10f);
+                        nextRect.anchorMax = new Vector2(0.85f, 0.95f);
+                        nextRect.offsetMin = Vector2.zero;
+                        nextRect.offsetMax = Vector2.zero;
+                        var nextImg = nextGO.AddComponent<Image>();
+                        nextImg.sprite = nextSprite;
+                        nextImg.preserveAspect = true;
+                        nextImg.raycastTarget = false;
+
+                        // Gold glow behind next tier to highlight it
+                        var glowGO = new GameObject("NextGlow");
+                        glowGO.transform.SetParent(nextGO.transform, false);
+                        glowGO.transform.SetAsFirstSibling();
+                        var glowRect = glowGO.AddComponent<RectTransform>();
+                        glowRect.anchorMin = new Vector2(-0.15f, -0.08f);
+                        glowRect.anchorMax = new Vector2(1.15f, 1.08f);
+                        glowRect.offsetMin = Vector2.zero;
+                        glowRect.offsetMax = Vector2.zero;
+                        var glowImg = glowGO.AddComponent<Image>();
+                        glowImg.color = new Color(0.95f, 0.82f, 0.25f, 0.15f);
+                        glowImg.raycastTarget = false;
+
+                        // "Next" label
+                        AddInfoPanelText(previewRow.transform, "NextLabel", $"Lv.{nextTier}", 9, FontStyle.Bold,
+                            new Color(0.95f, 0.82f, 0.35f),
+                            new Vector2(0.55f, 0.0f), new Vector2(0.85f, 0.10f), TextAnchor.MiddleCenter);
+                    }
+
+                    // P&C: Stat comparison (what improves at next tier)
+                    string statDelta = GetTierUpgradeStatDelta(buildingId, tier, nextTier);
+                    if (!string.IsNullOrEmpty(statDelta))
+                    {
+                        AddInfoPanelText(previewRow.transform, "StatDelta", statDelta, 8, FontStyle.Normal,
+                            new Color(0.50f, 0.90f, 0.50f),
+                            new Vector2(0.87f, 0.20f), new Vector2(1.0f, 0.80f), TextAnchor.MiddleLeft);
+                    }
+                }
+            }
+
             // Building description
             string desc = GetBuildingDescription(buildingId);
-            AddInfoPanelText(panel.transform, "Description", desc, 12, FontStyle.Normal,
+            AddInfoPanelText(panel.transform, "Description", desc, 11, FontStyle.Normal,
                 new Color(0.80f, 0.78f, 0.75f),
-                new Vector2(0.05f, 0.72f), new Vector2(0.95f, 0.85f), TextAnchor.UpperLeft);
+                new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.67f), TextAnchor.UpperLeft);
 
             // Stats section
-            float statsY = 0.68f;
+            float statsY = 0.52f;
             AddInfoPanelText(panel.transform, "StatsHeader", "STATS", 12, FontStyle.Bold,
                 new Color(0.70f, 0.85f, 1f),
                 new Vector2(0.05f, statsY - 0.02f), new Vector2(0.50f, statsY + 0.04f), TextAnchor.MiddleLeft);
@@ -3416,6 +3532,50 @@ namespace AshenThrone.Empire
             var shadow = go.AddComponent<Shadow>();
             shadow.effectColor = new Color(0, 0, 0, 0.8f);
             shadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        /// <summary>P&C: Load a building sprite by buildingId and tier number (1-3).</summary>
+        private static Sprite LoadBuildingSprite(string buildingId, int tier)
+        {
+            string spriteName = $"{buildingId}_t{tier}";
+            var sprite = Resources.Load<Sprite>($"Buildings/{spriteName}");
+            #if UNITY_EDITOR
+            if (sprite == null)
+                sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/Buildings/{spriteName}.png");
+            #endif
+            return sprite;
+        }
+
+        /// <summary>P&C: Get stat delta description for upgrading from current to next tier.</summary>
+        private static string GetTierUpgradeStatDelta(string buildingId, int currentTier, int nextTier)
+        {
+            var lines = new List<string>();
+
+            // Resource production delta
+            if (buildingId == "grain_farm" || buildingId == "iron_mine" || buildingId == "stone_quarry" || buildingId == "arcane_tower")
+            {
+                int curRate = (currentTier + 1) * 250;
+                int nextRate = (nextTier + 1) * 250;
+                lines.Add($"+{nextRate - curRate}/hr");
+            }
+
+            // Power delta
+            int curPower = GetBuildingPowerContribution(buildingId, currentTier);
+            int nextPower = GetBuildingPowerContribution(buildingId, nextTier);
+            if (nextPower > curPower)
+            {
+                int delta = nextPower - curPower;
+                string deltaStr = delta >= 1000 ? $"+{delta / 1000f:F1}K" : $"+{delta}";
+                lines.Add($"{deltaStr} \u2694");
+            }
+
+            // Military capacity
+            if (buildingId == "barracks")
+                lines.Add($"+{500} troops");
+            else if (buildingId == "training_ground")
+                lines.Add($"+{300} troops");
+
+            return lines.Count > 0 ? string.Join("\n", lines) : null;
         }
 
         private void DismissBuildingInfoPanel()
