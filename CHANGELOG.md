@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.33.0] — 2026-03-11 (Ralph Loop Iteration 28: Move Confirm/Cancel, Upgrade Costs)
+
+### ADDED
+- **Move mode confirm/cancel bar** — P&C-style floating bar at bottom of screen during move mode with red Cancel and green Confirm buttons. Cancel returns building to original position without committing. Bar auto-destroyed on exit.
+- **Upgrade cost preview in info popup** — popup now shows next-tier resource costs (◈Stone ♦Iron ❀Grain ✦Arcane) between building name and action buttons, with formatted K/M suffixes. Shows "MAX LEVEL" when fully upgraded.
+- **Cancel preserves original position** — CancelMoveMode restores building to `_moveOriginalOrigin` without any grid state changes
+
+### CHANGED
+- Info popup expanded from 80px to 95px height to accommodate cost line
+- `EnterMoveModeForBuilding` now also dims non-moving buildings (was missing from popup-triggered path)
+- Added `using AshenThrone.Data` import for BuildingData access
+
+---
+
 ## [0.32.0] — 2026-03-11 (Ralph Loop Iteration 27: Info Popup, Speed-Up Button)
 
 ### ADDED

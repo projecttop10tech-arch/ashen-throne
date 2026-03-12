@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using AshenThrone.Core;
+using AshenThrone.Data;
 
 namespace AshenThrone.Empire
 {
@@ -152,6 +153,10 @@ namespace AshenThrone.Empire
         private GameObject _infoPopup;
         private string _infoPopupInstanceId;
         private EventSubscription _buildingTappedSub;
+
+        // P&C: Move mode confirm/cancel bar
+        private GameObject _moveConfirmBar;
+        private Vector2Int _moveOriginalOrigin;
 
         // P&C: Long-press hold indicator
         private GameObject _holdIndicator;
@@ -1479,6 +1484,158 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Move mode confirm/cancel bar
+        // ====================================================================
+
+        /// <summary>P&C: Show confirm/cancel buttons at bottom of screen during move mode.</summary>
+        private void ShowMoveConfirmBar()
+        {
+            DestroyMoveConfirmBar();
+
+            // Create bar anchored to bottom of the screen (on the main Canvas, not building container)
+            Transform canvasRoot = transform;
+            // Walk up to find the root Canvas
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            var bar = new GameObject("MoveConfirmBar");
+            bar.transform.SetParent(canvasRoot, false);
+            bar.transform.SetAsLastSibling();
+
+            var barRect = bar.AddComponent<RectTransform>();
+            barRect.anchorMin = new Vector2(0.15f, 0.12f);
+            barRect.anchorMax = new Vector2(0.85f, 0.18f);
+            barRect.offsetMin = Vector2.zero;
+            barRect.offsetMax = Vector2.zero;
+
+            var barBg = bar.AddComponent<Image>();
+            barBg.color = new Color(0.06f, 0.04f, 0.10f, 0.90f);
+            barBg.raycastTarget = false;
+
+            var barOutline = bar.AddComponent<Outline>();
+            barOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.6f);
+            barOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Cancel button (left)
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(bar.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.02f, 0.1f);
+            cancelRect.anchorMax = new Vector2(0.48f, 0.9f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.65f, 0.15f, 0.15f, 0.9f);
+            cancelImg.raycastTarget = true;
+
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            cancelBtn.onClick.AddListener(CancelMoveMode);
+
+            var cancelTextGO = new GameObject("Label");
+            cancelTextGO.transform.SetParent(cancelGO.transform, false);
+            var cancelTextRect = cancelTextGO.AddComponent<RectTransform>();
+            cancelTextRect.anchorMin = Vector2.zero;
+            cancelTextRect.anchorMax = Vector2.one;
+            cancelTextRect.offsetMin = Vector2.zero;
+            cancelTextRect.offsetMax = Vector2.zero;
+            var cancelText = cancelTextGO.AddComponent<Text>();
+            cancelText.text = "\u2716 Cancel";
+            cancelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            cancelText.fontSize = 12;
+            cancelText.fontStyle = FontStyle.Bold;
+            cancelText.alignment = TextAnchor.MiddleCenter;
+            cancelText.color = Color.white;
+            cancelText.raycastTarget = false;
+
+            // Confirm button (right)
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(bar.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.52f, 0.1f);
+            confirmRect.anchorMax = new Vector2(0.98f, 0.9f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+
+            var confirmImg = confirmGO.AddComponent<Image>();
+            confirmImg.color = new Color(0.15f, 0.60f, 0.20f, 0.9f);
+            confirmImg.raycastTarget = true;
+
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmImg;
+            confirmBtn.onClick.AddListener(ConfirmMoveMode);
+
+            var confirmTextGO = new GameObject("Label");
+            confirmTextGO.transform.SetParent(confirmGO.transform, false);
+            var confirmTextRect = confirmTextGO.AddComponent<RectTransform>();
+            confirmTextRect.anchorMin = Vector2.zero;
+            confirmTextRect.anchorMax = Vector2.one;
+            confirmTextRect.offsetMin = Vector2.zero;
+            confirmTextRect.offsetMax = Vector2.zero;
+            var confirmText = confirmTextGO.AddComponent<Text>();
+            confirmText.text = "\u2714 Confirm";
+            confirmText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            confirmText.fontSize = 12;
+            confirmText.fontStyle = FontStyle.Bold;
+            confirmText.alignment = TextAnchor.MiddleCenter;
+            confirmText.color = Color.white;
+            confirmText.raycastTarget = false;
+
+            _moveConfirmBar = bar;
+        }
+
+        /// <summary>P&C: Confirm move — commit building to current ghost position.</summary>
+        private void ConfirmMoveMode()
+        {
+            if (!_moveMode || _movingBuilding == null) return;
+            // Reuse existing exit logic which handles placement/swap
+            ExitMoveMode(null);
+        }
+
+        /// <summary>P&C: Cancel move — return building to original position.</summary>
+        private void CancelMoveMode()
+        {
+            if (!_moveMode || _movingBuilding == null) return;
+
+            // Restore building to original position
+            if (_movingBuilding.VisualGO != null)
+                _movingBuilding.VisualGO.GetComponent<Image>().color = Color.white;
+
+            // Cleanup ghost/shadow without committing move
+            if (_dragGhost != null) Destroy(_dragGhost);
+            if (_dragShadow != null) Destroy(_dragShadow);
+            _dragGhost = null;
+            _dragShadow = null;
+
+            // P&C: Restore all buildings to full brightness
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO != null)
+                    p.VisualGO.GetComponent<Image>().color = Color.white;
+            }
+
+            _movingBuilding = null;
+            _moveMode = false;
+
+            PlaySfx(_sfxTap);
+            HideMoveGridCells();
+            DestroyHighlight();
+            DestroyMoveConfirmBar();
+            SetGridOverlayVisible(false);
+            if (scrollRect != null) scrollRect.enabled = true;
+        }
+
+        private void DestroyMoveConfirmBar()
+        {
+            if (_moveConfirmBar != null)
+            {
+                Destroy(_moveConfirmBar);
+                _moveConfirmBar = null;
+            }
+        }
+
+        // ====================================================================
         // P&C: Building info popup on tap
         // ====================================================================
 
@@ -1515,7 +1672,7 @@ namespace AshenThrone.Empire
             Vector2 buildingPos = buildingRect != null ? buildingRect.anchoredPosition : Vector2.zero;
             float buildingHeight = buildingRect != null ? buildingRect.sizeDelta.y : 80f;
             popupRect.anchoredPosition = buildingPos + new Vector2(0, buildingHeight * 0.55f);
-            popupRect.sizeDelta = new Vector2(160, 80);
+            popupRect.sizeDelta = new Vector2(170, 95);
 
             // Dark panel background
             var bg = popup.AddComponent<Image>();
@@ -1532,13 +1689,13 @@ namespace AshenThrone.Empire
             bgOutline2.effectColor = new Color(0.4f, 0.3f, 0.1f, 0.5f);
             bgOutline2.effectDistance = new Vector2(-1f, 1f);
 
-            // Building name
+            // Building name + level
             string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
             var nameGO = new GameObject("Name");
             nameGO.transform.SetParent(popup.transform, false);
             var nameRect = nameGO.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.05f, 0.60f);
-            nameRect.anchorMax = new Vector2(0.95f, 0.95f);
+            nameRect.anchorMin = new Vector2(0.05f, 0.72f);
+            nameRect.anchorMax = new Vector2(0.95f, 0.97f);
             nameRect.offsetMin = Vector2.zero;
             nameRect.offsetMax = Vector2.zero;
             var nameText = nameGO.AddComponent<Text>();
@@ -1553,8 +1710,31 @@ namespace AshenThrone.Empire
             nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
             nameOutline.effectDistance = new Vector2(1f, -1f);
 
+            // P&C: Upgrade cost preview line
+            string costStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
+            if (!string.IsNullOrEmpty(costStr))
+            {
+                var costGO = new GameObject("CostLine");
+                costGO.transform.SetParent(popup.transform, false);
+                var costRect = costGO.AddComponent<RectTransform>();
+                costRect.anchorMin = new Vector2(0.05f, 0.52f);
+                costRect.anchorMax = new Vector2(0.95f, 0.72f);
+                costRect.offsetMin = Vector2.zero;
+                costRect.offsetMax = Vector2.zero;
+                var costText = costGO.AddComponent<Text>();
+                costText.text = costStr;
+                costText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                costText.fontSize = 8;
+                costText.alignment = TextAnchor.MiddleCenter;
+                costText.color = new Color(0.75f, 0.72f, 0.65f);
+                costText.raycastTarget = false;
+                var costOutline = costGO.AddComponent<Outline>();
+                costOutline.effectColor = new Color(0, 0, 0, 0.7f);
+                costOutline.effectDistance = new Vector2(0.7f, -0.7f);
+            }
+
             // Action buttons row
-            float btnY0 = 0.08f, btnY1 = 0.55f;
+            float btnY0 = 0.06f, btnY1 = 0.50f;
             CreatePopupButton(popup.transform, "Upgrade", "\u2B06", new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1),
                 new Color(0.15f, 0.55f, 0.15f, 0.9f), () => {
                     EventBus.Publish(new BuildingDoubleTappedEvent(evt.InstanceId, evt.BuildingId, evt.Tier));
@@ -1646,6 +1826,32 @@ namespace AshenThrone.Empire
                 _infoPopup = null;
             }
             _infoPopupInstanceId = null;
+        }
+
+        /// <summary>P&C: Get formatted upgrade cost string for next tier from BuildingData.</summary>
+        private static string GetUpgradeCostString(string instanceId, int currentTier)
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return null;
+            if (!bm.PlacedBuildings.TryGetValue(instanceId, out var placed)) return null;
+            if (placed.Data == null) return null;
+
+            var nextTier = placed.Data.GetTier(currentTier); // tier array is 0-based, currentTier is display tier
+            if (nextTier == null) return "MAX LEVEL";
+
+            var parts = new List<string>();
+            if (nextTier.stoneCost > 0) parts.Add($"\u25C8{FormatCost(nextTier.stoneCost)}");
+            if (nextTier.ironCost > 0) parts.Add($"\u2666{FormatCost(nextTier.ironCost)}");
+            if (nextTier.grainCost > 0) parts.Add($"\u2740{FormatCost(nextTier.grainCost)}");
+            if (nextTier.arcaneEssenceCost > 0) parts.Add($"\u2726{FormatCost(nextTier.arcaneEssenceCost)}");
+
+            return parts.Count > 0 ? string.Join("  ", parts) : null;
+        }
+
+        private static string FormatCost(int amount)
+        {
+            if (amount >= 1_000_000) return $"{amount / 1_000_000f:F1}M";
+            if (amount >= 1_000) return $"{amount / 1_000f:F1}K";
+            return amount.ToString();
         }
 
         /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>
@@ -2121,6 +2327,7 @@ namespace AshenThrone.Empire
 
             _moveMode = true;
             _movingBuilding = found;
+            _moveOriginalOrigin = found.GridOrigin;
             DestroyHoldIndicator();
 
             // P&C: Audio + haptic on move mode enter
@@ -2131,6 +2338,7 @@ namespace AshenThrone.Empire
 
             if (scrollRect != null) scrollRect.enabled = false;
             SetGridOverlayVisible(true);
+            ShowMoveConfirmBar();
 
             // P&C: Dim all non-moving buildings for visual focus
             foreach (var p in _placements)
@@ -2193,10 +2401,20 @@ namespace AshenThrone.Empire
 
             _moveMode = true;
             _movingBuilding = found;
+            _moveOriginalOrigin = found.GridOrigin;
 
             if (scrollRect != null) scrollRect.enabled = false;
             SetGridOverlayVisible(true);
             ClearBuildingFootprint();
+            ShowMoveConfirmBar();
+
+            // P&C: Dim non-moving buildings
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null || p.InstanceId == found.InstanceId) continue;
+                var pImg = p.VisualGO.GetComponent<Image>();
+                if (pImg != null) pImg.color = new Color(0.6f, 0.6f, 0.6f, 0.5f);
+            }
 
             if (found.VisualGO != null)
                 found.VisualGO.GetComponent<Image>().color = new Color(1, 1, 1, 0.3f);
@@ -2303,6 +2521,7 @@ namespace AshenThrone.Empire
 
             HideMoveGridCells();
             DestroyHighlight();
+            DestroyMoveConfirmBar();
             SetGridOverlayVisible(false);
             if (scrollRect != null) scrollRect.enabled = true;
         }
