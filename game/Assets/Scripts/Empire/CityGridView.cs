@@ -3273,6 +3273,515 @@ namespace AshenThrone.Empire
             }
         }
 
+        // ====================================================================
+        // P&C: Speed-Up Item Selection (replaces gem-only speed-up)
+        // ====================================================================
+
+        private GameObject _speedUpItemPanel;
+
+        /// <summary>P&C: Show speed-up item selection panel with tiered items (5m, 15m, 60m, 3h, 8h).</summary>
+        private void ShowSpeedUpItemPanel(string instanceId, int remainingSeconds)
+        {
+            if (_speedUpItemPanel != null) { Destroy(_speedUpItemPanel); _speedUpItemPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _speedUpItemPanel = new GameObject("SpeedUpItemPanel");
+            _speedUpItemPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _speedUpItemPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _speedUpItemPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _speedUpItemPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_speedUpItemPanel != null) { Destroy(_speedUpItemPanel); _speedUpItemPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_speedUpItemPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.22f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.78f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string timeStr = FormatTimeRemaining(remainingSeconds);
+            AddInfoPanelText(panel.transform, "Title", "\u23F1 Use Speed-Up Items", 14, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.88f), new Vector2(0.80f, 0.98f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(panel.transform, "Remaining",
+                $"Time remaining: {timeStr}", 10, FontStyle.Normal,
+                new Color(0.70f, 0.68f, 0.60f),
+                new Vector2(0.05f, 0.80f), new Vector2(0.95f, 0.88f), TextAnchor.MiddleLeft);
+
+            // Speed-up items
+            var items = new[]
+            {
+                ("5 Minutes", 300, "\u23F1", 12, new Color(0.50f, 0.75f, 0.50f)),
+                ("15 Minutes", 900, "\u23F2", 8, new Color(0.45f, 0.70f, 0.85f)),
+                ("60 Minutes", 3600, "\u231A", 5, new Color(0.70f, 0.55f, 0.85f)),
+                ("3 Hours", 10800, "\u2B50", 2, new Color(0.85f, 0.65f, 0.25f)),
+                ("8 Hours", 28800, "\u26A1", 1, new Color(0.90f, 0.40f, 0.30f)),
+            };
+
+            float yPos = 0.76f;
+            float rowH = 0.12f;
+            foreach (var (name, seconds, icon, qty, tint) in items)
+            {
+                var rowGO = new GameObject($"Item_{name}");
+                rowGO.transform.SetParent(panel.transform, false);
+                var rowRect = rowGO.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, yPos - rowH);
+                rowRect.anchorMax = new Vector2(0.97f, yPos);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = rowGO.AddComponent<Image>();
+                rowBg.color = new Color(tint.r * 0.12f, tint.g * 0.12f, tint.b * 0.12f, 0.70f);
+                rowBg.raycastTarget = false;
+
+                // Icon + Name
+                AddInfoPanelText(rowGO.transform, "Icon", icon, 16, FontStyle.Normal, tint,
+                    new Vector2(0.02f, 0.10f), new Vector2(0.10f, 0.90f), TextAnchor.MiddleCenter);
+                AddInfoPanelText(rowGO.transform, "Name", name, 11, FontStyle.Bold,
+                    new Color(0.90f, 0.85f, 0.75f),
+                    new Vector2(0.12f, 0.50f), new Vector2(0.55f, 0.95f), TextAnchor.MiddleLeft);
+
+                // Quantity owned
+                AddInfoPanelText(rowGO.transform, "Qty", $"x{qty}", 10, FontStyle.Bold, tint,
+                    new Vector2(0.55f, 0.50f), new Vector2(0.68f, 0.95f), TextAnchor.MiddleCenter);
+
+                // Time reduction
+                string reductionStr = FormatTimeRemaining(seconds);
+                AddInfoPanelText(rowGO.transform, "Reduction", $"-{reductionStr}", 8, FontStyle.Normal,
+                    new Color(0.65f, 0.60f, 0.55f),
+                    new Vector2(0.12f, 0.05f), new Vector2(0.55f, 0.48f), TextAnchor.MiddleLeft);
+
+                // Use button
+                bool hasItems = qty > 0;
+                var useBtnGO = new GameObject("UseBtn");
+                useBtnGO.transform.SetParent(rowGO.transform, false);
+                var useBtnRect = useBtnGO.AddComponent<RectTransform>();
+                useBtnRect.anchorMin = new Vector2(0.72f, 0.12f);
+                useBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                useBtnRect.offsetMin = Vector2.zero;
+                useBtnRect.offsetMax = Vector2.zero;
+                var useBtnBg = useBtnGO.AddComponent<Image>();
+                useBtnBg.color = hasItems
+                    ? new Color(0.15f, 0.55f, 0.25f, 0.92f)
+                    : new Color(0.30f, 0.28f, 0.26f, 0.70f);
+                useBtnBg.raycastTarget = true;
+                var useBtnComp = useBtnGO.AddComponent<Button>();
+                useBtnComp.targetGraphic = useBtnBg;
+                string capName = name;
+                int capSecs = seconds;
+                string capInstId = instanceId;
+                useBtnComp.onClick.AddListener(() =>
+                {
+                    if (!hasItems) { ShowUpgradeBlockedToast("No speed-up items available!"); return; }
+                    Debug.Log($"[SpeedUp] Used {capName} (-{capSecs}s) on {capInstId}.");
+                    if (_speedUpItemPanel != null) { Destroy(_speedUpItemPanel); _speedUpItemPanel = null; }
+                    ShowUpgradeBlockedToast($"\u23F1 Used {capName} speed-up!");
+                });
+                AddInfoPanelText(useBtnGO.transform, "Label",
+                    hasItems ? "USE" : "---", 9, FontStyle.Bold,
+                    hasItems ? Color.white : new Color(0.50f, 0.45f, 0.40f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                yPos -= rowH + 0.015f;
+            }
+
+            // "Use All" button at bottom
+            var useAllGO = new GameObject("UseAllBtn");
+            useAllGO.transform.SetParent(panel.transform, false);
+            var useAllRect = useAllGO.AddComponent<RectTransform>();
+            useAllRect.anchorMin = new Vector2(0.25f, 0.02f);
+            useAllRect.anchorMax = new Vector2(0.75f, 0.10f);
+            useAllRect.offsetMin = Vector2.zero;
+            useAllRect.offsetMax = Vector2.zero;
+            var useAllBg = useAllGO.AddComponent<Image>();
+            useAllBg.color = new Color(0.70f, 0.50f, 0.15f, 0.92f);
+            useAllBg.raycastTarget = true;
+            var useAllOutln = useAllGO.AddComponent<Outline>();
+            useAllOutln.effectColor = new Color(0.95f, 0.75f, 0.25f, 0.5f);
+            useAllOutln.effectDistance = new Vector2(0.5f, -0.5f);
+            var useAllBtn = useAllGO.AddComponent<Button>();
+            useAllBtn.targetGraphic = useAllBg;
+            useAllBtn.onClick.AddListener(() =>
+            {
+                Debug.Log($"[SpeedUp] Used all available items on {instanceId}.");
+                if (_speedUpItemPanel != null) { Destroy(_speedUpItemPanel); _speedUpItemPanel = null; }
+                ShowUpgradeBlockedToast("\u23F1 Used all speed-up items!");
+            });
+            AddInfoPanelText(useAllGO.transform, "Label", "\u26A1 USE ALL", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_speedUpItemPanel != null) { Destroy(_speedUpItemPanel); _speedUpItemPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _speedUpItemPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: Production Boost Activation Panel
+        // ====================================================================
+
+        private GameObject _boostPanel;
+
+        /// <summary>P&C: Show production boost item panel for resource buildings.</summary>
+        private void ShowProductionBoostPanel(string instanceId, string buildingId, int tier)
+        {
+            if (_boostPanel != null) { Destroy(_boostPanel); _boostPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _boostPanel = new GameObject("ProductionBoostPanel");
+            _boostPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _boostPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _boostPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _boostPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_boostPanel != null) { Destroy(_boostPanel); _boostPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_boostPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.70f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.04f, 0.08f, 0.04f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.35f, 0.75f, 0.40f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string bName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            AddInfoPanelText(panel.transform, "Title",
+                $"\u2191 Boost {bName} Production", 14, FontStyle.Bold,
+                new Color(0.50f, 0.85f, 0.45f),
+                new Vector2(0.05f, 0.85f), new Vector2(0.80f, 0.98f), TextAnchor.MiddleLeft);
+
+            // Boost items
+            var boosts = new[]
+            {
+                ("+25% for 1h", 0.25f, 3600, 5, new Color(0.45f, 0.75f, 0.45f)),
+                ("+50% for 1h", 0.50f, 3600, 3, new Color(0.50f, 0.80f, 0.90f)),
+                ("+100% for 30m", 1.00f, 1800, 1, new Color(0.85f, 0.65f, 0.25f)),
+                ("+25% for 8h", 0.25f, 28800, 2, new Color(0.70f, 0.50f, 0.85f)),
+            };
+
+            float yPos = 0.80f;
+            foreach (var (label, pct, durSec, qty, tint) in boosts)
+            {
+                var rowGO = new GameObject($"Boost_{label}");
+                rowGO.transform.SetParent(panel.transform, false);
+                var rowRect = rowGO.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, yPos - 0.16f);
+                rowRect.anchorMax = new Vector2(0.97f, yPos);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = rowGO.AddComponent<Image>();
+                rowBg.color = new Color(tint.r * 0.15f, tint.g * 0.15f, tint.b * 0.15f, 0.70f);
+                rowBg.raycastTarget = false;
+
+                AddInfoPanelText(rowGO.transform, "Icon", "\u2191", 16, FontStyle.Bold, tint,
+                    new Vector2(0.02f, 0.15f), new Vector2(0.10f, 0.85f), TextAnchor.MiddleCenter);
+                AddInfoPanelText(rowGO.transform, "Name", label, 11, FontStyle.Bold,
+                    new Color(0.90f, 0.85f, 0.75f),
+                    new Vector2(0.12f, 0.45f), new Vector2(0.58f, 0.95f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(rowGO.transform, "Qty", $"x{qty}", 10, FontStyle.Bold, tint,
+                    new Vector2(0.58f, 0.45f), new Vector2(0.70f, 0.95f), TextAnchor.MiddleCenter);
+
+                string durStr = FormatTimeRemaining(durSec);
+                AddInfoPanelText(rowGO.transform, "Dur", $"Duration: {durStr}", 8, FontStyle.Normal,
+                    new Color(0.60f, 0.58f, 0.52f),
+                    new Vector2(0.12f, 0.05f), new Vector2(0.58f, 0.42f), TextAnchor.MiddleLeft);
+
+                bool hasItem = qty > 0;
+                var actBtnGO = new GameObject("ActivateBtn");
+                actBtnGO.transform.SetParent(rowGO.transform, false);
+                var actBtnRect = actBtnGO.AddComponent<RectTransform>();
+                actBtnRect.anchorMin = new Vector2(0.72f, 0.12f);
+                actBtnRect.anchorMax = new Vector2(0.98f, 0.88f);
+                actBtnRect.offsetMin = Vector2.zero;
+                actBtnRect.offsetMax = Vector2.zero;
+                var actBtnBg = actBtnGO.AddComponent<Image>();
+                actBtnBg.color = hasItem
+                    ? new Color(0.20f, 0.55f, 0.25f, 0.92f)
+                    : new Color(0.30f, 0.28f, 0.26f, 0.70f);
+                actBtnBg.raycastTarget = true;
+                var actBtnComp = actBtnGO.AddComponent<Button>();
+                actBtnComp.targetGraphic = actBtnBg;
+                string capLabel = label;
+                string capBid = buildingId;
+                actBtnComp.onClick.AddListener(() =>
+                {
+                    if (!hasItem) { ShowUpgradeBlockedToast("No boost items available!"); return; }
+                    Debug.Log($"[Boost] Activated {capLabel} on {capBid}.");
+                    if (_boostPanel != null) { Destroy(_boostPanel); _boostPanel = null; }
+                    ShowUpgradeBlockedToast($"\u2191 {capLabel} boost active on {bName}!");
+                });
+                AddInfoPanelText(actBtnGO.transform, "Label",
+                    hasItem ? "ACTIVATE" : "---", 8, FontStyle.Bold,
+                    hasItem ? Color.white : new Color(0.50f, 0.45f, 0.40f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                yPos -= 0.18f;
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_boostPanel != null) { Destroy(_boostPanel); _boostPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _boostPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: Building Swap (drag one building onto another to swap positions)
+        // ====================================================================
+
+        private GameObject _swapConfirmDialog;
+
+        /// <summary>P&C: Show swap confirmation dialog when two buildings are selected for swap.</summary>
+        private void ShowBuildingSwapConfirm(CityBuildingPlacement buildingA, CityBuildingPlacement buildingB)
+        {
+            if (_swapConfirmDialog != null) { Destroy(_swapConfirmDialog); _swapConfirmDialog = null; }
+            if (buildingA == null || buildingB == null) return;
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _swapConfirmDialog = new GameObject("SwapConfirmDialog");
+            _swapConfirmDialog.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _swapConfirmDialog.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _swapConfirmDialog.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _swapConfirmDialog.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_swapConfirmDialog != null) { Destroy(_swapConfirmDialog); _swapConfirmDialog = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_swapConfirmDialog.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.32f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.68f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string nameA = BuildingDisplayNames.TryGetValue(buildingA.BuildingId, out var dnA) ? dnA : buildingA.BuildingId;
+            string nameB = BuildingDisplayNames.TryGetValue(buildingB.BuildingId, out var dnB) ? dnB : buildingB.BuildingId;
+
+            AddInfoPanelText(panel.transform, "Title", "\u21C4 Swap Buildings?", 15, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.10f, 0.82f), new Vector2(0.90f, 0.97f), TextAnchor.MiddleCenter);
+
+            // Building A preview
+            Sprite spriteA = LoadBuildingSprite(buildingA.BuildingId, buildingA.Tier);
+            if (spriteA != null)
+            {
+                var goA = new GameObject("SpriteA");
+                goA.transform.SetParent(panel.transform, false);
+                var rA = goA.AddComponent<RectTransform>();
+                rA.anchorMin = new Vector2(0.08f, 0.40f);
+                rA.anchorMax = new Vector2(0.30f, 0.78f);
+                rA.offsetMin = Vector2.zero;
+                rA.offsetMax = Vector2.zero;
+                var imgA = goA.AddComponent<Image>();
+                imgA.sprite = spriteA;
+                imgA.preserveAspect = true;
+                imgA.raycastTarget = false;
+            }
+            AddInfoPanelText(panel.transform, "NameA", $"{nameA} Lv.{buildingA.Tier}", 10, FontStyle.Bold,
+                new Color(0.85f, 0.80f, 0.70f),
+                new Vector2(0.05f, 0.30f), new Vector2(0.35f, 0.40f), TextAnchor.MiddleCenter);
+
+            // Arrow
+            AddInfoPanelText(panel.transform, "Arrow", "\u21C4", 22, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.35f, 0.48f), new Vector2(0.65f, 0.68f), TextAnchor.MiddleCenter);
+
+            // Building B preview
+            Sprite spriteB = LoadBuildingSprite(buildingB.BuildingId, buildingB.Tier);
+            if (spriteB != null)
+            {
+                var goB = new GameObject("SpriteB");
+                goB.transform.SetParent(panel.transform, false);
+                var rB = goB.AddComponent<RectTransform>();
+                rB.anchorMin = new Vector2(0.70f, 0.40f);
+                rB.anchorMax = new Vector2(0.92f, 0.78f);
+                rB.offsetMin = Vector2.zero;
+                rB.offsetMax = Vector2.zero;
+                var imgB = goB.AddComponent<Image>();
+                imgB.sprite = spriteB;
+                imgB.preserveAspect = true;
+                imgB.raycastTarget = false;
+            }
+            AddInfoPanelText(panel.transform, "NameB", $"{nameB} Lv.{buildingB.Tier}", 10, FontStyle.Bold,
+                new Color(0.85f, 0.80f, 0.70f),
+                new Vector2(0.65f, 0.30f), new Vector2(0.95f, 0.40f), TextAnchor.MiddleCenter);
+
+            // Confirm button
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(panel.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.55f, 0.05f);
+            confirmRect.anchorMax = new Vector2(0.95f, 0.22f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmBg = confirmGO.AddComponent<Image>();
+            confirmBg.color = new Color(0.15f, 0.60f, 0.25f, 0.92f);
+            confirmBg.raycastTarget = true;
+            var confirmOutln = confirmGO.AddComponent<Outline>();
+            confirmOutln.effectColor = new Color(0.40f, 0.85f, 0.45f, 0.5f);
+            confirmOutln.effectDistance = new Vector2(0.5f, -0.5f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmBg;
+            var capA = buildingA;
+            var capB = buildingB;
+            confirmBtn.onClick.AddListener(() =>
+            {
+                ExecuteBuildingSwap(capA, capB);
+                if (_swapConfirmDialog != null) { Destroy(_swapConfirmDialog); _swapConfirmDialog = null; }
+            });
+            AddInfoPanelText(confirmGO.transform, "Label", "\u21C4 SWAP", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Cancel
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(panel.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.05f, 0.05f);
+            cancelRect.anchorMax = new Vector2(0.45f, 0.22f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelBg = cancelGO.AddComponent<Image>();
+            cancelBg.color = new Color(0.35f, 0.25f, 0.25f, 0.85f);
+            cancelBg.raycastTarget = true;
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelBg;
+            cancelBtn.onClick.AddListener(() => { if (_swapConfirmDialog != null) { Destroy(_swapConfirmDialog); _swapConfirmDialog = null; } });
+            AddInfoPanelText(cancelGO.transform, "Label", "Cancel", 12, FontStyle.Bold,
+                new Color(0.80f, 0.70f, 0.60f),
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _swapConfirmDialog.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void ExecuteBuildingSwap(CityBuildingPlacement a, CityBuildingPlacement b)
+        {
+            // Swap grid positions
+            Vector2Int tempOrigin = a.GridOrigin;
+            a.GridOrigin = b.GridOrigin;
+            b.GridOrigin = tempOrigin;
+
+            // Update occupancy
+            foreach (var kvp in new Dictionary<Vector2Int, string>(_occupancy))
+            {
+                if (kvp.Value == a.InstanceId)
+                    _occupancy[kvp.Key] = "__swap_temp_a__";
+                else if (kvp.Value == b.InstanceId)
+                    _occupancy[kvp.Key] = "__swap_temp_b__";
+            }
+            foreach (var kvp in new Dictionary<Vector2Int, string>(_occupancy))
+            {
+                if (kvp.Value == "__swap_temp_a__")
+                    _occupancy[kvp.Key] = a.InstanceId;
+                else if (kvp.Value == "__swap_temp_b__")
+                    _occupancy[kvp.Key] = b.InstanceId;
+            }
+
+            // Reposition visuals
+            if (a.VisualGO != null)
+            {
+                var rectA = a.VisualGO.GetComponent<RectTransform>();
+                if (rectA != null) PositionBuildingRect(rectA, a);
+            }
+            if (b.VisualGO != null)
+            {
+                var rectB = b.VisualGO.GetComponent<RectTransform>();
+                if (rectB != null) PositionBuildingRect(rectB, b);
+            }
+
+            string nameA = BuildingDisplayNames.TryGetValue(a.BuildingId, out var dnA) ? dnA : a.BuildingId;
+            string nameB = BuildingDisplayNames.TryGetValue(b.BuildingId, out var dnB) ? dnB : b.BuildingId;
+            ShowUpgradeBlockedToast($"\u21C4 Swapped {nameA} \u2194 {nameB}");
+            Debug.Log($"[Swap] Swapped {a.InstanceId} <-> {b.InstanceId}.");
+        }
+
         private static string FormatTimeRemaining(int totalSeconds)
         {
             if (totalSeconds >= 3600)
@@ -4614,6 +5123,36 @@ namespace AshenThrone.Empire
                     ShowGarrisonDeployPanel(capGarrInstId, capGarrBid, capGarrTier);
                 });
                 AddInfoPanelText(garrGO.transform, "Label", "\u26E8 Garrison", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Production boost button for resource buildings
+            if (buildingId == "grain_farm" || buildingId == "iron_mine" || buildingId == "stone_quarry" || buildingId == "arcane_tower")
+            {
+                var boostGO = new GameObject("BoostBtn");
+                boostGO.transform.SetParent(panel.transform, false);
+                var boostRect = boostGO.AddComponent<RectTransform>();
+                boostRect.anchorMin = new Vector2(0.50f, 0.13f);
+                boostRect.anchorMax = new Vector2(0.95f, 0.20f);
+                boostRect.offsetMin = Vector2.zero;
+                boostRect.offsetMax = Vector2.zero;
+                var boostBg = boostGO.AddComponent<Image>();
+                boostBg.color = new Color(0.20f, 0.55f, 0.25f, 0.90f);
+                boostBg.raycastTarget = true;
+                var boostOutline = boostGO.AddComponent<Outline>();
+                boostOutline.effectColor = new Color(0.40f, 0.80f, 0.45f, 0.6f);
+                boostOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var boostBtn = boostGO.AddComponent<Button>();
+                boostBtn.targetGraphic = boostBg;
+                string capBoostInstId = instanceId;
+                string capBoostBid = buildingId;
+                int capBoostTier = tier;
+                boostBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowProductionBoostPanel(capBoostInstId, capBoostBid, capBoostTier);
+                });
+                AddInfoPanelText(boostGO.transform, "Label", "\u2191 Boost Production", 9, FontStyle.Bold, Color.white,
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 

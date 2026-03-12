@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.72.0] — 2026-03-12 (Ralph Loop Iteration 67: Speed-Up Items, Boosts, Building Swap)
+
+### ADDED
+- **Speed-up item selection panel** — P&C-style tiered speed-up items (5m, 15m, 60m, 3h, 8h) with quantity display, time reduction preview, and "USE" / "USE ALL" buttons. Replaces gem-only speed-up with inventory-based approach.
+- **`ShowSpeedUpItemPanel()` method** — full item panel with 5 tiers, quantity badges, and use-all option.
+- **Production boost activation panel** — resource buildings (grain farm, iron mine, stone quarry, arcane tower) now show a green "Boost Production" button. Opens panel with 4 boost tiers (+25% 1h, +50% 1h, +100% 30m, +25% 8h) each with quantity, duration, and "ACTIVATE" button.
+- **`ShowProductionBoostPanel()` method** — boost item panel with activation buttons and duration display.
+- **Boost button in Overview tab** — resource-producing buildings show green "Boost Production" button below the existing action buttons.
+- **Building swap system** — swap two buildings' positions with confirmation dialog showing both building sprites, names, and tier levels with a double-arrow swap indicator. Confirm executes position swap including occupancy map update and visual repositioning.
+- **`ShowBuildingSwapConfirm()` / `ExecuteBuildingSwap()` methods** — swap confirmation UI and execution logic with occupancy map and visual updates.
+
+---
+
 ## [0.71.0] — 2026-03-12 (Ralph Loop Iteration 66: Alliance Help, Decorations, Garrison Deploy)
 
 ### ADDED
