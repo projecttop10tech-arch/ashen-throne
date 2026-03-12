@@ -612,6 +612,10 @@ namespace AshenThrone.Empire
                 // Queue position label — medium+ zoom
                 var queueLabel = t.Find("QueuePosLabel");
                 if (queueLabel != null) queueLabel.gameObject.SetActive(showMedium);
+
+                // P&C: Alliance flag — close zoom only
+                var allianceFlag = t.Find("AllianceFlag");
+                if (allianceFlag != null) allianceFlag.gameObject.SetActive(showClose);
             }
 
             // Builder HUD + Collect All button: always visible (screen-space UI)
@@ -981,6 +985,9 @@ namespace AshenThrone.Empire
 
             // P&C: Buff indicator icons (research/alliance bonuses)
             CreateBuffIndicators(go, placement.BuildingId);
+
+            // P&C: Alliance territory flag on military/defense buildings
+            CreateAllianceFlag(go, placement.BuildingId);
 
             // P&C: Subtle idle breathing animation for life
             StartCoroutine(IdleBreathAnimation(go, placement.BuildingId));
@@ -1461,6 +1468,48 @@ namespace AshenThrone.Empire
                 text.color = tint;
                 text.raycastTarget = false;
             }
+        }
+
+        /// <summary>P&C: Alliance shield flag on military/defense/social buildings, top-left corner.</summary>
+        private void CreateAllianceFlag(GameObject building, string buildingId)
+        {
+            // Only show on relevant building types (military, defense, guild hall, embassy)
+            bool isMilitary = buildingId == "barracks" || buildingId == "training_ground" || buildingId == "armory";
+            bool isDefense = buildingId == "wall" || buildingId == "watch_tower";
+            bool isSocial = buildingId == "guild_hall" || buildingId == "embassy";
+            if (!isMilitary && !isDefense && !isSocial) return;
+
+            var flagGO = new GameObject("AllianceFlag");
+            flagGO.transform.SetParent(building.transform, false);
+            var flagRect = flagGO.AddComponent<RectTransform>();
+            flagRect.anchorMin = new Vector2(0.0f, 0.72f);
+            flagRect.anchorMax = new Vector2(0.16f, 0.88f);
+            flagRect.offsetMin = Vector2.zero;
+            flagRect.offsetMax = Vector2.zero;
+
+            // Shield background
+            var shieldBg = flagGO.AddComponent<Image>();
+            shieldBg.color = new Color(0.15f, 0.30f, 0.65f, 0.85f);
+            shieldBg.raycastTarget = false;
+            var shieldOutline = flagGO.AddComponent<Outline>();
+            shieldOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.6f);
+            shieldOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            // Alliance emblem (simplified — unicode shield)
+            var emblGO = new GameObject("Emblem");
+            emblGO.transform.SetParent(flagGO.transform, false);
+            var emblRect = emblGO.AddComponent<RectTransform>();
+            emblRect.anchorMin = Vector2.zero;
+            emblRect.anchorMax = Vector2.one;
+            emblRect.offsetMin = Vector2.zero;
+            emblRect.offsetMax = Vector2.zero;
+            var emblText = emblGO.AddComponent<Text>();
+            emblText.text = "\u2694"; // ⚔ — alliance emblem
+            emblText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            emblText.fontSize = 7;
+            emblText.alignment = TextAnchor.MiddleCenter;
+            emblText.color = new Color(0.95f, 0.85f, 0.40f);
+            emblText.raycastTarget = false;
         }
 
         private void CreateNewBadge(GameObject building)
@@ -6162,6 +6211,46 @@ namespace AshenThrone.Empire
                         var cellGO = CreateIsoDiamondCell(buildingContainer,
                             origin.x + gx, origin.y + gy, fill, border);
                         _placementHighlightCells.Add(cellGO);
+                    }
+                }
+
+                // P&C: Tint ghost green/red based on placement validity
+                if (_placementGhost != null)
+                {
+                    var ghostImg = _placementGhost.GetComponent<Image>();
+                    if (ghostImg != null)
+                    {
+                        ghostImg.color = valid
+                            ? new Color(0.7f, 1f, 0.7f, 0.6f)   // green tint = valid
+                            : new Color(1f, 0.5f, 0.5f, 0.6f);  // red tint = blocked
+                    }
+
+                    // P&C: Glow ring around ghost
+                    var glowRing = _placementGhost.transform.Find("GlowRing");
+                    if (glowRing == null)
+                    {
+                        var glowGO = new GameObject("GlowRing");
+                        glowGO.transform.SetParent(_placementGhost.transform, false);
+                        var glowRect = glowGO.AddComponent<RectTransform>();
+                        glowRect.anchorMin = new Vector2(-0.10f, -0.06f);
+                        glowRect.anchorMax = new Vector2(1.10f, 1.06f);
+                        glowRect.offsetMin = Vector2.zero;
+                        glowRect.offsetMax = Vector2.zero;
+                        glowGO.transform.SetAsFirstSibling();
+                        var glowImg = glowGO.AddComponent<Image>();
+                        glowImg.color = valid
+                            ? new Color(0.3f, 0.9f, 0.3f, 0.25f)
+                            : new Color(0.9f, 0.3f, 0.3f, 0.25f);
+                        glowImg.raycastTarget = false;
+                        glowRing = glowGO.transform;
+                    }
+                    else
+                    {
+                        var glowImg = glowRing.GetComponent<Image>();
+                        if (glowImg != null)
+                            glowImg.color = valid
+                                ? new Color(0.3f, 0.9f, 0.3f, 0.25f)
+                                : new Color(0.9f, 0.3f, 0.3f, 0.25f);
                     }
                 }
             }

@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.51.0] — 2026-03-12 (Ralph Loop Iteration 46: Placement Ghost Glow, Alliance Flags)
+
+### ADDED
+- **Placement ghost green/red validity tint** — during building placement, the ghost sprite tints green when the position is valid and red when blocked. A matching glow ring aura surrounds the ghost for visual clarity.
+- **Alliance territory flag markers** — military (barracks, training_ground, armory), defense (wall, watch_tower), and social (guild_hall, embassy) buildings now display a small blue shield with gold ⚔ emblem in the top-left corner, indicating alliance territory ownership. Controlled by zoom detail visibility (close zoom).
+- **`CreateAllianceFlag()` method** — creates shield-shaped alliance emblem badge on relevant building types.
+
+### CHANGED
+- `UpdatePlacementPosition()` now tints the ghost sprite green/red and manages a `GlowRing` child object based on `CanPlaceAt()` validity
+- Building creation pipeline now calls `CreateAllianceFlag()` after buff indicators
+- Alliance flags added to zoom detail visibility system (hidden when zoomed out)
+
+---
+
 ## [0.50.0] — 2026-03-12 (Ralph Loop Iteration 45: Radial Context Menu, Build Selector Thumbnails)
 
 ### ADDED
