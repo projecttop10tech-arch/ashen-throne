@@ -4037,9 +4037,30 @@ namespace AshenThrone.Empire
             {
                 int rate = (tier + 1) * 250;
                 string rateText = rate >= 1000 ? $"{rate / 1000f:F1}K" : $"{rate}";
-                AddInfoPanelText(panel.transform, "ProdRate",
-                    $"Production: +{rateText}/hr ({resInfo.Name})", 11, FontStyle.Normal, resInfo.Tint,
-                    new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
+
+                // Tappable production rate — opens resource breakdown popup
+                var prodRowGO = new GameObject("ProdRateBtn");
+                prodRowGO.transform.SetParent(panel.transform, false);
+                var prodRowRect = prodRowGO.AddComponent<RectTransform>();
+                prodRowRect.anchorMin = new Vector2(0.05f, statsY - 0.10f);
+                prodRowRect.anchorMax = new Vector2(0.95f, statsY - 0.03f);
+                prodRowRect.offsetMin = Vector2.zero;
+                prodRowRect.offsetMax = Vector2.zero;
+                var prodRowImg = prodRowGO.AddComponent<Image>();
+                prodRowImg.color = new Color(resInfo.Tint.r, resInfo.Tint.g, resInfo.Tint.b, 0.08f);
+                prodRowImg.raycastTarget = true;
+                var prodRowBtn = prodRowGO.AddComponent<Button>();
+                prodRowBtn.targetGraphic = prodRowImg;
+                string capturedResName = resInfo.Name;
+                prodRowBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowResourceBreakdownPopup(capturedResName);
+                });
+                AddInfoPanelText(prodRowGO.transform, "Text",
+                    $"Production: +{rateText}/hr ({resInfo.Name})  \u25B6", 11, FontStyle.Normal, resInfo.Tint,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleLeft);
+
                 statsY -= 0.07f;
 
                 // P&C: Daily forecast + vault fill estimate
@@ -4088,6 +4109,33 @@ namespace AshenThrone.Empire
                 AddInfoPanelText(panel.transform, "Power", $"\u2694 Power: +{powerStr}", 11, FontStyle.Normal,
                     new Color(0.95f, 0.70f, 0.35f),
                     new Vector2(0.05f, 0.20f), new Vector2(0.50f, 0.27f), TextAnchor.MiddleLeft);
+            }
+
+            // P&C: Stronghold — show what unlocks at next level
+            if (buildingId == "stronghold" && tier < 3)
+            {
+                int nextShLevel = tier + 1;
+                var unlockNames = new List<string>();
+                string[] allTypes = { "grain_farm", "iron_mine", "stone_quarry", "barracks",
+                    "wall", "watch_tower", "marketplace", "academy", "training_ground", "forge",
+                    "arcane_tower", "guild_hall", "armory", "laboratory", "embassy",
+                    "enchanting_tower", "library", "hero_shrine", "observatory", "archive" };
+                foreach (string bt in allTypes)
+                {
+                    if (GetBuildingUnlockLevel(bt) == nextShLevel)
+                    {
+                        string name = BuildingDisplayNames.TryGetValue(bt, out var n) ? n : bt;
+                        unlockNames.Add(name);
+                    }
+                }
+                if (unlockNames.Count > 0)
+                {
+                    string unlockList = string.Join(", ", unlockNames);
+                    AddInfoPanelText(panel.transform, "Unlocks",
+                        $"\u26BF Lv.{nextShLevel} unlocks: {unlockList}", 9, FontStyle.Normal,
+                        new Color(0.80f, 0.70f, 0.30f),
+                        new Vector2(0.05f, 0.14f), new Vector2(0.95f, 0.20f), TextAnchor.MiddleLeft);
+                }
             }
 
             // P&C: Check if building is currently upgrading — show in-progress state
@@ -4536,6 +4584,189 @@ namespace AshenThrone.Empire
         private void DismissDemolishDialog()
         {
             if (_demolishDialog != null) { Destroy(_demolishDialog); _demolishDialog = null; }
+        }
+
+        // ====================================================================
+        // P&C: Resource Production Breakdown Popup
+        // ====================================================================
+
+        private GameObject _resourceBreakdownPopup;
+
+        /// <summary>
+        /// P&C: Show a detailed breakdown of all buildings producing a given resource,
+        /// their individual rates, and total production. Triggered from info panel or programmatically.
+        /// </summary>
+        public void ShowResourceBreakdownPopup(string resourceName)
+        {
+            DismissResourceBreakdownPopup();
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // Map resource name to type info
+            Color resColor = resourceName switch
+            {
+                "Stone" => new Color(0.75f, 0.68f, 0.55f),
+                "Iron" => new Color(0.70f, 0.75f, 0.85f),
+                "Grain" => new Color(0.95f, 0.85f, 0.30f),
+                "Arcane" => new Color(0.65f, 0.45f, 0.90f),
+                _ => Color.white
+            };
+            string producerId = resourceName switch
+            {
+                "Stone" => "stone_quarry",
+                "Iron" => "iron_mine",
+                "Grain" => "grain_farm",
+                "Arcane" => "arcane_tower",
+                _ => ""
+            };
+
+            _resourceBreakdownPopup = new GameObject("ResourceBreakdown");
+            _resourceBreakdownPopup.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _resourceBreakdownPopup.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _resourceBreakdownPopup.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _resourceBreakdownPopup.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissResourceBreakdownPopup);
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_resourceBreakdownPopup.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.72f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelImg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(resColor.r, resColor.g, resColor.b, 0.70f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            string resSymbol = resourceName switch
+            {
+                "Stone" => "\u25C8", "Iron" => "\u2666",
+                "Grain" => "\u2740", "Arcane" => "\u2726", _ => "?"
+            };
+            AddInfoPanelText(panel.transform, "Title",
+                $"{resSymbol} {resourceName} Production", 16, FontStyle.Bold, resColor,
+                new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            // Separator
+            var sepGO = new GameObject("Sep");
+            sepGO.transform.SetParent(panel.transform, false);
+            var sepRect = sepGO.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.05f, 0.83f);
+            sepRect.anchorMax = new Vector2(0.95f, 0.84f);
+            sepRect.offsetMin = Vector2.zero;
+            sepRect.offsetMax = Vector2.zero;
+            var sepImg = sepGO.AddComponent<Image>();
+            sepImg.color = new Color(resColor.r, resColor.g, resColor.b, 0.35f);
+            sepImg.raycastTarget = false;
+
+            // List all producers
+            float rowY = 0.78f;
+            int totalRate = 0;
+            int buildingCount = 0;
+
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId != producerId) continue;
+                buildingCount++;
+                int rate = (p.Tier + 1) * 250;
+                totalRate += rate;
+                string rateStr = rate >= 1000 ? $"{rate / 1000f:F1}K" : $"{rate}";
+                string displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
+
+                // Building name + tier
+                AddInfoPanelText(panel.transform, $"Bld_{buildingCount}",
+                    $"{displayName} Lv.{p.Tier}", 11, FontStyle.Normal,
+                    new Color(0.85f, 0.82f, 0.78f),
+                    new Vector2(0.05f, rowY - 0.06f), new Vector2(0.55f, rowY + 0.01f), TextAnchor.MiddleLeft);
+
+                // Rate
+                AddInfoPanelText(panel.transform, $"Rate_{buildingCount}",
+                    $"+{rateStr}/hr", 11, FontStyle.Bold, resColor,
+                    new Vector2(0.60f, rowY - 0.06f), new Vector2(0.95f, rowY + 0.01f), TextAnchor.MiddleRight);
+
+                rowY -= 0.08f;
+                if (rowY < 0.18f) break; // Don't overflow
+            }
+
+            if (buildingCount == 0)
+            {
+                AddInfoPanelText(panel.transform, "NoProd",
+                    $"No {resourceName} producers built yet.", 12, FontStyle.Normal,
+                    new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0.05f, 0.40f), new Vector2(0.95f, 0.55f), TextAnchor.MiddleCenter);
+            }
+
+            // Total separator + summary
+            if (buildingCount > 0)
+            {
+                var totSep = new GameObject("TotSep");
+                totSep.transform.SetParent(panel.transform, false);
+                var totSepRect = totSep.AddComponent<RectTransform>();
+                totSepRect.anchorMin = new Vector2(0.05f, rowY);
+                totSepRect.anchorMax = new Vector2(0.95f, rowY + 0.01f);
+                totSepRect.offsetMin = Vector2.zero;
+                totSepRect.offsetMax = Vector2.zero;
+                var totSepImg = totSep.AddComponent<Image>();
+                totSepImg.color = new Color(0.5f, 0.5f, 0.5f, 0.3f);
+                totSepImg.raycastTarget = false;
+
+                string totalStr = totalRate >= 1_000_000 ? $"{totalRate / 1_000_000f:F1}M"
+                    : totalRate >= 1000 ? $"{totalRate / 1000f:F1}K" : $"{totalRate}";
+                int dailyTotal = totalRate * 24;
+                string dailyStr = dailyTotal >= 1_000_000 ? $"{dailyTotal / 1_000_000f:F1}M"
+                    : dailyTotal >= 1000 ? $"{dailyTotal / 1000f:F1}K" : $"{dailyTotal}";
+
+                AddInfoPanelText(panel.transform, "TotalLabel", "TOTAL", 12, FontStyle.Bold,
+                    new Color(0.90f, 0.85f, 0.70f),
+                    new Vector2(0.05f, rowY - 0.08f), new Vector2(0.35f, rowY - 0.01f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(panel.transform, "TotalRate", $"+{totalStr}/hr", 12, FontStyle.Bold, resColor,
+                    new Vector2(0.40f, rowY - 0.08f), new Vector2(0.95f, rowY - 0.01f), TextAnchor.MiddleRight);
+                AddInfoPanelText(panel.transform, "DailyTotal", $"\u2609 Daily: +{dailyStr}", 10, FontStyle.Normal,
+                    new Color(resColor.r * 0.8f, resColor.g * 0.8f, resColor.b * 0.8f),
+                    new Vector2(0.40f, rowY - 0.15f), new Vector2(0.95f, rowY - 0.08f), TextAnchor.MiddleRight);
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.88f);
+            closeRect.anchorMax = new Vector2(0.98f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(DismissResourceBreakdownPopup);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _resourceBreakdownPopup.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void DismissResourceBreakdownPopup()
+        {
+            if (_resourceBreakdownPopup != null) { Destroy(_resourceBreakdownPopup); _resourceBreakdownPopup = null; }
         }
 
         // ====================================================================

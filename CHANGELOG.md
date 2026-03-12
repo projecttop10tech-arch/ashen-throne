@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.64.0] — 2026-03-12 (Ralph Loop Iteration 59: Resource Breakdown Popup, SH Unlock Preview)
+
+### ADDED
+- **Resource production breakdown popup** — tapping the production rate in a resource building's info panel now opens a detailed breakdown popup showing all buildings of that resource type, their individual per-hour rates, and a total summary with daily forecast. Color-coded per resource (stone=tan, iron=silver-blue, grain=gold, arcane=purple). Includes close button and fade-in animation.
+- **`ShowResourceBreakdownPopup()` / `DismissResourceBreakdownPopup()` methods** — full lifecycle for the resource production detail popup.
+- **Tappable production rate row in info panel** — production rate text is now a subtle button (with `▶` arrow hint) that opens the breakdown popup on tap.
+- **Stronghold unlock preview in info panel** — when viewing the stronghold info panel (and it's below max level), a golden text line shows what building types unlock at the next stronghold level (e.g., "⚿ Lv.2 unlocks: Wall, Watch Tower, Marketplace").
+
+### CHANGED
+- Info panel production rate display converted from static text to interactive button with tinted background.
+
+---
+
 ## [0.63.0] — 2026-03-12 (Ralph Loop Iteration 58: Weather Particles, Active Boost Badge)
 
 ### ADDED
