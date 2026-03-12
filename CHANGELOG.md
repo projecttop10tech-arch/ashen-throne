@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.41.0] — 2026-03-11 (Ralph Loop Iteration 36: Popup Timer, Collect Toast, Move Coords)
+
+### ADDED
+- **Live upgrade timer in popup** — when tapping a building that's currently upgrading, the popup shows a live countdown timer (updates every 0.5s) in gold text instead of the Upgrade button. Shows "Complete!" in green when upgrade finishes while popup is open.
+- **Resource collection summary toast** — collecting resource bubbles shows a floating "+500 Grain" toast in resource-themed color (green grain, blue iron, tan stone, purple arcane). Batches multiple quick collections within 0.8s window. Toast floats upward and fades over 1.2s.
+- **Move mode coordinate label** — during building drag, a floating label shows the current grid snap position "(x, y)" near the ghost. Green when placement is valid, red when invalid. Destroyed on move mode exit.
+
+### CHANGED
+- `OnResourceCollected` handler replaces inline lambda — now plays SFX + triggers batched toast
+- Popup `OnBuildingTappedShowPopup` checks `BuildQueue` for active upgrade before showing buttons
+- `OnDrag` calls `UpdateMoveCoordLabel` during move mode
+- `ExitMoveMode` calls `DestroyMoveCoordLabel` for cleanup
+
+---
+
 ## [0.40.0] — 2026-03-11 (Ralph Loop Iteration 35: Build Selector, Queue Panel, Resource Cap Warning)
 
 ### ADDED

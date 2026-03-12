@@ -191,7 +191,7 @@ namespace AshenThrone.Empire
             _upgradeCompletedSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnBuildingUpgradeCompleted);
             _demolishedSub = EventBus.Subscribe<BuildingDemolishedEvent>(OnBuildingDemolished);
             _doubleTapZoomSub = EventBus.Subscribe<BuildingDoubleTappedEvent>(OnDoubleTapZoom);
-            _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(_ => PlaySfx(_sfxCollect));
+            _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(OnResourceCollected);
             _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompletedSfx);
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
             _buildingTappedSub = EventBus.Subscribe<BuildingTappedEvent>(OnBuildingTappedShowPopup);
@@ -1445,6 +1445,112 @@ namespace AshenThrone.Empire
             }
         }
 
+        // ====================================================================
+        // P&C: Resource Collection Summary Toast
+        // ====================================================================
+
+        private float _collectToastCooldown;
+        private long _collectToastAccum;
+        private ResourceType _collectToastType;
+
+        private void OnResourceCollected(ResourceCollectedEvent evt)
+        {
+            PlaySfx(_sfxCollect);
+
+            // Accumulate collections within a short window to batch into one toast
+            if (_collectToastCooldown > 0f && _collectToastType == evt.Type)
+            {
+                _collectToastAccum += evt.Amount;
+            }
+            else
+            {
+                _collectToastAccum = evt.Amount;
+                _collectToastType = evt.Type;
+            }
+            _collectToastCooldown = 0.8f; // Reset cooldown
+            StartCoroutine(ShowCollectToastDelayed());
+        }
+
+        private IEnumerator ShowCollectToastDelayed()
+        {
+            // Wait for accumulation window to close
+            while (_collectToastCooldown > 0f)
+            {
+                _collectToastCooldown -= Time.deltaTime;
+                yield return null;
+            }
+            if (_collectToastAccum <= 0) yield break;
+
+            long amount = _collectToastAccum;
+            ResourceType type = _collectToastType;
+            _collectToastAccum = 0;
+
+            string resName = type switch
+            {
+                ResourceType.Stone => "Stone",
+                ResourceType.Iron => "Iron",
+                ResourceType.Grain => "Grain",
+                ResourceType.ArcaneEssence => "Arcane",
+                _ => "Resources"
+            };
+            Color resColor = type switch
+            {
+                ResourceType.Stone => new Color(0.75f, 0.68f, 0.55f),
+                ResourceType.Iron => new Color(0.70f, 0.75f, 0.85f),
+                ResourceType.Grain => new Color(0.55f, 0.85f, 0.40f),
+                ResourceType.ArcaneEssence => new Color(0.65f, 0.45f, 0.90f),
+                _ => Color.white
+            };
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) yield break;
+
+            var toast = new GameObject("CollectToast");
+            toast.transform.SetParent(canvas.transform, false);
+            var rect = toast.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.30f, 0.45f);
+            rect.anchorMax = new Vector2(0.70f, 0.50f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(toast.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            string amountStr = amount >= 1000 ? $"{amount / 1000f:F1}K" : amount.ToString();
+            text.text = $"+{amountStr} {resName}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 18;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = resColor;
+            text.raycastTarget = false;
+            var outline = textGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0, 0, 0, 0.9f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Float up and fade out
+            float duration = 1.2f;
+            float elapsed = 0f;
+            Vector2 startMin = rect.anchorMin;
+            Vector2 startMax = rect.anchorMax;
+            while (elapsed < duration && toast != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float yOffset = t * 0.08f;
+                rect.anchorMin = startMin + new Vector2(0, yOffset);
+                rect.anchorMax = startMax + new Vector2(0, yOffset);
+                text.color = new Color(resColor.r, resColor.g, resColor.b, 1f - t * t);
+                yield return null;
+            }
+            if (toast != null) Destroy(toast);
+        }
+
         /// <summary>P&C: Play SFX and remove builder indicator when upgrade completes.</summary>
         private void OnUpgradeCompletedSfx(BuildingUpgradeCompletedEvent evt)
         {
@@ -2263,6 +2369,62 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Move mode coordinate label
+        // ====================================================================
+
+        private GameObject _moveCoordLabel;
+
+        /// <summary>P&C: Floating grid coordinate label near the drag ghost during move mode.</summary>
+        private void UpdateMoveCoordLabel(Vector2 localPoint)
+        {
+            if (_movingBuilding == null) return;
+            var snapOrigin = SnapToGrid(localPoint, _movingBuilding.Size);
+            bool valid = CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding);
+
+            if (_moveCoordLabel == null)
+            {
+                _moveCoordLabel = new GameObject("MoveCoordLabel");
+                _moveCoordLabel.transform.SetParent(buildingContainer, false);
+                var rect = _moveCoordLabel.AddComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(60, 18);
+                var bg = _moveCoordLabel.AddComponent<Image>();
+                bg.color = new Color(0.05f, 0.03f, 0.10f, 0.80f);
+                bg.raycastTarget = false;
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(_moveCoordLabel.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                var text = textGO.AddComponent<Text>();
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 9;
+                text.fontStyle = FontStyle.Bold;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.raycastTarget = false;
+            }
+
+            var coordRect = _moveCoordLabel.GetComponent<RectTransform>();
+            coordRect.anchoredPosition = localPoint + new Vector2(0, -25);
+            var coordText = _moveCoordLabel.GetComponentInChildren<Text>();
+            if (coordText != null)
+            {
+                coordText.text = $"({snapOrigin.x}, {snapOrigin.y})";
+                coordText.color = valid ? new Color(0.3f, 1f, 0.4f) : new Color(1f, 0.4f, 0.3f);
+            }
+        }
+
+        private void DestroyMoveCoordLabel()
+        {
+            if (_moveCoordLabel != null)
+            {
+                Destroy(_moveCoordLabel);
+                _moveCoordLabel = null;
+            }
+        }
+
+        // ====================================================================
         // P&C: Building info popup on tap
         // ====================================================================
 
@@ -2360,18 +2522,72 @@ namespace AshenThrone.Empire
                 costOutline.effectDistance = new Vector2(0.7f, -0.7f);
             }
 
+            // P&C: Check if building is currently upgrading — show live timer instead of Upgrade button
+            bool isUpgrading = false;
+            float upgradeRemaining = 0f;
+            if (ServiceLocator.TryGet<BuildingManager>(out var popupBm))
+            {
+                foreach (var qe in popupBm.BuildQueue)
+                {
+                    if (qe.PlacedId == evt.InstanceId)
+                    {
+                        isUpgrading = true;
+                        upgradeRemaining = qe.RemainingSeconds;
+                        break;
+                    }
+                }
+            }
+
             // Action buttons row
             float btnY0 = 0.06f, btnY1 = 0.50f;
             string upgInstanceId = evt.InstanceId;
             string upgBuildingId = evt.BuildingId;
             int upgTier = evt.Tier;
-            bool isMaxLevel = costStr == "MAX LEVEL";
-            Color upgBtnColor = isMaxLevel
-                ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
-                : new Color(0.15f, 0.55f, 0.15f, 0.9f);
-            CreatePopupButton(popup.transform, isMaxLevel ? "MAX" : "Upgrade", "\u2B06",
-                new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1), upgBtnColor, () => {
-                    if (isMaxLevel) return;
+
+            if (isUpgrading)
+            {
+                // Show live countdown timer instead of upgrade button
+                var timerGO = new GameObject("PopupTimer");
+                timerGO.transform.SetParent(popup.transform, false);
+                var timerRect = timerGO.AddComponent<RectTransform>();
+                timerRect.anchorMin = new Vector2(0.02f, btnY0);
+                timerRect.anchorMax = new Vector2(0.34f, btnY1);
+                timerRect.offsetMin = Vector2.zero;
+                timerRect.offsetMax = Vector2.zero;
+                var timerBg = timerGO.AddComponent<Image>();
+                timerBg.color = new Color(0.15f, 0.12f, 0.25f, 0.85f);
+                timerBg.raycastTarget = false;
+                var timerOutline = timerGO.AddComponent<Outline>();
+                timerOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
+                timerOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var timerTextGO = new GameObject("Text");
+                timerTextGO.transform.SetParent(timerGO.transform, false);
+                var timerTextRect = timerTextGO.AddComponent<RectTransform>();
+                timerTextRect.anchorMin = Vector2.zero;
+                timerTextRect.anchorMax = Vector2.one;
+                timerTextRect.offsetMin = Vector2.zero;
+                timerTextRect.offsetMax = Vector2.zero;
+                var timerText = timerTextGO.AddComponent<Text>();
+                timerText.text = "\u2692 " + FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
+                timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                timerText.fontSize = 9;
+                timerText.fontStyle = FontStyle.Bold;
+                timerText.alignment = TextAnchor.MiddleCenter;
+                timerText.color = new Color(0.95f, 0.82f, 0.35f);
+                timerText.raycastTarget = false;
+                // Start live countdown coroutine
+                string timerInstanceId = evt.InstanceId;
+                StartCoroutine(UpdatePopupTimer(timerText, timerInstanceId, popup));
+            }
+            else
+            {
+                bool isMaxLevel = costStr == "MAX LEVEL";
+                Color upgBtnColor = isMaxLevel
+                    ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
+                    : new Color(0.15f, 0.55f, 0.15f, 0.9f);
+                CreatePopupButton(popup.transform, isMaxLevel ? "MAX" : "Upgrade", "\u2B06",
+                    new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1), upgBtnColor, () => {
+                        if (isMaxLevel) return;
                     string warning = GetUpgradeBlockReason(upgInstanceId, upgTier);
                     if (warning != null)
                     {
@@ -2381,6 +2597,7 @@ namespace AshenThrone.Empire
                     EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingId, upgTier));
                     DismissInfoPopup();
                 });
+            } // end else (not upgrading)
 
             string capBuildingId = evt.BuildingId;
             string capInstanceId = evt.InstanceId;
@@ -2460,6 +2677,35 @@ namespace AshenThrone.Empire
                 yield return null;
             }
             if (cg != null) cg.alpha = 1f;
+        }
+
+        /// <summary>P&C: Live countdown in popup while building is upgrading.</summary>
+        private IEnumerator UpdatePopupTimer(Text timerText, string instanceId, GameObject popup)
+        {
+            while (timerText != null && popup != null)
+            {
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+                {
+                    float remaining = -1f;
+                    foreach (var qe in bm.BuildQueue)
+                    {
+                        if (qe.PlacedId == instanceId)
+                        {
+                            remaining = qe.RemainingSeconds;
+                            break;
+                        }
+                    }
+                    if (remaining < 0)
+                    {
+                        // Upgrade finished while popup was open
+                        timerText.text = "\u2714 Complete!";
+                        timerText.color = new Color(0.3f, 1f, 0.4f);
+                        yield break;
+                    }
+                    timerText.text = "\u2692 " + FormatTimeRemaining(Mathf.RoundToInt(remaining));
+                }
+                yield return new WaitForSeconds(0.5f);
+            }
         }
 
         private void DismissInfoPopup()
@@ -3874,6 +4120,9 @@ namespace AshenThrone.Empire
 
                 // Update placement highlight to snapped position
                 UpdateHighlight(localPoint);
+
+                // P&C: Show grid coordinate tooltip near ghost
+                UpdateMoveCoordLabel(localPoint);
             }
 
             // P&C: Drag ghost in placement mode
@@ -4096,6 +4345,7 @@ namespace AshenThrone.Empire
 
             if (_dragGhost != null) Destroy(_dragGhost);
             if (_dragShadow != null) Destroy(_dragShadow);
+            DestroyMoveCoordLabel();
             _dragGhost = null;
             _dragShadow = null;
             _movingBuilding = null;
