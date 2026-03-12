@@ -239,6 +239,9 @@ namespace AshenThrone.Empire
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
             CreateBuilderCountHUD();
+            // P&C: Ambient tint and mini-map
+            CreateAmbientTintOverlay();
+            CreateMiniMap();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
             // P&C: Show "Welcome back" offline earnings banner
@@ -622,6 +625,14 @@ namespace AshenThrone.Empire
                 // P&C: Notification dot — medium+ zoom (important alerts)
                 var notifDot = t.Find("NotifDot");
                 if (notifDot != null) notifDot.gameObject.SetActive(showMedium);
+
+                // P&C: VIP boost badge — close zoom only
+                var vipBoost = t.Find("VIPBoost");
+                if (vipBoost != null) vipBoost.gameObject.SetActive(showClose);
+
+                // P&C: Construction dust — always visible when present
+                var dust = t.Find("ConstructionDust");
+                if (dust != null) dust.gameObject.SetActive(showFar);
             }
 
             // Builder HUD + Collect All button: always visible (screen-space UI)
@@ -994,6 +1005,9 @@ namespace AshenThrone.Empire
 
             // P&C: Alliance territory flag on military/defense buildings
             CreateAllianceFlag(go, placement.BuildingId);
+
+            // P&C: VIP boost indicator on resource/military buildings
+            AddVIPBoostIndicator(go, placement.BuildingId);
 
             // P&C: Event notification badges (red dot for pending actions)
             RefreshNotificationBadge(go, placement);
@@ -7111,6 +7125,236 @@ namespace AshenThrone.Empire
 
         /// <summary>Whether we are currently in placement mode.</summary>
         public bool IsInPlacementMode => _placementMode;
+
+        // ====================================================================
+        // P&C: Time-of-day ambient tint overlay
+        // ====================================================================
+
+        private GameObject _ambientTintOverlay;
+
+        private void CreateAmbientTintOverlay()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _ambientTintOverlay = new GameObject("AmbientTint");
+            _ambientTintOverlay.transform.SetParent(canvas.transform, false);
+            // Behind UI but above city content
+            _ambientTintOverlay.transform.SetSiblingIndex(1);
+
+            var rect = _ambientTintOverlay.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var img = _ambientTintOverlay.AddComponent<Image>();
+            img.color = GetAmbientTintColor();
+            img.raycastTarget = false;
+
+            StartCoroutine(AnimateAmbientTint());
+        }
+
+        private static Color GetAmbientTintColor()
+        {
+            int hour = System.DateTime.Now.Hour;
+            // Dawn 5-7: warm orange glow
+            if (hour >= 5 && hour < 7)
+                return new Color(1f, 0.75f, 0.40f, 0.06f);
+            // Morning 7-11: clear/neutral
+            if (hour >= 7 && hour < 11)
+                return new Color(1f, 0.95f, 0.85f, 0.02f);
+            // Midday 11-15: slight warm
+            if (hour >= 11 && hour < 15)
+                return new Color(1f, 0.98f, 0.90f, 0.03f);
+            // Afternoon 15-18: golden hour
+            if (hour >= 15 && hour < 18)
+                return new Color(1f, 0.80f, 0.45f, 0.07f);
+            // Dusk 18-20: purple-orange
+            if (hour >= 18 && hour < 20)
+                return new Color(0.80f, 0.45f, 0.60f, 0.08f);
+            // Night 20-5: deep blue
+            return new Color(0.20f, 0.25f, 0.55f, 0.10f);
+        }
+
+        private IEnumerator AnimateAmbientTint()
+        {
+            while (_ambientTintOverlay != null)
+            {
+                var img = _ambientTintOverlay.GetComponent<Image>();
+                if (img != null)
+                {
+                    var target = GetAmbientTintColor();
+                    img.color = Color.Lerp(img.color, target, Time.deltaTime * 0.1f);
+                }
+                // Only update every 2 seconds for perf
+                yield return new WaitForSeconds(2f);
+            }
+        }
+
+        // ====================================================================
+        // P&C: Mini-map overview indicator
+        // ====================================================================
+
+        private GameObject _miniMapPanel;
+        private readonly List<Image> _miniMapDots = new();
+
+        private void CreateMiniMap()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _miniMapPanel = new GameObject("MiniMap");
+            _miniMapPanel.transform.SetParent(canvas.transform, false);
+            _miniMapPanel.transform.SetAsLastSibling();
+
+            var rect = _miniMapPanel.AddComponent<RectTransform>();
+            // Bottom-left corner, above nav bar
+            rect.anchorMin = new Vector2(0.02f, 0.11f);
+            rect.anchorMax = new Vector2(0.16f, 0.23f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _miniMapPanel.AddComponent<Image>();
+            bg.color = new Color(0.05f, 0.04f, 0.08f, 0.75f);
+            bg.raycastTarget = false;
+
+            var border = _miniMapPanel.AddComponent<Outline>();
+            border.effectColor = new Color(0.60f, 0.48f, 0.20f, 0.5f);
+            border.effectDistance = new Vector2(1f, -1f);
+
+            // Place dots for each building
+            foreach (var p in _placements)
+            {
+                var dot = new GameObject($"Dot_{p.InstanceId}");
+                dot.transform.SetParent(_miniMapPanel.transform, false);
+
+                var dotRect = dot.AddComponent<RectTransform>();
+                dotRect.sizeDelta = new Vector2(3f, 3f);
+
+                // Map grid position to minimap position (0-1 range)
+                float nx = (float)p.GridOrigin.x / GridColumns;
+                float ny = (float)p.GridOrigin.y / GridRows;
+                // Isometric transform for minimap
+                float mx = (nx - ny) * 0.5f + 0.5f;
+                float my = (nx + ny) * 0.5f;
+                dotRect.anchorMin = new Vector2(mx, my);
+                dotRect.anchorMax = new Vector2(mx, my);
+                dotRect.anchoredPosition = Vector2.zero;
+
+                var dotImg = dot.AddComponent<Image>();
+                dotImg.color = GetMiniMapDotColor(p.BuildingId);
+                dotImg.raycastTarget = false;
+                _miniMapDots.Add(dotImg);
+            }
+
+            // Viewport indicator (shows current scroll position)
+            var viewport = new GameObject("Viewport");
+            viewport.transform.SetParent(_miniMapPanel.transform, false);
+            var vpRect = viewport.AddComponent<RectTransform>();
+            vpRect.anchorMin = new Vector2(0.3f, 0.3f);
+            vpRect.anchorMax = new Vector2(0.7f, 0.7f);
+            vpRect.offsetMin = Vector2.zero;
+            vpRect.offsetMax = Vector2.zero;
+            var vpImg = viewport.AddComponent<Image>();
+            vpImg.color = new Color(1f, 1f, 1f, 0.15f);
+            vpImg.raycastTarget = false;
+            var vpBorder = viewport.AddComponent<Outline>();
+            vpBorder.effectColor = new Color(1f, 1f, 1f, 0.4f);
+            vpBorder.effectDistance = new Vector2(0.5f, -0.5f);
+
+            StartCoroutine(UpdateMiniMapViewport(vpRect));
+        }
+
+        private IEnumerator UpdateMiniMapViewport(RectTransform vpRect)
+        {
+            while (_miniMapPanel != null && vpRect != null)
+            {
+                if (scrollRect != null && contentContainer != null)
+                {
+                    // Approximate viewport position from scroll rect normalized position
+                    float nx = scrollRect.horizontalNormalizedPosition;
+                    float ny = scrollRect.verticalNormalizedPosition;
+
+                    // Viewport size inversely proportional to zoom
+                    float viewSize = Mathf.Clamp(0.15f / _currentZoom, 0.08f, 0.5f);
+
+                    vpRect.anchorMin = new Vector2(
+                        Mathf.Clamp(nx - viewSize, 0f, 1f - viewSize * 2f),
+                        Mathf.Clamp(ny - viewSize, 0f, 1f - viewSize * 2f));
+                    vpRect.anchorMax = new Vector2(
+                        Mathf.Clamp(nx + viewSize, viewSize * 2f, 1f),
+                        Mathf.Clamp(ny + viewSize, viewSize * 2f, 1f));
+                }
+                yield return new WaitForSeconds(0.25f);
+            }
+        }
+
+        private static Color GetMiniMapDotColor(string buildingId)
+        {
+            if (buildingId == "stronghold") return new Color(1f, 0.85f, 0.25f); // Gold
+            if (buildingId.Contains("farm") || buildingId.Contains("mine") || buildingId.Contains("quarry"))
+                return new Color(0.40f, 0.80f, 0.40f); // Green — resource
+            if (buildingId.Contains("arcane") || buildingId.Contains("tower"))
+                return new Color(0.60f, 0.40f, 0.90f); // Purple — magic
+            if (buildingId.Contains("barracks") || buildingId.Contains("training") || buildingId.Contains("armory"))
+                return new Color(0.90f, 0.35f, 0.35f); // Red — military
+            if (buildingId.Contains("wall") || buildingId.Contains("watch"))
+                return new Color(0.70f, 0.70f, 0.75f); // Silver — defense
+            return new Color(0.65f, 0.55f, 0.40f); // Brown — other
+        }
+
+        // ====================================================================
+        // P&C: VIP boost indicator on boosted buildings
+        // ====================================================================
+
+        private void AddVIPBoostIndicator(GameObject building, string buildingId)
+        {
+            if (building == null) return;
+            // Remove existing
+            var existing = building.transform.Find("VIPBoost");
+            if (existing != null) Destroy(existing.gameObject);
+
+            // Only show on resource producers and military buildings
+            bool isProducer = buildingId.Contains("farm") || buildingId.Contains("mine")
+                || buildingId.Contains("quarry") || buildingId.Contains("arcane_tower");
+            bool isMilitary = buildingId.Contains("barracks") || buildingId.Contains("training");
+            if (!isProducer && !isMilitary) return;
+
+            var badge = new GameObject("VIPBoost");
+            badge.transform.SetParent(building.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            // Top-right corner of building
+            rect.anchorMin = new Vector2(0.70f, 0.80f);
+            rect.anchorMax = new Vector2(0.95f, 0.98f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.85f, 0.55f, 0.10f, 0.85f);
+            bg.raycastTarget = false;
+            var border = badge.AddComponent<Outline>();
+            border.effectColor = new Color(1f, 0.85f, 0.30f, 0.9f);
+            border.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            string boostText = isProducer ? "\u2191+10%" : "\u2191SPD";
+            text.text = boostText;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+        }
     }
 
     /// <summary>

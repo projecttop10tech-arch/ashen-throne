@@ -4,6 +4,25 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.56.0] — 2026-03-12 (Ralph Loop Iteration 51: Ambient Tint, Mini-Map, VIP Boost)
+
+### ADDED
+- **Time-of-day ambient tint overlay** — subtle full-screen color tint that shifts based on real-world time: dawn (warm orange), morning (clear), midday (neutral warm), afternoon (golden hour), dusk (purple-orange), night (deep blue). Smoothly interpolates every 2 seconds for seamless transitions.
+- **`CreateAmbientTintOverlay()` / `GetAmbientTintColor()` / `AnimateAmbientTint()`** — ambient tint system with 6 time-of-day presets and slow lerp transitions.
+- **Mini-map overview indicator** — small panel in bottom-left corner showing isometric dot representation of all placed buildings. Color-coded dots: gold (stronghold), green (resource), purple (magic), red (military), silver (defense), brown (other). Includes a white viewport rectangle that tracks current scroll position and zoom level, updating every 250ms.
+- **`CreateMiniMap()` / `UpdateMiniMapViewport()` / `GetMiniMapDotColor()`** — mini-map creation, viewport tracking coroutine, and building type color mapping.
+- **VIP boost indicators on buildings** — small orange badge in top-right corner of resource producers showing "↑+10%" and military buildings showing "↑SPD". Visible at close zoom level. Added to building creation pipeline alongside alliance flags.
+- **`AddVIPBoostIndicator()` method** — creates VIP boost badge with gold border, filtered to resource and military building types.
+- **Construction dust added to zoom visibility** — dust particles now respect far+ zoom threshold.
+- **VIP boost added to zoom visibility** — badge shows at close zoom only.
+
+### CHANGED
+- Start() now creates ambient tint overlay and mini-map on initialization
+- Building creation pipeline now includes VIP boost indicator after alliance flag
+- Zoom detail visibility expanded with VIPBoost and ConstructionDust entries
+
+---
+
 ## [0.55.0] — 2026-03-12 (Ralph Loop Iteration 50: Build Queue Panel, Resource Fly Animation)
 
 ### ADDED
