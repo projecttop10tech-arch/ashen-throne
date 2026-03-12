@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.58.0] — 2026-03-12 (Ralph Loop Iteration 53: Celebration Flash, Vault Glow, Category SFX)
+
+### ADDED
+- **Upgrade celebration screen flash + "LEVEL UP!" text** — when a building upgrade completes, a gold screen flash overlay appears with large "LEVEL UP!" text (28pt bold, dark outline) that scales up and fades out over 0.6 seconds. Plays after the existing ray burst and sparkle effects for a dramatic multi-stage celebration matching P&C.
+- **Resource vault warning glow bar** — pulsing red glow strip appears below the resource bar when ANY resource is at 90%+ capacity. Pulses between 25-45% opacity at 3Hz. Automatically appears/disappears based on periodic vault ratio checks.
+- **`PulseResourceCapGlow()` coroutine** — handles the sinusoidal opacity animation for the vault warning bar.
+- **Category-specific building tap SFX** — building taps now attempt to load a category-specific audio clip (e.g., `sfx_tap_military` for barracks, `sfx_tap_magic` for arcane tower, `sfx_tap_forge` for forge) before falling back to the generic tap sound. 9 categories mapped via `GetBuildingTapSfxName()`.
+- **`PlayBuildingTapSfx()` / `GetBuildingTapSfxName()` methods** — category-aware SFX dispatch with resource fallback.
+
+### CHANGED
+- Building tap handler now calls `PlayBuildingTapSfx(buildingId)` instead of generic `PlaySfx(_sfxTap)`
+- Celebration burst coroutine now continues with screen flash phase after sparkle cleanup
+
+---
+
 ## [0.57.0] — 2026-03-12 (Ralph Loop Iteration 52: Production Forecast, Radial Demolish, SH Upgrade Fix)
 
 ### ADDED

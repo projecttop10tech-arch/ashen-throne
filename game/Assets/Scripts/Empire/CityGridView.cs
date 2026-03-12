@@ -809,6 +809,30 @@ namespace AshenThrone.Empire
                 audio.PlaySfx(clip);
         }
 
+        /// <summary>P&C: Play category-specific SFX on building tap.</summary>
+        private void PlayBuildingTapSfx(string buildingId)
+        {
+            // Try category-specific clip first, fall back to generic tap
+            string sfxName = GetBuildingTapSfxName(buildingId);
+            var clip = Resources.Load<AudioClip>($"Audio/SFX/{sfxName}");
+            if (clip == null) clip = _sfxTap; // fallback
+            PlaySfx(clip);
+        }
+
+        private static string GetBuildingTapSfxName(string buildingId) => buildingId switch
+        {
+            "stronghold" => "sfx_tap_castle",
+            "barracks" or "training_ground" or "armory" => "sfx_tap_military",
+            "forge" or "enchanting_tower" => "sfx_tap_forge",
+            "grain_farm" or "iron_mine" or "stone_quarry" => "sfx_tap_resource",
+            "arcane_tower" or "observatory" or "laboratory" => "sfx_tap_magic",
+            "marketplace" or "guild_hall" or "embassy" => "sfx_tap_social",
+            "wall" or "watch_tower" => "sfx_tap_defense",
+            "academy" or "library" or "archive" => "sfx_tap_research",
+            "hero_shrine" => "sfx_tap_shrine",
+            _ => "sfx_btn_click"
+        };
+
         /// <summary>Current zoom level (1.0 = default).</summary>
         public float CurrentZoom => _currentZoom;
 
@@ -2011,6 +2035,58 @@ namespace AshenThrone.Empire
                 if (rect != null) Destroy(rect.gameObject);
             foreach (var (rect, cg, dir) in sparkles)
                 if (rect != null) Destroy(rect.gameObject);
+
+            // P&C: Screen flash overlay
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                var flashGO = new GameObject("UpgradeFlash");
+                flashGO.transform.SetParent(canvas.transform, false);
+                flashGO.transform.SetAsLastSibling();
+                var flashRect = flashGO.AddComponent<RectTransform>();
+                flashRect.anchorMin = Vector2.zero;
+                flashRect.anchorMax = Vector2.one;
+                flashRect.offsetMin = Vector2.zero;
+                flashRect.offsetMax = Vector2.zero;
+                var flashImg = flashGO.AddComponent<Image>();
+                flashImg.color = new Color(1f, 0.92f, 0.5f, 0.35f);
+                flashImg.raycastTarget = false;
+
+                // "LEVEL UP!" text
+                var lvlGO = new GameObject("LevelUpText");
+                lvlGO.transform.SetParent(flashGO.transform, false);
+                var lvlRect = lvlGO.AddComponent<RectTransform>();
+                lvlRect.anchorMin = new Vector2(0.15f, 0.40f);
+                lvlRect.anchorMax = new Vector2(0.85f, 0.60f);
+                lvlRect.offsetMin = Vector2.zero;
+                lvlRect.offsetMax = Vector2.zero;
+                var lvlText = lvlGO.AddComponent<Text>();
+                lvlText.text = "LEVEL UP!";
+                lvlText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                lvlText.fontSize = 28;
+                lvlText.fontStyle = FontStyle.Bold;
+                lvlText.alignment = TextAnchor.MiddleCenter;
+                lvlText.color = new Color(1f, 0.90f, 0.30f);
+                lvlText.raycastTarget = false;
+                var lvlOutline = lvlGO.AddComponent<Outline>();
+                lvlOutline.effectColor = new Color(0.4f, 0.2f, 0f, 0.9f);
+                lvlOutline.effectDistance = new Vector2(2f, -2f);
+
+                // Fade out flash + text over 0.6s
+                float flashElapsed = 0f;
+                float flashDur = 0.6f;
+                var flashCG = flashGO.AddComponent<CanvasGroup>();
+                while (flashElapsed < flashDur && flashGO != null)
+                {
+                    flashElapsed += Time.deltaTime;
+                    float ft = flashElapsed / flashDur;
+                    flashCG.alpha = 1f - ft;
+                    // Scale text up slightly
+                    lvlRect.localScale = Vector3.one * (1f + ft * 0.3f);
+                    yield return null;
+                }
+                if (flashGO != null) Destroy(flashGO);
+            }
         }
 
         // ====================================================================
@@ -5099,6 +5175,8 @@ namespace AshenThrone.Empire
         };
 
         /// <summary>P&C: Show/hide warning badge on resource buildings when storage is near cap (>90%).</summary>
+        private GameObject _resourceCapGlowBar;
+
         private void RefreshResourceCapWarnings()
         {
             if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
@@ -5115,6 +5193,51 @@ namespace AshenThrone.Empire
                     CreateCapWarningBadge(p.VisualGO);
                 else if (!nearCap && existing != null)
                     Destroy(existing.gameObject);
+            }
+
+            // P&C: Pulsing red glow bar at top when ANY resource is near cap
+            bool anyNearCap = IsNearResourceCap(rm, ResourceType.Stone)
+                || IsNearResourceCap(rm, ResourceType.Iron)
+                || IsNearResourceCap(rm, ResourceType.Grain)
+                || IsNearResourceCap(rm, ResourceType.ArcaneEssence);
+
+            if (anyNearCap && _resourceCapGlowBar == null)
+            {
+                var canvas = GetComponentInParent<Canvas>();
+                if (canvas != null)
+                {
+                    _resourceCapGlowBar = new GameObject("ResourceCapGlow");
+                    _resourceCapGlowBar.transform.SetParent(canvas.transform, false);
+                    _resourceCapGlowBar.transform.SetSiblingIndex(2);
+                    var rect = _resourceCapGlowBar.AddComponent<RectTransform>();
+                    rect.anchorMin = new Vector2(0f, 0.935f);
+                    rect.anchorMax = new Vector2(1f, 0.96f);
+                    rect.offsetMin = Vector2.zero;
+                    rect.offsetMax = Vector2.zero;
+                    var img = _resourceCapGlowBar.AddComponent<Image>();
+                    img.color = new Color(0.9f, 0.2f, 0.1f, 0.4f);
+                    img.raycastTarget = false;
+                    StartCoroutine(PulseResourceCapGlow());
+                }
+            }
+            else if (!anyNearCap && _resourceCapGlowBar != null)
+            {
+                Destroy(_resourceCapGlowBar);
+                _resourceCapGlowBar = null;
+            }
+        }
+
+        private IEnumerator PulseResourceCapGlow()
+        {
+            while (_resourceCapGlowBar != null)
+            {
+                var img = _resourceCapGlowBar.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.25f + 0.20f * Mathf.Sin(Time.time * 3f);
+                    img.color = new Color(0.9f, 0.2f, 0.1f, pulse);
+                }
+                yield return null;
             }
         }
 
@@ -6052,8 +6175,8 @@ namespace AshenThrone.Empire
             // P&C: Show footprint highlight on tapped building
             ShowBuildingFootprint(tapped);
 
-            // P&C: Audio + haptic feedback on building tap
-            PlaySfx(_sfxTap);
+            // P&C: Category-specific audio + haptic feedback on building tap
+            PlayBuildingTapSfx(tapped.BuildingId);
             #if UNITY_IOS || UNITY_ANDROID
             Handheld.Vibrate();
             #endif
