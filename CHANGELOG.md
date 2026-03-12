@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.77.0] — 2026-03-12 (Ralph Loop Iteration 72: Swipe Collect, Event Banners, Power Breakdown)
+
+### ADDED
+- **Quick-collect swipe gesture** — P&C-style drag-to-collect across resource buildings. Start dragging from any resource building with active bubbles and swipe across others to collect in sequence. Each building plays a quick bounce animation on collect. Toast shows total buildings collected when swipe ends. Integrates with `ResourceBubbleSpawner.CollectAllForBuilding()`.
+- **`TryStartSwipeCollect()` / `UpdateSwipeCollect()` / `EndSwipeCollect()` methods** — swipe collect system with hit-testing via `GetBuildingAtScreenPos()` and `ScreenToGrid()` inverse isometric projection.
+- **Active event timer banners** — left-side vertical banners showing active server events (Alliance War, Void Rift Surge, Harvest Festival). Each banner has colored accent bar, event icon, name, countdown timer, and "GO" button. Timer flashes red when under 10 minutes. Banners auto-update every second.
+- **`CreateEventTimerBanners()` / `UpdateEventBannerTimer()` methods** — event banner system with 3 simulated events, countdown coroutines, and visual urgency cues.
+- **Power breakdown panel** — long-press power rating HUD to open detailed breakdown. Shows total power with category rows (Buildings, Military, Research, Heroes, Alliance, Equipment), each with bar chart, percentage, and building count. Color-coded bars per category.
+- **`ShowPowerBreakdownPanel()` method** — power analysis UI with 6 categories, bar charts, and percentages. `PowerHudLongPress()` coroutine detects 0.6s hold.
+
+---
+
 ## [0.76.0] — 2026-03-12 (Ralph Loop Iteration 71: VIP System, Building Skins, Raid/Burning State)
 
 ### ADDED

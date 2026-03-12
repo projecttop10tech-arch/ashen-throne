@@ -266,6 +266,8 @@ namespace AshenThrone.Empire
             StartCoroutine(ShowOfflineEarningsBanner());
             // P&C: Peace shield dome (active by default)
             CreatePeaceShield();
+            // P&C: Event timer banners on left side
+            CreateEventTimerBanners();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -7798,10 +7800,22 @@ namespace AshenThrone.Empire
             var hudOutline = hud.AddComponent<Outline>();
             hudOutline.effectColor = new Color(0.70f, 0.45f, 0.15f, 0.4f);
             hudOutline.effectDistance = new Vector2(0.6f, -0.6f);
-            // Tap power HUD to open VIP panel
+            // Tap power HUD to open VIP panel; long-press opens power breakdown
             var vipBtn = hud.AddComponent<Button>();
             vipBtn.targetGraphic = hudBg;
-            vipBtn.onClick.AddListener(ShowVipPanel);
+            vipBtn.onClick.AddListener(() =>
+            {
+                if (_powerLongPressTriggered) { _powerLongPressTriggered = false; return; }
+                ShowVipPanel();
+            });
+            // Long-press: open power breakdown
+            var powerTrigger = hud.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var pointerDown = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown };
+            pointerDown.callback.AddListener((_) => StartCoroutine(PowerHudLongPress()));
+            powerTrigger.triggers.Add(pointerDown);
+            var pointerUp = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerUp };
+            pointerUp.callback.AddListener((_) => _powerLongPressCoroutine = null);
+            powerTrigger.triggers.Add(pointerUp);
 
             var textGO = new GameObject("Text");
             textGO.transform.SetParent(hud.transform, false);
@@ -9513,6 +9527,8 @@ namespace AshenThrone.Empire
             _holdStarted = true;
             _holdTimer = 0f;
             _holdStartPos = eventData.position;
+            // P&C: Start swipe-collect if over a resource building
+            TryStartSwipeCollect(eventData.position);
         }
 
         public void OnPointerUp(PointerEventData eventData)
@@ -9523,6 +9539,9 @@ namespace AshenThrone.Empire
 
             _holdStarted = false;
             _holdTimer = 0f;
+
+            // P&C: End swipe-collect
+            EndSwipeCollect();
 
             if (_moveMode && _movingBuilding != null)
             {
@@ -9959,6 +9978,10 @@ namespace AshenThrone.Empire
                 var snapOrigin = SnapToGrid(localPoint, _placementSize);
                 UpdatePlacementPosition(snapOrigin);
             }
+
+            // P&C: Swipe-collect mode — drag across resource buildings to collect
+            if (_swipeCollectMode)
+                UpdateSwipeCollect(eventData.position);
         }
 
         private void TryEnterMoveMode()
@@ -13754,6 +13777,471 @@ namespace AshenThrone.Empire
             foreach (var id in toRepair)
                 SetBuildingBurning(id, false);
             ShowUpgradeBlockedToast("\u2692 Buildings repaired!");
+        }
+
+        // ====================================================================
+        // P&C: Power breakdown long-press
+        private bool _powerLongPressTriggered;
+        private Coroutine _powerLongPressCoroutine;
+
+        private IEnumerator PowerHudLongPress()
+        {
+            yield return new WaitForSeconds(0.6f);
+            _powerLongPressTriggered = true;
+            _powerLongPressCoroutine = null;
+            ShowPowerBreakdownPanel();
+        }
+
+        // P&C: Quick-Collect Swipe — drag finger across resource buildings to collect
+        // ====================================================================
+
+        private bool _swipeCollectMode;
+        private readonly HashSet<string> _swipeCollectedThisDrag = new();
+        private int _swipeCollectCount;
+
+        /// <summary>P&C: Start swipe-collect mode when drag begins over a resource building with bubbles.</summary>
+        private void TryStartSwipeCollect(Vector2 screenPos)
+        {
+            if (_moveMode || _placementMode) return;
+
+            // Check if we're over a resource building with active bubbles
+            string hitInstanceId = GetBuildingAtScreenPos(screenPos);
+            if (hitInstanceId == null) return;
+
+            CityBuildingPlacement hitPlacement = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == hitInstanceId) { hitPlacement = p; break; }
+            }
+            if (hitPlacement == null) return;
+            if (!ResourceBuildingTypes.ContainsKey(hitPlacement.BuildingId)) return;
+
+            var spawner = FindAnyObjectByType<ResourceBubbleSpawner>();
+            if (spawner == null || spawner.GetTotalActiveBubbleCount() == 0) return;
+
+            _swipeCollectMode = true;
+            _swipeCollectedThisDrag.Clear();
+            _swipeCollectCount = 0;
+
+            // Collect this building's bubbles immediately
+            SwipeCollectBuilding(hitPlacement, spawner);
+        }
+
+        /// <summary>P&C: During swipe, check if finger is over another resource building and collect its bubbles.</summary>
+        private void UpdateSwipeCollect(Vector2 screenPos)
+        {
+            if (!_swipeCollectMode) return;
+
+            string hitInstanceId = GetBuildingAtScreenPos(screenPos);
+            if (hitInstanceId == null) return;
+            if (_swipeCollectedThisDrag.Contains(hitInstanceId)) return;
+
+            CityBuildingPlacement hitPlacement = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == hitInstanceId) { hitPlacement = p; break; }
+            }
+            if (hitPlacement == null) return;
+            if (!ResourceBuildingTypes.ContainsKey(hitPlacement.BuildingId)) return;
+
+            var spawner = FindAnyObjectByType<ResourceBubbleSpawner>();
+            if (spawner == null) return;
+
+            SwipeCollectBuilding(hitPlacement, spawner);
+        }
+
+        private void SwipeCollectBuilding(CityBuildingPlacement placement, ResourceBubbleSpawner spawner)
+        {
+            spawner.CollectAllForBuilding(placement.InstanceId);
+            _swipeCollectedThisDrag.Add(placement.InstanceId);
+            _swipeCollectCount++;
+
+            // Visual feedback: quick bounce on the building
+            if (placement.VisualGO != null)
+                StartCoroutine(QuickBounce(placement.VisualGO, 0.12f, 1.08f));
+        }
+
+        private void EndSwipeCollect()
+        {
+            if (!_swipeCollectMode) return;
+            _swipeCollectMode = false;
+
+            if (_swipeCollectCount > 1)
+            {
+                ShowUpgradeBlockedToast($"\u26CF Swipe-collected from {_swipeCollectCount} buildings!");
+            }
+            _swipeCollectedThisDrag.Clear();
+            _swipeCollectCount = 0;
+        }
+
+        private IEnumerator QuickBounce(GameObject go, float duration, float scale)
+        {
+            if (go == null) yield break;
+            var origScale = go.transform.localScale;
+            float half = duration * 0.5f;
+            float elapsed = 0f;
+            while (elapsed < half && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / half;
+                go.transform.localScale = Vector3.Lerp(origScale, origScale * scale, t);
+                yield return null;
+            }
+            elapsed = 0f;
+            while (elapsed < half && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / half;
+                go.transform.localScale = Vector3.Lerp(origScale * scale, origScale, t);
+                yield return null;
+            }
+            if (go != null) go.transform.localScale = origScale;
+        }
+
+        /// <summary>Get building instance ID at a screen position (hit test).</summary>
+        private string GetBuildingAtScreenPos(Vector2 screenPos)
+        {
+            if (buildingContainer == null) return null;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                buildingContainer, screenPos, null, out var localPoint);
+
+            // Convert local point to grid position
+            Vector2Int gridPos = ScreenToGrid(localPoint);
+
+            // Check occupancy
+            if (_occupancy.TryGetValue(gridPos, out var instanceId))
+                return instanceId;
+            return null;
+        }
+
+        /// <summary>Convert local-space point back to grid coordinate.</summary>
+        private Vector2Int ScreenToGrid(Vector2 localPoint)
+        {
+            // Inverse of GridToLocalCenter isometric projection
+            float adjustedY = localPoint.y + IsoCenterY;
+            float gx = (localPoint.x / HalfW + adjustedY / HalfH) * 0.5f;
+            float gy = (adjustedY / HalfH - localPoint.x / HalfW) * 0.5f;
+            return new Vector2Int(Mathf.RoundToInt(gx), Mathf.RoundToInt(gy));
+        }
+
+        // ====================================================================
+        // P&C: Active Event Timer Banners — countdown banners for server events
+        // ====================================================================
+
+        private readonly List<GameObject> _eventBanners = new();
+
+        /// <summary>P&C: Simulated active events for city screen display.</summary>
+        private static readonly (string Name, string Icon, Color Tint, float DurationHours)[] SimulatedEvents = new[]
+        {
+            ("Alliance War", "\u2694", new Color(0.85f, 0.30f, 0.25f), 4f),
+            ("Void Rift Surge", "\u2728", new Color(0.55f, 0.35f, 0.85f), 2.5f),
+            ("Harvest Festival", "\u26CF", new Color(0.40f, 0.75f, 0.35f), 6f),
+        };
+
+        /// <summary>P&C: Create event timer banners on the left side of the screen.</summary>
+        private void CreateEventTimerBanners()
+        {
+            // Clean up old banners
+            foreach (var b in _eventBanners) { if (b != null) Destroy(b); }
+            _eventBanners.Clear();
+
+            Transform canvasRoot = transform;
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            float yStart = 0.72f;
+            float bannerH = 0.045f;
+            float gap = 0.005f;
+
+            for (int i = 0; i < SimulatedEvents.Length; i++)
+            {
+                var (name, icon, tint, hours) = SimulatedEvents[i];
+                float yTop = yStart - i * (bannerH + gap);
+                float yBot = yTop - bannerH;
+
+                var banner = new GameObject($"EventBanner_{i}");
+                banner.transform.SetParent(canvasRoot, false);
+                banner.transform.SetAsLastSibling();
+
+                var rect = banner.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.0f, yBot);
+                rect.anchorMax = new Vector2(0.28f, yTop);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var bg = banner.AddComponent<Image>();
+                bg.color = new Color(tint.r * 0.25f, tint.g * 0.25f, tint.b * 0.25f, 0.88f);
+                bg.raycastTarget = true;
+
+                var outline = banner.AddComponent<Outline>();
+                outline.effectColor = new Color(tint.r, tint.g, tint.b, 0.5f);
+                outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+                // Tap to dismiss (would open event details in full game)
+                var btn = banner.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                int capIdx = i;
+                btn.onClick.AddListener(() =>
+                {
+                    string evtName = SimulatedEvents[capIdx].Name;
+                    ShowUpgradeBlockedToast($"{SimulatedEvents[capIdx].Icon} {evtName} — tap to view details");
+                });
+
+                // Icon + color accent bar on left
+                var accentGO = new GameObject("Accent");
+                accentGO.transform.SetParent(banner.transform, false);
+                var accentRect = accentGO.AddComponent<RectTransform>();
+                accentRect.anchorMin = new Vector2(0f, 0f);
+                accentRect.anchorMax = new Vector2(0.06f, 1f);
+                accentRect.offsetMin = Vector2.zero;
+                accentRect.offsetMax = Vector2.zero;
+                var accentImg = accentGO.AddComponent<Image>();
+                accentImg.color = tint;
+                accentImg.raycastTarget = false;
+
+                // Event icon
+                AddInfoPanelText(banner.transform, "Icon", icon, 10, FontStyle.Bold,
+                    tint, new Vector2(0.08f, 0f), new Vector2(0.20f, 1f), TextAnchor.MiddleCenter);
+
+                // Event name
+                AddInfoPanelText(banner.transform, "Name", name, 8, FontStyle.Bold,
+                    Color.white, new Vector2(0.21f, 0.35f), new Vector2(0.75f, 0.95f), TextAnchor.MiddleLeft);
+
+                // Timer (simulated — countdown from event duration)
+                int totalSec = (int)(hours * 3600f);
+                // Randomize remaining time for visual variety
+                int remaining = (int)(totalSec * (0.3f + Random.value * 0.6f));
+                string timeStr = FormatTimeRemaining(remaining);
+
+                var timerGO = new GameObject("Timer");
+                timerGO.transform.SetParent(banner.transform, false);
+                var timerRect = timerGO.AddComponent<RectTransform>();
+                timerRect.anchorMin = new Vector2(0.21f, 0.0f);
+                timerRect.anchorMax = new Vector2(0.75f, 0.40f);
+                timerRect.offsetMin = Vector2.zero;
+                timerRect.offsetMax = Vector2.zero;
+                var timerText = timerGO.AddComponent<Text>();
+                timerText.text = timeStr;
+                timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                timerText.fontSize = 7;
+                timerText.fontStyle = FontStyle.Normal;
+                timerText.alignment = TextAnchor.MiddleLeft;
+                timerText.color = new Color(0.80f, 0.78f, 0.72f);
+                timerText.raycastTarget = false;
+
+                // "GO" button on right
+                var goGO = new GameObject("GoBtn");
+                goGO.transform.SetParent(banner.transform, false);
+                var goRect = goGO.AddComponent<RectTransform>();
+                goRect.anchorMin = new Vector2(0.78f, 0.10f);
+                goRect.anchorMax = new Vector2(0.97f, 0.90f);
+                goRect.offsetMin = Vector2.zero;
+                goRect.offsetMax = Vector2.zero;
+                var goBg = goGO.AddComponent<Image>();
+                goBg.color = new Color(tint.r * 0.7f, tint.g * 0.7f, tint.b * 0.7f, 0.85f);
+                goBg.raycastTarget = false;
+                AddInfoPanelText(goGO.transform, "GoText", "\u25B6", 8, FontStyle.Bold,
+                    Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                _eventBanners.Add(banner);
+
+                // Start countdown coroutine
+                StartCoroutine(UpdateEventBannerTimer(timerGO, remaining));
+            }
+        }
+
+        private IEnumerator UpdateEventBannerTimer(GameObject timerGO, int startSeconds)
+        {
+            int remaining = startSeconds;
+            var text = timerGO != null ? timerGO.GetComponent<Text>() : null;
+            while (remaining > 0 && timerGO != null && text != null)
+            {
+                yield return new WaitForSeconds(1f);
+                remaining--;
+                text.text = FormatTimeRemaining(remaining);
+                // Flash red when < 10 min
+                if (remaining < 600)
+                    text.color = new Color(0.95f, 0.40f, 0.30f);
+            }
+        }
+
+        // ====================================================================
+        // P&C: Power Breakdown Panel — total power by category
+        // ====================================================================
+
+        private GameObject _powerBreakdownPanel;
+
+        /// <summary>P&C: Building category to power rating mapping.</summary>
+        private static readonly (string Category, string Icon, Color Tint, string[] BuildingIds)[] PowerCategories = new[]
+        {
+            ("Military", "\u2694", new Color(0.85f, 0.35f, 0.30f), new[] { "barracks", "training_ground", "armory" }),
+            ("Defense", "\u26E8", new Color(0.40f, 0.55f, 0.85f), new[] { "wall", "watch_tower", "stronghold" }),
+            ("Economy", "\u26CF", new Color(0.50f, 0.80f, 0.40f), new[] { "grain_farm", "iron_mine", "stone_quarry", "marketplace" }),
+            ("Research", "\u2609", new Color(0.60f, 0.50f, 0.85f), new[] { "academy", "library", "laboratory", "observatory", "archive" }),
+            ("Magic", "\u2728", new Color(0.75f, 0.45f, 0.90f), new[] { "arcane_tower", "enchanting_tower", "hero_shrine" }),
+            ("Diplomacy", "\u265F", new Color(0.80f, 0.70f, 0.30f), new[] { "guild_hall", "embassy" }),
+        };
+
+        /// <summary>P&C: Show power breakdown by building category.</summary>
+        private void ShowPowerBreakdownPanel()
+        {
+            if (_powerBreakdownPanel != null) { Destroy(_powerBreakdownPanel); _powerBreakdownPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _powerBreakdownPanel = new GameObject("PowerBreakdownPanel");
+            _powerBreakdownPanel.transform.SetParent(canvas.transform, false);
+
+            var dimRect = _powerBreakdownPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _powerBreakdownPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _powerBreakdownPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_powerBreakdownPanel != null) { Destroy(_powerBreakdownPanel); _powerBreakdownPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_powerBreakdownPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.20f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.80f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Total power
+            int totalPower = 0;
+            foreach (var p in _placements) totalPower += GetBuildingPowerContribution(p.BuildingId, p.Tier);
+            string totalStr = totalPower >= 1_000_000 ? $"{totalPower / 1_000_000f:F1}M"
+                : totalPower >= 1_000 ? $"{totalPower / 1_000f:F1}K" : $"{totalPower}";
+
+            AddInfoPanelText(panel.transform, "Title", $"\u2694 Total Power: {totalStr}", 16, FontStyle.Bold,
+                new Color(0.95f, 0.75f, 0.30f),
+                new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            // Category rows
+            float rowY = 0.86f;
+            float rowH = 0.11f;
+            int maxCategoryPower = 1; // Avoid div by zero
+
+            // Pre-compute category totals for bar scaling
+            var catTotals = new int[PowerCategories.Length];
+            for (int c = 0; c < PowerCategories.Length; c++)
+            {
+                int catPower = 0;
+                foreach (var p in _placements)
+                {
+                    foreach (string bid in PowerCategories[c].BuildingIds)
+                    {
+                        if (p.BuildingId == bid) catPower += GetBuildingPowerContribution(bid, p.Tier);
+                    }
+                }
+                catTotals[c] = catPower;
+                if (catPower > maxCategoryPower) maxCategoryPower = catPower;
+            }
+
+            for (int c = 0; c < PowerCategories.Length; c++)
+            {
+                var (category, icon, tint, buildingIds) = PowerCategories[c];
+                int catPower = catTotals[c];
+                float barFill = (float)catPower / maxCategoryPower;
+
+                var rowGO = new GameObject($"Cat_{c}");
+                rowGO.transform.SetParent(panel.transform, false);
+                var rowRect = rowGO.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.03f, rowY - rowH);
+                rowRect.anchorMax = new Vector2(0.97f, rowY);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = rowGO.AddComponent<Image>();
+                rowBg.color = new Color(tint.r * 0.12f, tint.g * 0.12f, tint.b * 0.12f, 0.50f);
+                rowBg.raycastTarget = false;
+
+                // Icon
+                AddInfoPanelText(rowGO.transform, "Icon", icon, 12, FontStyle.Bold,
+                    tint, new Vector2(0.01f, 0f), new Vector2(0.08f, 1f), TextAnchor.MiddleCenter);
+
+                // Category name
+                AddInfoPanelText(rowGO.transform, "Name", category, 10, FontStyle.Bold,
+                    Color.white, new Vector2(0.09f, 0.50f), new Vector2(0.35f, 0.98f), TextAnchor.MiddleLeft);
+
+                // Power value
+                string catStr = catPower >= 1000 ? $"{catPower / 1000f:F1}K" : $"{catPower}";
+                AddInfoPanelText(rowGO.transform, "Value", catStr, 10, FontStyle.Bold,
+                    tint, new Vector2(0.75f, 0.50f), new Vector2(0.98f, 0.98f), TextAnchor.MiddleRight);
+
+                // Percentage of total
+                int pct = totalPower > 0 ? (int)((float)catPower / totalPower * 100) : 0;
+                AddInfoPanelText(rowGO.transform, "Pct", $"{pct}%", 8, FontStyle.Normal,
+                    new Color(0.65f, 0.63f, 0.60f),
+                    new Vector2(0.75f, 0.02f), new Vector2(0.98f, 0.48f), TextAnchor.MiddleRight);
+
+                // Power bar
+                var barBg = new GameObject("BarBg");
+                barBg.transform.SetParent(rowGO.transform, false);
+                var barBgRect = barBg.AddComponent<RectTransform>();
+                barBgRect.anchorMin = new Vector2(0.09f, 0.08f);
+                barBgRect.anchorMax = new Vector2(0.73f, 0.38f);
+                barBgRect.offsetMin = Vector2.zero;
+                barBgRect.offsetMax = Vector2.zero;
+                var barBgImg = barBg.AddComponent<Image>();
+                barBgImg.color = new Color(0.10f, 0.08f, 0.15f, 0.80f);
+                barBgImg.raycastTarget = false;
+
+                var barFillGO = new GameObject("Fill");
+                barFillGO.transform.SetParent(barBg.transform, false);
+                var barFillRect = barFillGO.AddComponent<RectTransform>();
+                barFillRect.anchorMin = Vector2.zero;
+                barFillRect.anchorMax = new Vector2(Mathf.Clamp01(barFill), 1f);
+                barFillRect.offsetMin = Vector2.zero;
+                barFillRect.offsetMax = Vector2.zero;
+                var barFillImg = barFillGO.AddComponent<Image>();
+                barFillImg.color = new Color(tint.r, tint.g, tint.b, 0.75f);
+                barFillImg.raycastTarget = false;
+
+                // Building count in this category
+                int buildCount = 0;
+                foreach (var p in _placements)
+                {
+                    foreach (string bid in buildingIds) { if (p.BuildingId == bid) buildCount++; }
+                }
+                AddInfoPanelText(rowGO.transform, "Count", $"{buildCount} bldg", 7, FontStyle.Normal,
+                    new Color(0.55f, 0.53f, 0.50f),
+                    new Vector2(0.35f, 0.55f), new Vector2(0.55f, 0.95f), TextAnchor.MiddleLeft);
+
+                rowY -= rowH + 0.005f;
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.35f, 0.01f);
+            closeRect.anchorMax = new Vector2(0.65f, 0.08f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.40f, 0.35f, 0.35f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_powerBreakdownPanel != null) { Destroy(_powerBreakdownPanel); _powerBreakdownPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "Label", "Close", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var fadeCg = _powerBreakdownPanel.AddComponent<CanvasGroup>();
+            fadeCg.alpha = 0f;
+            StartCoroutine(FadeInDialog(fadeCg));
         }
     }
 
