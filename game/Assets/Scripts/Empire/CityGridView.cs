@@ -247,6 +247,7 @@ namespace AshenThrone.Empire
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
             CreateBuilderCountHUD();
+            CreateBuildingQuickNav();
             // P&C: Ambient tint, weather, mini-map, and resource countdown timers
             CreateAmbientTintOverlay();
             CreateWeatherOverlay();
@@ -2374,6 +2375,11 @@ namespace AshenThrone.Empire
         private long _collectToastAccum;
         private ResourceType _collectToastType;
 
+        // P&C: Collection streak tracking
+        private int _collectStreak;
+        private float _collectStreakTimer;
+        private const float StreakWindow = 2.5f; // seconds to maintain streak
+
         private void OnResourceCollected(ResourceCollectedEvent evt)
         {
             PlaySfx(_sfxCollect);
@@ -2381,18 +2387,137 @@ namespace AshenThrone.Empire
             // P&C: Spawn fly-to-bar particle
             SpawnResourceFlyParticle(evt.Type, evt.BuildingInstanceId);
 
-            // Accumulate collections within a short window to batch into one toast
-            if (_collectToastCooldown > 0f && _collectToastType == evt.Type)
+            // P&C: Collection streak tracking
+            if (_collectStreakTimer > 0f)
             {
-                _collectToastAccum += evt.Amount;
+                _collectStreak++;
             }
             else
             {
-                _collectToastAccum = evt.Amount;
+                _collectStreak = 1;
+            }
+            _collectStreakTimer = StreakWindow;
+
+            // P&C: Streak bonus — rapid collection gives % bonus
+            long bonusAmount = 0;
+            if (_collectStreak >= 5)
+            {
+                bonusAmount = (long)(evt.Amount * 0.30f);
+                ShowStreakIndicator(_collectStreak, 30);
+            }
+            else if (_collectStreak >= 3)
+            {
+                bonusAmount = (long)(evt.Amount * 0.20f);
+                ShowStreakIndicator(_collectStreak, 20);
+            }
+            else if (_collectStreak >= 2)
+            {
+                bonusAmount = (long)(evt.Amount * 0.10f);
+                ShowStreakIndicator(_collectStreak, 10);
+            }
+
+            // Apply streak bonus
+            if (bonusAmount > 0 && ServiceLocator.TryGet<ResourceManager>(out var rm))
+                rm.AddResource(evt.Type, bonusAmount);
+
+            // Start streak decay coroutine if not already running
+            if (_collectStreak == 1)
+                StartCoroutine(DecayCollectStreak());
+
+            // Accumulate collections within a short window to batch into one toast
+            if (_collectToastCooldown > 0f && _collectToastType == evt.Type)
+            {
+                _collectToastAccum += evt.Amount + bonusAmount;
+            }
+            else
+            {
+                _collectToastAccum = evt.Amount + bonusAmount;
                 _collectToastType = evt.Type;
             }
             _collectToastCooldown = 0.8f; // Reset cooldown
             StartCoroutine(ShowCollectToastDelayed());
+        }
+
+        private IEnumerator DecayCollectStreak()
+        {
+            while (_collectStreakTimer > 0f)
+            {
+                _collectStreakTimer -= Time.deltaTime;
+                yield return null;
+            }
+            _collectStreak = 0;
+        }
+
+        /// <summary>P&C: Show "STREAK x3! +20%" floating text at center screen.</summary>
+        private void ShowStreakIndicator(int streak, int bonusPct)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            var go = new GameObject("StreakIndicator");
+            go.transform.SetParent(canvas.transform, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.20f, 0.45f);
+            rect.anchorMax = new Vector2(0.80f, 0.55f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var text = go.AddComponent<Text>();
+            text.text = $"\u26A1 STREAK x{streak}! +{bonusPct}%";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = streak >= 5 ? 20 : 16;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            Color streakColor = streak >= 5
+                ? new Color(1f, 0.45f, 0.15f) // Orange for high streak
+                : streak >= 3
+                    ? new Color(1f, 0.85f, 0.20f) // Gold
+                    : new Color(0.50f, 0.90f, 0.50f); // Green
+            text.color = streakColor;
+            text.raycastTarget = false;
+
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0, 0, 0, 0.9f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            StartCoroutine(AnimateStreakIndicator(go, rect));
+        }
+
+        private IEnumerator AnimateStreakIndicator(GameObject go, RectTransform rect)
+        {
+            float duration = 1.2f;
+            float elapsed = 0f;
+            var text = go.GetComponent<Text>();
+            Color startColor = text != null ? text.color : Color.white;
+
+            // Start with punch scale
+            go.transform.localScale = Vector3.one * 1.5f;
+
+            while (elapsed < duration && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // Scale: punch down to normal then slowly up
+                float scale = t < 0.15f
+                    ? Mathf.Lerp(1.5f, 1f, t / 0.15f)
+                    : Mathf.Lerp(1f, 1.1f, (t - 0.15f) / 0.85f);
+                go.transform.localScale = Vector3.one * scale;
+
+                // Float upward
+                rect.anchorMin += new Vector2(0f, Time.deltaTime * 0.02f);
+                rect.anchorMax += new Vector2(0f, Time.deltaTime * 0.02f);
+
+                // Fade out in last 40%
+                if (t > 0.6f && text != null)
+                {
+                    float fade = 1f - (t - 0.6f) / 0.4f;
+                    text.color = new Color(startColor.r, startColor.g, startColor.b, fade);
+                }
+
+                yield return null;
+            }
+            if (go != null) Destroy(go);
         }
 
         private IEnumerator ShowCollectToastDelayed()
@@ -6312,6 +6437,152 @@ namespace AshenThrone.Empire
             _builderCountText.color = used >= total
                 ? new Color(1f, 0.45f, 0.35f) // Red when full
                 : new Color(0.95f, 0.85f, 0.45f); // Gold when available
+        }
+
+        // ====================================================================
+        // P&C: Building Quick-Nav Sidebar
+        // ====================================================================
+
+        /// <summary>
+        /// P&C: Small category buttons on the right edge of the screen.
+        /// Tapping a category scrolls and zooms to the first building of that type.
+        /// </summary>
+        private void CreateBuildingQuickNav()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            var navGO = new GameObject("QuickNav");
+            navGO.transform.SetParent(canvas.transform, false);
+            var navRect = navGO.AddComponent<RectTransform>();
+            navRect.anchorMin = new Vector2(0.94f, 0.30f);
+            navRect.anchorMax = new Vector2(1.0f, 0.70f);
+            navRect.offsetMin = Vector2.zero;
+            navRect.offsetMax = Vector2.zero;
+
+            // Semi-transparent bg
+            var navBg = navGO.AddComponent<Image>();
+            navBg.color = new Color(0.04f, 0.03f, 0.08f, 0.50f);
+            navBg.raycastTarget = false;
+
+            // Category buttons
+            var categories = new (string icon, string label, string buildingId, Color color)[]
+            {
+                ("\u265B", "SH", "stronghold", new Color(0.95f, 0.75f, 0.20f)),
+                ("\u2694", "MIL", "barracks", new Color(0.90f, 0.35f, 0.30f)),
+                ("\u26CF", "RES", "grain_farm", new Color(0.45f, 0.80f, 0.40f)),
+                ("\u2728", "MAG", "arcane_tower", new Color(0.60f, 0.40f, 0.90f)),
+                ("\u26E8", "DEF", "wall", new Color(0.50f, 0.65f, 0.80f)),
+                ("\u2609", "SCI", "academy", new Color(0.40f, 0.75f, 0.85f)),
+            };
+
+            float buttonHeight = 1f / categories.Length;
+            for (int i = 0; i < categories.Length; i++)
+            {
+                var cat = categories[i];
+                float yMin = 1f - (i + 1) * buttonHeight + 0.01f;
+                float yMax = 1f - i * buttonHeight - 0.01f;
+
+                var btnGO = new GameObject($"Nav_{cat.label}");
+                btnGO.transform.SetParent(navGO.transform, false);
+                var btnRect = btnGO.AddComponent<RectTransform>();
+                btnRect.anchorMin = new Vector2(0.05f, yMin);
+                btnRect.anchorMax = new Vector2(0.95f, yMax);
+                btnRect.offsetMin = Vector2.zero;
+                btnRect.offsetMax = Vector2.zero;
+
+                var btnBg = btnGO.AddComponent<Image>();
+                btnBg.color = new Color(cat.color.r * 0.25f, cat.color.g * 0.25f, cat.color.b * 0.25f, 0.80f);
+                btnBg.raycastTarget = true;
+                var btnOutline = btnGO.AddComponent<Outline>();
+                btnOutline.effectColor = new Color(cat.color.r, cat.color.g, cat.color.b, 0.40f);
+                btnOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+                var btn = btnGO.AddComponent<Button>();
+                btn.targetGraphic = btnBg;
+                string targetBuildingId = cat.buildingId;
+                btn.onClick.AddListener(() => ScrollToBuildingType(targetBuildingId));
+
+                // Icon + label
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(btnGO.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                var text = textGO.AddComponent<Text>();
+                text.text = $"{cat.icon}\n{cat.label}";
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 8;
+                text.fontStyle = FontStyle.Bold;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.color = cat.color;
+                text.raycastTarget = false;
+                var shadow = textGO.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0, 0, 0, 0.9f);
+                shadow.effectDistance = new Vector2(0.4f, -0.4f);
+            }
+        }
+
+        /// <summary>P&C: Scroll and zoom to the first building of a given type.</summary>
+        private void ScrollToBuildingType(string buildingId)
+        {
+            CityBuildingPlacement target = null;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == buildingId && p.VisualGO != null)
+                {
+                    target = p;
+                    break;
+                }
+            }
+            if (target == null) return;
+
+            // Center on this building
+            var buildingRect = target.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect != null && contentContainer != null)
+            {
+                Vector2 targetPos = -(buildingRect.anchoredPosition * _currentZoom);
+                StartCoroutine(SmoothScrollTo(targetPos, 0.4f));
+            }
+
+            // Flash the building to highlight it
+            if (target.VisualGO != null)
+                StartCoroutine(FlashBuildingHighlight(target.VisualGO));
+
+            PlaySfx(_sfxTap);
+        }
+
+        private IEnumerator SmoothScrollTo(Vector2 targetPos, float duration)
+        {
+            if (contentContainer == null) yield break;
+            Vector2 startPos = contentContainer.anchoredPosition;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float eased = t < 0.5f ? 2f * t * t : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
+                contentContainer.anchoredPosition = Vector2.Lerp(startPos, targetPos, eased);
+                yield return null;
+            }
+            contentContainer.anchoredPosition = targetPos;
+        }
+
+        private IEnumerator FlashBuildingHighlight(GameObject building)
+        {
+            var img = building.GetComponent<Image>();
+            if (img == null) yield break;
+            Color original = img.color;
+
+            for (int i = 0; i < 3; i++)
+            {
+                img.color = new Color(1f, 0.95f, 0.70f, 1f);
+                yield return new WaitForSeconds(0.12f);
+                img.color = original;
+                yield return new WaitForSeconds(0.12f);
+            }
         }
 
         // ====================================================================

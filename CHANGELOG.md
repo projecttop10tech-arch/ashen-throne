@@ -4,6 +4,24 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.65.0] — 2026-03-12 (Ralph Loop Iteration 60: Collection Streak Bonus, Building Quick-Nav)
+
+### ADDED
+- **Resource collection streak bonus** — rapidly collecting multiple resource bubbles within 2.5 seconds triggers a streak bonus: x2 = +10%, x3-4 = +20%, x5+ = +30%. Bonus resources are added automatically via ResourceManager. The streak counter resets after the 2.5s window expires via `DecayCollectStreak()` coroutine.
+- **Streak visual indicator** — floating "⚡ STREAK x3! +20%" text appears at screen center during streaks. Color escalates: green (x2), gold (x3-4), orange (x5+). Text punches in at 1.5x scale, floats upward, and fades over 1.2 seconds.
+- **`ShowStreakIndicator()` / `AnimateStreakIndicator()` methods** — streak feedback creation and animation.
+- **Building quick-nav sidebar** — 6 small category buttons on the right edge of the screen (SH/MIL/RES/MAG/DEF/SCI). Tapping a category smoothly scrolls to the first building of that type and flashes it 3 times for identification. Each button is color-coded to match its category (gold for stronghold, red for military, green for resource, etc.).
+- **`CreateBuildingQuickNav()` method** — creates the sidebar with category buttons.
+- **`ScrollToBuildingType()` method** — finds the first building of a type and smooth-scrolls to center it.
+- **`SmoothScrollTo()` coroutine** — ease-in-out scroll animation for quick-nav targeting.
+- **`FlashBuildingHighlight()` coroutine** — 3-pulse white flash on the targeted building for visual identification.
+
+### CHANGED
+- `OnResourceCollected()` now tracks collection streak timing, applies bonus resources, and triggers visual feedback.
+- Collect toast accumulation now includes streak bonus amounts in the displayed total.
+
+---
+
 ## [0.64.0] — 2026-03-12 (Ralph Loop Iteration 59: Resource Breakdown Popup, SH Unlock Preview)
 
 ### ADDED
