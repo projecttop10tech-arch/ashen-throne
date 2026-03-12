@@ -270,6 +270,12 @@ namespace AshenThrone.Empire
             CreateEventTimerBanners();
             // P&C: Auto-collect toggle button
             CreateAutoCollectToggle();
+            // P&C: Daily treasure chest
+            CreateDailyChest();
+            // P&C: Traveling merchant icon
+            CreateMerchantIcon();
+            // P&C: City prosperity badge
+            UpdateProsperityBadge();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -535,6 +541,14 @@ namespace AshenThrone.Empire
 
             // P&C: Auto-collect resource bubbles
             TickAutoCollect();
+
+            // P&C: Refresh prosperity badge periodically
+            _prosperityRefreshTimer += Time.deltaTime;
+            if (_prosperityRefreshTimer >= 30f)
+            {
+                _prosperityRefreshTimer = 0f;
+                UpdateProsperityBadge();
+            }
 
             // Pinch-zoom (mobile multi-touch)
             _touchCount = Input.touchCount;
@@ -12512,6 +12526,7 @@ namespace AshenThrone.Empire
         private readonly List<GameObject> _marchingTroops = new();
         private float _troopMarchSpawnTimer;
         private float _dayNightTimer;
+        private float _prosperityRefreshTimer;
         private const float TroopMarchSpawnInterval = 8f; // seconds between march waves
 
         /// <summary>P&C: Spawn a tiny troop figure that marches from a barracks to the nearest wall gate.</summary>
@@ -16317,6 +16332,435 @@ namespace AshenThrone.Empire
             Debug.Log($"[LayoutPresets] Loading '{slotName}' with {layout.Count} buildings (swap logic would go here)");
             ShowUpgradeBlockedToast($"\u2302 Layout '{slotName}' loaded! ({layout.Count} buildings)");
             if (_layoutPresetsPanel != null) { Destroy(_layoutPresetsPanel); _layoutPresetsPanel = null; }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Daily Treasure Chest — Tappable reward on city view
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _dailyChest;
+        private bool _dailyChestCollected;
+
+        /// <summary>P&C: Create a glowing treasure chest near stronghold that grants daily rewards.</summary>
+        private void CreateDailyChest()
+        {
+            if (_dailyChestCollected) return;
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _dailyChest = new GameObject("DailyChest");
+            _dailyChest.transform.SetParent(canvas.transform, false);
+            var rect = _dailyChest.AddComponent<RectTransform>();
+            // Position left of center, above nav bar
+            rect.anchorMin = new Vector2(0.08f, 0.20f);
+            rect.anchorMax = new Vector2(0.20f, 0.30f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Glow background
+            var glow = new GameObject("Glow");
+            glow.transform.SetParent(_dailyChest.transform, false);
+            var glowRect = glow.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.3f, -0.3f);
+            glowRect.anchorMax = new Vector2(1.3f, 1.3f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glow.AddComponent<Image>();
+            glowImg.color = new Color(1f, 0.85f, 0.30f, 0.20f);
+            glowImg.raycastTarget = false;
+            var radialSprite = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            if (radialSprite != null) glowImg.sprite = radialSprite;
+
+            // Chest body
+            var bg = _dailyChest.AddComponent<Image>();
+            bg.color = new Color(0.55f, 0.35f, 0.12f, 0.95f);
+            bg.raycastTarget = true;
+            var outline = _dailyChest.AddComponent<Outline>();
+            outline.effectColor = new Color(0.90f, 0.75f, 0.25f, 0.8f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Chest icon
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(_dailyChest.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.15f, 0.20f);
+            iconRect.anchorMax = new Vector2(0.85f, 0.75f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = "\u2620"; // chest-like symbol
+            iconText.fontSize = 22;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = new Color(1f, 0.85f, 0.30f);
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.raycastTarget = false;
+
+            // "FREE" label
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_dailyChest.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0.70f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            var labelBg = labelGO.AddComponent<Image>();
+            labelBg.color = new Color(0.85f, 0.20f, 0.15f, 0.92f);
+            labelBg.raycastTarget = false;
+            var label = new GameObject("Text");
+            label.transform.SetParent(labelGO.transform, false);
+            var ltRect = label.AddComponent<RectTransform>();
+            ltRect.anchorMin = Vector2.zero;
+            ltRect.anchorMax = Vector2.one;
+            ltRect.offsetMin = Vector2.zero;
+            ltRect.offsetMax = Vector2.zero;
+            var lt = label.AddComponent<Text>();
+            lt.text = "FREE";
+            lt.fontSize = 9;
+            lt.fontStyle = FontStyle.Bold;
+            lt.alignment = TextAnchor.MiddleCenter;
+            lt.color = Color.white;
+            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            lt.raycastTarget = false;
+
+            // Tap to collect
+            var btn = _dailyChest.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(CollectDailyChest);
+
+            // Bounce animation
+            StartCoroutine(AnimateDailyChest());
+        }
+
+        private IEnumerator AnimateDailyChest()
+        {
+            while (_dailyChest != null)
+            {
+                float bounce = 1f + 0.05f * Mathf.Sin(Time.time * 2.5f);
+                _dailyChest.transform.localScale = Vector3.one * bounce;
+                // Glow pulse
+                var glow = _dailyChest.transform.Find("Glow");
+                if (glow != null)
+                {
+                    var img = glow.GetComponent<Image>();
+                    if (img != null)
+                        img.color = new Color(1f, 0.85f, 0.30f, 0.15f + 0.10f * Mathf.Sin(Time.time * 3f));
+                }
+                yield return null;
+            }
+        }
+
+        private void CollectDailyChest()
+        {
+            _dailyChestCollected = true;
+            if (_dailyChest != null) { Destroy(_dailyChest); _dailyChest = null; }
+
+            // Grant rewards
+            var rm = ServiceLocator.Get<ResourceManager>();
+            if (rm != null)
+            {
+                rm.AddResource(ResourceType.Stone, 500);
+                rm.AddResource(ResourceType.Iron, 500);
+                rm.AddResource(ResourceType.Grain, 500);
+                rm.AddResource(ResourceType.ArcaneEssence, 100);
+            }
+
+            ShowUpgradeBlockedToast("\u2620 Daily Chest! +500 Stone, +500 Iron, +500 Grain, +100 Arcane!");
+            Debug.Log("[DailyChest] Collected daily reward.");
+        }
+    }
+
+    // ====================================================================
+    // P&C: Traveling Merchant / Mystery Shop
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _merchantPanel;
+        private GameObject _merchantIcon;
+        private bool _merchantVisited;
+
+        private static readonly MerchantDeal[] MerchantDeals = new[]
+        {
+            new MerchantDeal("Speed-Up 1h", "\u231B", 50, "Speeds up construction by 1 hour"),
+            new MerchantDeal("Resource Pack", "\u2618", 30, "+2000 of each resource"),
+            new MerchantDeal("Builder Boost", "\u2692", 80, "+50% build speed for 30 min"),
+            new MerchantDeal("Shield 4h", "\u26E8", 100, "Peace shield for 4 hours"),
+            new MerchantDeal("VIP Points ×100", "\u2605", 60, "+100 VIP experience points"),
+            new MerchantDeal("Rare Skin Token", "\u2728", 150, "Unlock a random building skin"),
+        };
+
+        private struct MerchantDeal
+        {
+            public string Name;
+            public string Icon;
+            public int GemCost;
+            public string Desc;
+            public MerchantDeal(string name, string icon, int gems, string desc)
+            { Name = name; Icon = icon; GemCost = gems; Desc = desc; }
+        }
+
+        /// <summary>P&C: Create traveling merchant icon on city view — appears for limited time.</summary>
+        private void CreateMerchantIcon()
+        {
+            if (_merchantVisited) return;
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _merchantIcon = new GameObject("MerchantIcon");
+            _merchantIcon.transform.SetParent(canvas.transform, false);
+            var rect = _merchantIcon.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.03f, 0.35f);
+            rect.anchorMax = new Vector2(0.13f, 0.44f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _merchantIcon.AddComponent<Image>();
+            bg.color = new Color(0.40f, 0.25f, 0.55f, 0.92f);
+            bg.raycastTarget = true;
+            var outline = _merchantIcon.AddComponent<Outline>();
+            outline.effectColor = new Color(0.70f, 0.50f, 0.85f, 0.7f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            var btn = _merchantIcon.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(ShowMerchantPanel);
+
+            // Merchant face icon
+            AddInfoPanelText(_merchantIcon.transform, "Icon", "\u2655", 18, FontStyle.Bold,
+                new Color(1f, 0.85f, 0.30f), new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.70f), TextAnchor.MiddleCenter);
+            AddInfoPanelText(_merchantIcon.transform, "Label", "SHOP", 8, FontStyle.Bold,
+                Color.white, new Vector2(0f, 0.72f), new Vector2(1f, 1f), TextAnchor.MiddleCenter);
+
+            // Timer label (merchant stays for 2h)
+            AddInfoPanelText(_merchantIcon.transform, "Timer", "1:59:45", 7, FontStyle.Normal,
+                new Color(0.8f, 0.8f, 0.8f), new Vector2(0f, 0f), new Vector2(1f, 0.18f), TextAnchor.MiddleCenter);
+
+            StartCoroutine(AnimateMerchantIcon());
+        }
+
+        private IEnumerator AnimateMerchantIcon()
+        {
+            while (_merchantIcon != null)
+            {
+                float wobble = Mathf.Sin(Time.time * 1.5f) * 2f;
+                _merchantIcon.transform.localRotation = Quaternion.Euler(0, 0, wobble);
+                yield return null;
+            }
+        }
+
+        private void ShowMerchantPanel()
+        {
+            if (_merchantPanel != null) { Destroy(_merchantPanel); _merchantPanel = null; }
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _merchantPanel = new GameObject("MerchantPanel");
+            _merchantPanel.transform.SetParent(canvas.transform, false);
+            var dimRect = _merchantPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _merchantPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.65f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _merchantPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_merchantPanel != null) { Destroy(_merchantPanel); _merchantPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_merchantPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.06f, 0.15f);
+            panelRect.anchorMax = new Vector2(0.94f, 0.85f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.10f, 0.06f, 0.18f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.70f, 0.50f, 0.85f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            AddInfoPanelText(panel.transform, "Title", "\u2655 Traveling Merchant", 15, FontStyle.Bold,
+                new Color(0.90f, 0.75f, 1f), new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+            AddInfoPanelText(panel.transform, "Subtitle", "Limited time deals! Refreshes daily.", 10,
+                FontStyle.Italic, new Color(0.7f, 0.6f, 0.8f),
+                new Vector2(0.05f, 0.84f), new Vector2(0.95f, 0.90f), TextAnchor.MiddleCenter);
+
+            // Deal grid: 2 columns × 3 rows
+            int cols = 2;
+            float cellW = 0.46f;
+            float cellH = 0.22f;
+            float startX = 0.03f;
+            float startY = 0.78f;
+
+            for (int i = 0; i < MerchantDeals.Length; i++)
+            {
+                var deal = MerchantDeals[i];
+                int col = i % cols;
+                int row = i / cols;
+                float x = startX + col * (cellW + 0.02f);
+                float y = startY - row * (cellH + 0.02f);
+
+                var cell = new GameObject($"Deal_{i}");
+                cell.transform.SetParent(panel.transform, false);
+                var cellRect = cell.AddComponent<RectTransform>();
+                cellRect.anchorMin = new Vector2(x, y - cellH);
+                cellRect.anchorMax = new Vector2(x + cellW, y);
+                cellRect.offsetMin = Vector2.zero;
+                cellRect.offsetMax = Vector2.zero;
+                var cellBg = cell.AddComponent<Image>();
+                cellBg.color = new Color(0.15f, 0.10f, 0.25f, 0.8f);
+
+                // Icon
+                AddInfoPanelText(cell.transform, "Icon", deal.Icon, 20, FontStyle.Normal,
+                    new Color(1f, 0.85f, 0.40f), new Vector2(0.02f, 0.30f), new Vector2(0.25f, 0.95f), TextAnchor.MiddleCenter);
+
+                // Name + desc
+                AddInfoPanelText(cell.transform, "Name", deal.Name, 11, FontStyle.Bold,
+                    Color.white, new Vector2(0.28f, 0.55f), new Vector2(0.98f, 0.95f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(cell.transform, "Desc", deal.Desc, 8, FontStyle.Italic,
+                    new Color(0.7f, 0.7f, 0.7f), new Vector2(0.28f, 0.28f), new Vector2(0.98f, 0.55f), TextAnchor.MiddleLeft);
+
+                // Buy button
+                var buyGO = new GameObject("BuyBtn");
+                buyGO.transform.SetParent(cell.transform, false);
+                var buyRect = buyGO.AddComponent<RectTransform>();
+                buyRect.anchorMin = new Vector2(0.28f, 0.02f);
+                buyRect.anchorMax = new Vector2(0.98f, 0.26f);
+                buyRect.offsetMin = Vector2.zero;
+                buyRect.offsetMax = Vector2.zero;
+                var buyBg = buyGO.AddComponent<Image>();
+                buyBg.color = new Color(0.50f, 0.30f, 0.65f, 0.92f);
+                var buyBtn = buyGO.AddComponent<Button>();
+                buyBtn.targetGraphic = buyBg;
+                string dealName = deal.Name;
+                int dealCost = deal.GemCost;
+                buyBtn.onClick.AddListener(() =>
+                {
+                    ShowUpgradeBlockedToast($"\u2655 Purchased {dealName} for {dealCost} gems!");
+                    Debug.Log($"[Merchant] Bought {dealName} for {dealCost} gems");
+                });
+                AddInfoPanelText(buyGO.transform, "Price", $"\u2666 {deal.GemCost}", 10, FontStyle.Bold,
+                    Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.91f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_merchantPanel != null) { Destroy(_merchantPanel); _merchantPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _merchantPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+    }
+
+    // ====================================================================
+    // P&C: City Prosperity Rank — Score based on buildings and upgrades
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _prosperityBadge;
+
+        private static readonly Dictionary<string, int> BuildingProsperityBase = new()
+        {
+            { "stronghold", 500 }, { "barracks", 100 }, { "wall", 80 }, { "watch_tower", 80 },
+            { "grain_farm", 60 }, { "iron_mine", 60 }, { "stone_quarry", 60 }, { "arcane_tower", 120 },
+            { "marketplace", 90 }, { "academy", 110 }, { "forge", 90 }, { "armory", 90 },
+            { "guild_hall", 100 }, { "embassy", 100 }, { "training_ground", 80 }, { "laboratory", 110 },
+            { "library", 90 }, { "hero_shrine", 120 }, { "observatory", 100 }, { "archive", 90 },
+            { "enchanting_tower", 110 },
+        };
+
+        /// <summary>P&C: Calculate total city prosperity score.</summary>
+        private int CalculateProsperity()
+        {
+            int total = 0;
+            foreach (var p in _placements)
+            {
+                int baseVal = BuildingProsperityBase.TryGetValue(p.BuildingId, out var bv) ? bv : 30;
+                total += baseVal * p.Tier;
+                // Adjacency bonus adds prosperity
+                total += GetAdjacencyBonus(p) * 2;
+            }
+            // Decoration bonus
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "fountain" || p.BuildingId == "statue" || p.BuildingId == "garden")
+                    total += 25 * p.Tier;
+            }
+            return total;
+        }
+
+        /// <summary>P&C: Get city rank title based on prosperity score.</summary>
+        private static (string title, Color color) GetProsperityRank(int score)
+        {
+            if (score >= 10000) return ("Imperial Capital", new Color(1f, 0.85f, 0.25f));
+            if (score >= 7000) return ("Grand Citadel", new Color(0.85f, 0.55f, 1f));
+            if (score >= 5000) return ("Fortified City", new Color(0.40f, 0.75f, 1f));
+            if (score >= 3000) return ("Growing Town", new Color(0.45f, 0.85f, 0.45f));
+            if (score >= 1500) return ("Small Settlement", new Color(0.80f, 0.80f, 0.80f));
+            return ("Frontier Outpost", new Color(0.60f, 0.55f, 0.50f));
+        }
+
+        /// <summary>P&C: Create or update prosperity badge on the city HUD.</summary>
+        private void UpdateProsperityBadge()
+        {
+            int score = CalculateProsperity();
+            var (title, color) = GetProsperityRank(score);
+
+            if (_prosperityBadge != null) Destroy(_prosperityBadge);
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _prosperityBadge = new GameObject("ProsperityBadge");
+            _prosperityBadge.transform.SetParent(canvas.transform, false);
+            var rect = _prosperityBadge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.03f, 0.88f);
+            rect.anchorMax = new Vector2(0.35f, 0.92f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _prosperityBadge.AddComponent<Image>();
+            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.80f);
+            bg.raycastTarget = false;
+            var outline = _prosperityBadge.AddComponent<Outline>();
+            outline.effectColor = new Color(color.r, color.g, color.b, 0.5f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_prosperityBadge.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(4, 0);
+            labelRect.offsetMax = new Vector2(-4, 0);
+            var label = labelGO.AddComponent<Text>();
+            label.text = $"\u2726 {title} — {score:N0} Prosperity";
+            label.fontSize = 9;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleLeft;
+            label.color = color;
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.raycastTarget = false;
         }
     }
 }

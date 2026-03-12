@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.82.0] — 2026-03-12 (Ralph Loop Iteration 77: Daily Chest, Traveling Merchant, City Prosperity)
+
+### ADDED
+- **Daily treasure chest** — P&C-style free daily reward chest on the city screen. Gold-glowing bouncing chest with "FREE" label appears near bottom-right. Tap to collect +500 Stone/Iron/Grain and +100 Arcane Essence. Resets each session. Chest has pulsing gold glow aura and bounce animation to draw attention.
+- **`CreateDailyChest()` / `AnimateDailyChest()` / `CollectDailyChest()` methods** — daily chest spawning, animation, and reward collection with ResourceManager integration.
+- **Traveling merchant** — mystery shop NPC icon on left side of city screen. Wobbling merchant icon with "DEALS!" label. Opens merchant panel with 6 gem-priced deals in a 2×3 grid (e.g., 500 Stone for 50 gems, 200 Iron for 40 gems, Speed Up 1h for 80 gems). Each deal shows gem cost and buy button. Once-per-session visit tracking.
+- **`CreateMerchantIcon()` / `AnimateMerchantIcon()` / `ShowMerchantPanel()` methods** — merchant icon, wobble animation, and 6-deal shop panel with MerchantDeal struct array.
+- **City prosperity rank system** — calculates overall city score from all placed buildings weighted by type and tier. 6 rank tiers: Frontier Outpost (0-99), Growing Settlement (100-299), Fortified Town (300-599), Thriving City (600-999), Grand Citadel (1000-1499), Imperial Capital (1500+). Prosperity badge displayed on city screen with rank name, score, and progress bar. Updates every 30 seconds and on building changes. 21 building types with base prosperity values.
+- **`CalculateProsperity()` / `GetProsperityRank()` / `UpdateProsperityBadge()` methods** — prosperity scoring, rank lookup, and badge UI with progress bar toward next rank.
+
+---
+
 ## [0.81.0] — 2026-03-12 (Ralph Loop Iteration 76: Adjacency Bonuses, Alliance Donation, Layout Presets)
 
 ### ADDED
