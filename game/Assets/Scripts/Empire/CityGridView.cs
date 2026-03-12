@@ -184,6 +184,7 @@ namespace AshenThrone.Empire
         private EventSubscription _collectSub;
         private EventSubscription _buildCompleteSfxSub;
         private EventSubscription _upgradeStartedSub;
+        private EventSubscription _emptyCellTappedSub;
 
         private void OnEnable()
         {
@@ -194,6 +195,7 @@ namespace AshenThrone.Empire
             _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompletedSfx);
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
             _buildingTappedSub = EventBus.Subscribe<BuildingTappedEvent>(OnBuildingTappedShowPopup);
+            _emptyCellTappedSub = EventBus.Subscribe<EmptyCellTappedEvent>(OnEmptyCellTapped);
         }
 
         private void OnDisable()
@@ -205,6 +207,7 @@ namespace AshenThrone.Empire
             _buildCompleteSfxSub?.Dispose();
             _upgradeStartedSub?.Dispose();
             _buildingTappedSub?.Dispose();
+            _emptyCellTappedSub?.Dispose();
         }
 
         private void Start()
@@ -321,6 +324,7 @@ namespace AshenThrone.Empire
                 _upgradeArrowRefreshTimer = UpgradeArrowRefreshInterval;
                 RefreshUpgradeArrows();
                 UpdateBuilderCountHUD();
+                RefreshResourceCapWarnings();
             }
 
             // P&C: Pulse selection ring glow
@@ -2656,6 +2660,179 @@ namespace AshenThrone.Empire
             };
         }
 
+        // ====================================================================
+        // P&C: Empty Cell → Building Placement Selector
+        // ====================================================================
+
+        private GameObject _buildSelectorPanel;
+        private Vector2Int _buildSelectorGridPos;
+
+        /// <summary>P&C: Category-grouped building types available for placement.</summary>
+        private static readonly (string Category, Color Color, string[] Buildings)[] BuildCategories = new[]
+        {
+            ("Military", new Color(0.85f, 0.30f, 0.25f), new[] { "barracks", "training_ground", "armory" }),
+            ("Resource", new Color(0.30f, 0.75f, 0.35f), new[] { "grain_farm", "iron_mine", "stone_quarry", "arcane_tower" }),
+            ("Research", new Color(0.35f, 0.55f, 0.90f), new[] { "academy", "laboratory", "library", "archive", "observatory" }),
+            ("Magic", new Color(0.65f, 0.40f, 0.90f), new[] { "enchanting_tower", "hero_shrine" }),
+            ("Defense", new Color(0.55f, 0.60f, 0.70f), new[] { "wall", "watch_tower" }),
+            ("Social", new Color(0.85f, 0.70f, 0.25f), new[] { "marketplace", "guild_hall", "embassy", "forge" }),
+        };
+
+        private void OnEmptyCellTapped(EmptyCellTappedEvent evt)
+        {
+            if (_moveMode) return; // Don't show selector during move mode
+            DismissInfoPopup();
+            ShowBuildSelector(evt.GridPosition);
+        }
+
+        private void ShowBuildSelector(Vector2Int gridPos)
+        {
+            DismissBuildSelector();
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _buildSelectorGridPos = gridPos;
+            _buildSelectorPanel = new GameObject("BuildSelectorPanel");
+            _buildSelectorPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _buildSelectorPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _buildSelectorPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _buildSelectorPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissBuildSelector);
+
+            // Scrollable panel at bottom half
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_buildSelectorPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.03f, 0.10f);
+            panelRect.anchorMax = new Vector2(0.97f, 0.70f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelImg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.8f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", "BUILD NEW", 16, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.90f), new Vector2(0.70f, 0.98f), TextAnchor.MiddleLeft);
+
+            // Grid position label
+            AddInfoPanelText(panel.transform, "Coords", $"at ({gridPos.x}, {gridPos.y})", 10, FontStyle.Normal,
+                new Color(0.6f, 0.6f, 0.6f),
+                new Vector2(0.72f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleRight);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.90f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(DismissBuildSelector);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Build category rows
+            float yTop = 0.87f;
+            float rowHeight = 0.13f;
+            float gap = 0.01f;
+
+            foreach (var (category, color, buildings) in BuildCategories)
+            {
+                float rowBot = yTop - rowHeight;
+
+                // Category label
+                AddInfoPanelText(panel.transform, $"Cat_{category}", category, 10, FontStyle.Bold, color,
+                    new Vector2(0.03f, rowBot), new Vector2(0.18f, yTop), TextAnchor.MiddleLeft);
+
+                // Building buttons in row
+                float btnWidth = 0.78f / buildings.Length;
+                for (int i = 0; i < buildings.Length; i++)
+                {
+                    string bid = buildings[i];
+                    string displayName = BuildingDisplayNames.TryGetValue(bid, out var dn) ? dn : bid;
+                    float x0 = 0.20f + i * btnWidth;
+                    float x1 = x0 + btnWidth - 0.005f;
+
+                    var btnGO = new GameObject($"Build_{bid}");
+                    btnGO.transform.SetParent(panel.transform, false);
+                    var btnRect = btnGO.AddComponent<RectTransform>();
+                    btnRect.anchorMin = new Vector2(x0, rowBot + 0.01f);
+                    btnRect.anchorMax = new Vector2(x1, yTop - 0.01f);
+                    btnRect.offsetMin = Vector2.zero;
+                    btnRect.offsetMax = Vector2.zero;
+
+                    var btnBg = btnGO.AddComponent<Image>();
+                    btnBg.color = new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.85f);
+                    btnBg.raycastTarget = true;
+                    var btnOutline = btnGO.AddComponent<Outline>();
+                    btnOutline.effectColor = new Color(color.r, color.g, color.b, 0.5f);
+                    btnOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+                    var btn = btnGO.AddComponent<Button>();
+                    btn.targetGraphic = btnBg;
+                    string capBid = bid;
+                    Vector2Int capPos = gridPos;
+                    btn.onClick.AddListener(() => {
+                        DismissBuildSelector();
+                        EventBus.Publish(new PlacementConfirmedEvent(capBid, capPos,
+                            BuildingSizes.TryGetValue(capBid, out var sz) ? sz : new Vector2Int(2, 2)));
+                    });
+
+                    // Building name text
+                    var lblGO = new GameObject("Label");
+                    lblGO.transform.SetParent(btnGO.transform, false);
+                    var lblRect = lblGO.AddComponent<RectTransform>();
+                    lblRect.anchorMin = Vector2.zero;
+                    lblRect.anchorMax = Vector2.one;
+                    lblRect.offsetMin = new Vector2(2, 0);
+                    lblRect.offsetMax = new Vector2(-2, 0);
+                    var lblText = lblGO.AddComponent<Text>();
+                    lblText.text = displayName;
+                    lblText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    lblText.fontSize = 8;
+                    lblText.fontStyle = FontStyle.Bold;
+                    lblText.alignment = TextAnchor.MiddleCenter;
+                    lblText.color = Color.white;
+                    lblText.raycastTarget = false;
+                }
+
+                yTop = rowBot - gap;
+            }
+
+            // Fade in
+            var cg = _buildSelectorPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void DismissBuildSelector()
+        {
+            if (_buildSelectorPanel != null)
+            {
+                Destroy(_buildSelectorPanel);
+                _buildSelectorPanel = null;
+            }
+        }
+
         /// <summary>P&C: Get formatted upgrade cost string for next tier from BuildingData.</summary>
         private static string GetUpgradeCostString(string instanceId, int currentTier)
         {
@@ -2889,6 +3066,86 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Resource Near-Cap Warning
+        // ====================================================================
+
+        private static readonly Dictionary<string, ResourceType> ResourceBuildingToType = new()
+        {
+            { "grain_farm", ResourceType.Grain },
+            { "iron_mine", ResourceType.Iron },
+            { "stone_quarry", ResourceType.Stone },
+            { "arcane_tower", ResourceType.ArcaneEssence },
+        };
+
+        /// <summary>P&C: Show/hide warning badge on resource buildings when storage is near cap (>90%).</summary>
+        private void RefreshResourceCapWarnings()
+        {
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                if (!ResourceBuildingToType.TryGetValue(p.BuildingId, out var resType)) continue;
+
+                bool nearCap = IsNearResourceCap(rm, resType);
+                var existing = p.VisualGO.transform.Find("CapWarning");
+
+                if (nearCap && existing == null)
+                    CreateCapWarningBadge(p.VisualGO);
+                else if (!nearCap && existing != null)
+                    Destroy(existing.gameObject);
+            }
+        }
+
+        private static bool IsNearResourceCap(ResourceManager rm, ResourceType type)
+        {
+            float ratio = type switch
+            {
+                ResourceType.Stone => rm.MaxStone > 0 ? (float)rm.Stone / rm.MaxStone : 0f,
+                ResourceType.Iron => rm.MaxIron > 0 ? (float)rm.Iron / rm.MaxIron : 0f,
+                ResourceType.Grain => rm.MaxGrain > 0 ? (float)rm.Grain / rm.MaxGrain : 0f,
+                ResourceType.ArcaneEssence => rm.MaxArcaneEssence > 0 ? (float)rm.ArcaneEssence / rm.MaxArcaneEssence : 0f,
+                _ => 0f
+            };
+            return ratio >= 0.90f;
+        }
+
+        private void CreateCapWarningBadge(GameObject building)
+        {
+            var badge = new GameObject("CapWarning");
+            badge.transform.SetParent(building.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.70f, 0.82f);
+            rect.anchorMax = new Vector2(0.98f, 1.0f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.85f, 0.25f, 0.15f, 0.90f);
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.5f, 0.3f, 0.6f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = "FULL";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+        }
+
+        // ====================================================================
         // P&C: Builder count HUD
         // ====================================================================
 
@@ -2914,7 +3171,12 @@ namespace AshenThrone.Empire
 
             var hudBg = hud.AddComponent<Image>();
             hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
-            hudBg.raycastTarget = false;
+            hudBg.raycastTarget = true;
+
+            // P&C: Tap to expand queue detail panel
+            var hudBtn = hud.AddComponent<Button>();
+            hudBtn.targetGraphic = hudBg;
+            hudBtn.onClick.AddListener(ToggleBuildQueuePanel);
 
             var hudOutline = hud.AddComponent<Outline>();
             hudOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.5f);
@@ -2956,6 +3218,108 @@ namespace AshenThrone.Empire
             _builderCountText.color = used >= total
                 ? new Color(1f, 0.45f, 0.35f) // Red when full
                 : new Color(0.95f, 0.85f, 0.45f); // Gold when available
+        }
+
+        // ====================================================================
+        // P&C: Build Queue Expandable Panel
+        // ====================================================================
+
+        private GameObject _buildQueuePanel;
+
+        private void ToggleBuildQueuePanel()
+        {
+            if (_buildQueuePanel != null)
+            {
+                Destroy(_buildQueuePanel);
+                _buildQueuePanel = null;
+                return;
+            }
+            ShowBuildQueuePanel();
+        }
+
+        private void ShowBuildQueuePanel()
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+
+            Transform canvasRoot = transform;
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            _buildQueuePanel = new GameObject("BuildQueuePanel");
+            _buildQueuePanel.transform.SetParent(canvasRoot, false);
+            _buildQueuePanel.transform.SetAsLastSibling();
+
+            var panelRect = _buildQueuePanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.02f, 0.68f);
+            panelRect.anchorMax = new Vector2(0.40f, 0.87f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            var panelBg = _buildQueuePanel.AddComponent<Image>();
+            panelBg.color = new Color(0.06f, 0.04f, 0.12f, 0.94f);
+            panelBg.raycastTarget = true;
+            var panelOutline = _buildQueuePanel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            AddInfoPanelText(_buildQueuePanel.transform, "QTitle", "BUILD QUEUE", 11, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            var queue = bm.BuildQueue;
+            if (queue.Count == 0)
+            {
+                AddInfoPanelText(_buildQueuePanel.transform, "Empty", "No upgrades in progress", 10, FontStyle.Normal,
+                    new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                float rowHeight = 0.35f;
+                for (int i = 0; i < queue.Count && i < 2; i++)
+                {
+                    var entry = queue[i];
+                    float yTop = 0.78f - i * (rowHeight + 0.03f);
+                    float yBot = yTop - rowHeight;
+
+                    // Find placement info for display name
+                    string displayName = entry.PlacedId;
+                    foreach (var p in _placements)
+                    {
+                        if (p.InstanceId == entry.PlacedId)
+                        {
+                            displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
+                            break;
+                        }
+                    }
+
+                    // Slot number + building name
+                    string slotLabel = $"[{i + 1}] {displayName} \u2192 Lv {entry.TargetTier}";
+                    AddInfoPanelText(_buildQueuePanel.transform, $"Slot{i}", slotLabel, 10, FontStyle.Bold,
+                        Color.white,
+                        new Vector2(0.05f, yBot + 0.15f), new Vector2(0.95f, yTop), TextAnchor.MiddleLeft);
+
+                    // Time remaining estimate
+                    string timeStr = FormatTimeRemaining(Mathf.RoundToInt(entry.RemainingSeconds));
+                    AddInfoPanelText(_buildQueuePanel.transform, $"Time{i}", timeStr, 9, FontStyle.Normal,
+                        new Color(0.80f, 0.75f, 0.60f),
+                        new Vector2(0.05f, yBot), new Vector2(0.95f, yBot + 0.15f), TextAnchor.MiddleLeft);
+                }
+            }
+
+            // Auto-dismiss after 5 seconds
+            StartCoroutine(AutoDismissQueuePanel());
+        }
+
+        private IEnumerator AutoDismissQueuePanel()
+        {
+            yield return new WaitForSeconds(5f);
+            if (_buildQueuePanel != null)
+            {
+                Destroy(_buildQueuePanel);
+                _buildQueuePanel = null;
+            }
         }
 
         // ====================================================================

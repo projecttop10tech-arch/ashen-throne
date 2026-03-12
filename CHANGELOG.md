@@ -4,6 +4,24 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.40.0] — 2026-03-11 (Ralph Loop Iteration 35: Build Selector, Queue Panel, Resource Cap Warning)
+
+### ADDED
+- **Empty cell → building placement selector** — tapping empty ground opens a category-grouped building selector panel (Military/Resource/Research/Magic/Defense/Social). Each building is a tappable button that publishes `PlacementConfirmedEvent`. Category colors match popup header scheme. Panel has grid coordinates, close button, and fade-in animation.
+- **Build queue expandable panel** — tapping the Builder HUD (now a button) toggles a dropdown panel showing active queue entries with building name, target tier, and remaining time. Auto-dismisses after 5 seconds. Shows "No upgrades in progress" when empty.
+- **Resource near-cap warning badges** — resource buildings (farm, mine, quarry, arcane tower) show a red "FULL" badge when their resource type is at 90%+ of vault capacity. Badges are created/removed on the 2s refresh cycle alongside upgrade arrows.
+
+### CHANGED
+- Builder count HUD is now tappable (Button component added)
+- `Update()` periodic refresh now also calls `RefreshResourceCapWarnings()`
+- `OnEmptyCellTapped` subscribes in `OnEnable`, wired to show build selector
+- Empty cell tap event was already published; now consumed by placement UI
+
+### FIXED
+- `BuildQueueEntry.BuildTimeSeconds` → `RemainingSeconds` (correct property name from BuildingManager)
+
+---
+
 ## [0.39.0] — 2026-03-11 (Ralph Loop Iteration 34: Sprite Swap, Arrow Upgrade, Requirement Warnings, Idle Breath)
 
 ### ADDED
