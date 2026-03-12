@@ -4377,6 +4377,17 @@ namespace AshenThrone.Empire
                 EnterMoveModeForBuilding(evt.InstanceId);
             }));
 
+            // P&C: Skin selector button
+            {
+                string skinInstId = evt.InstanceId;
+                string skinBldId = evt.BuildingId;
+                int skinTier = evt.Tier;
+                radialButtons.Add(("\u2728", "Skin", new Color(0.50f, 0.35f, 0.65f, 0.9f), () => {
+                    DismissInfoPopup();
+                    ShowBuildingSkinPanel(skinInstId, skinBldId, skinTier);
+                }));
+            }
+
             // P&C: Demolish option (not for stronghold)
             if (evt.BuildingId != "stronghold")
             {
@@ -7783,10 +7794,14 @@ namespace AshenThrone.Empire
 
             var hudBg = hud.AddComponent<Image>();
             hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.80f);
-            hudBg.raycastTarget = false;
+            hudBg.raycastTarget = true;
             var hudOutline = hud.AddComponent<Outline>();
             hudOutline.effectColor = new Color(0.70f, 0.45f, 0.15f, 0.4f);
             hudOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            // Tap power HUD to open VIP panel
+            var vipBtn = hud.AddComponent<Button>();
+            vipBtn.targetGraphic = hudBg;
+            vipBtn.onClick.AddListener(ShowVipPanel);
 
             var textGO = new GameObject("Text");
             textGO.transform.SetParent(hud.transform, false);
@@ -13125,6 +13140,620 @@ namespace AshenThrone.Empire
             var cg = _cancelUpgradeDialog.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: VIP Level System — city-wide bonuses tied to VIP tier
+        // ====================================================================
+
+        private int _vipLevel = 2; // Default VIP level (simulated)
+        private int _vipPoints = 350;
+        private GameObject _vipPanel;
+
+        /// <summary>P&C VIP tier thresholds and bonuses.</summary>
+        private static readonly (int PointsRequired, string BonusDesc, Color TierColor)[] VipTiers = new[]
+        {
+            (0,    "+0% — No VIP bonuses", new Color(0.50f, 0.50f, 0.50f)),
+            (100,  "+5% resource production", new Color(0.55f, 0.75f, 0.55f)),
+            (300,  "+10% resource, +5% build speed", new Color(0.55f, 0.70f, 0.90f)),
+            (600,  "+15% resource, +10% build speed", new Color(0.70f, 0.55f, 0.90f)),
+            (1000, "+20% resource, +15% build, +5% research", new Color(0.90f, 0.70f, 0.30f)),
+            (2000, "+25% resource, +20% build, 2nd builder free", new Color(0.95f, 0.55f, 0.25f)),
+            (4000, "+30% all, 3rd builder slot", new Color(0.95f, 0.35f, 0.35f)),
+        };
+
+        /// <summary>P&C: Show VIP info panel with current level, bonuses, and progress to next.</summary>
+        private void ShowVipPanel()
+        {
+            if (_vipPanel != null) { Destroy(_vipPanel); _vipPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _vipPanel = new GameObject("VipPanel");
+            _vipPanel.transform.SetParent(canvas.transform, false);
+
+            var dimRect = _vipPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _vipPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _vipPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_vipPanel != null) { Destroy(_vipPanel); _vipPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_vipPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.18f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.82f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.90f, 0.70f, 0.20f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            Color tierColor = _vipLevel < VipTiers.Length ? VipTiers[_vipLevel].TierColor : new Color(0.95f, 0.82f, 0.35f);
+            AddInfoPanelText(panel.transform, "Title", $"\u2B50 VIP Level {_vipLevel}", 18, FontStyle.Bold,
+                tierColor,
+                new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            // VIP points progress
+            int currentReq = _vipLevel < VipTiers.Length ? VipTiers[_vipLevel].PointsRequired : 0;
+            int nextReq = (_vipLevel + 1) < VipTiers.Length ? VipTiers[_vipLevel + 1].PointsRequired : currentReq;
+            float progress = nextReq > currentReq ? (float)(_vipPoints - currentReq) / (nextReq - currentReq) : 1f;
+
+            AddInfoPanelText(panel.transform, "Points", $"VIP Points: {_vipPoints}", 11, FontStyle.Normal,
+                new Color(0.80f, 0.78f, 0.72f),
+                new Vector2(0.05f, 0.84f), new Vector2(0.55f, 0.90f), TextAnchor.MiddleLeft);
+
+            if (_vipLevel + 1 < VipTiers.Length)
+            {
+                AddInfoPanelText(panel.transform, "NextReq", $"Next: {nextReq} pts", 10, FontStyle.Normal,
+                    new Color(0.60f, 0.58f, 0.55f),
+                    new Vector2(0.58f, 0.84f), new Vector2(0.95f, 0.90f), TextAnchor.MiddleRight);
+            }
+
+            // Progress bar
+            var progBg = new GameObject("ProgBg");
+            progBg.transform.SetParent(panel.transform, false);
+            var progBgRect = progBg.AddComponent<RectTransform>();
+            progBgRect.anchorMin = new Vector2(0.05f, 0.80f);
+            progBgRect.anchorMax = new Vector2(0.95f, 0.84f);
+            progBgRect.offsetMin = Vector2.zero;
+            progBgRect.offsetMax = Vector2.zero;
+            var progBgImg = progBg.AddComponent<Image>();
+            progBgImg.color = new Color(0.12f, 0.10f, 0.18f, 0.90f);
+            progBgImg.raycastTarget = false;
+
+            var progFill = new GameObject("Fill");
+            progFill.transform.SetParent(progBg.transform, false);
+            var progFillRect = progFill.AddComponent<RectTransform>();
+            progFillRect.anchorMin = Vector2.zero;
+            progFillRect.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+            progFillRect.offsetMin = Vector2.zero;
+            progFillRect.offsetMax = Vector2.zero;
+            var progFillImg = progFill.AddComponent<Image>();
+            progFillImg.color = tierColor;
+            progFillImg.raycastTarget = false;
+
+            // Current bonuses header
+            AddInfoPanelText(panel.transform, "BonusHeader", "ACTIVE BONUSES", 12, FontStyle.Bold,
+                new Color(0.70f, 0.85f, 0.70f),
+                new Vector2(0.05f, 0.72f), new Vector2(0.95f, 0.79f), TextAnchor.MiddleCenter);
+
+            // Current tier bonuses
+            string currentBonus = _vipLevel < VipTiers.Length ? VipTiers[_vipLevel].BonusDesc : "Max VIP reached!";
+            AddInfoPanelText(panel.transform, "CurrentBonus", currentBonus, 11, FontStyle.Normal,
+                new Color(0.50f, 0.90f, 0.50f),
+                new Vector2(0.08f, 0.65f), new Vector2(0.92f, 0.72f), TextAnchor.MiddleCenter);
+
+            // All VIP tiers list
+            float tierY = 0.62f;
+            float tierRowH = 0.075f;
+            for (int i = 0; i < VipTiers.Length && tierY > 0.12f; i++)
+            {
+                var (pts, desc, color) = VipTiers[i];
+                bool isCurrentTier = i == _vipLevel;
+                bool isUnlocked = i <= _vipLevel;
+
+                var rowGO = new GameObject($"VipTier_{i}");
+                rowGO.transform.SetParent(panel.transform, false);
+                var rowRect = rowGO.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.05f, tierY - tierRowH);
+                rowRect.anchorMax = new Vector2(0.95f, tierY);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = rowGO.AddComponent<Image>();
+                rowBg.color = isCurrentTier
+                    ? new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.40f)
+                    : new Color(0.10f, 0.08f, 0.15f, isUnlocked ? 0.30f : 0.15f);
+                rowBg.raycastTarget = false;
+
+                if (isCurrentTier)
+                {
+                    var rowOutline = rowGO.AddComponent<Outline>();
+                    rowOutline.effectColor = new Color(color.r, color.g, color.b, 0.5f);
+                    rowOutline.effectDistance = new Vector2(0.5f, -0.5f);
+                }
+
+                string checkMark = isUnlocked ? "\u2713" : "\u2717";
+                Color checkColor = isUnlocked ? new Color(0.50f, 0.90f, 0.50f) : new Color(0.50f, 0.45f, 0.45f);
+                AddInfoPanelText(rowGO.transform, "Check", checkMark, 10, FontStyle.Bold,
+                    checkColor, new Vector2(0.01f, 0f), new Vector2(0.08f, 1f), TextAnchor.MiddleCenter);
+
+                Color labelColor = isUnlocked ? color : new Color(0.50f, 0.48f, 0.45f);
+                AddInfoPanelText(rowGO.transform, "Level", $"VIP {i}", 9, FontStyle.Bold,
+                    labelColor, new Vector2(0.09f, 0f), new Vector2(0.22f, 1f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(rowGO.transform, "Desc", desc, 8, FontStyle.Normal,
+                    new Color(0.75f, 0.73f, 0.70f), new Vector2(0.23f, 0f), new Vector2(0.85f, 1f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(rowGO.transform, "Pts", $"{pts}pts", 8, FontStyle.Normal,
+                    new Color(0.60f, 0.58f, 0.55f), new Vector2(0.86f, 0f), new Vector2(0.99f, 1f), TextAnchor.MiddleRight);
+
+                tierY -= tierRowH + 0.005f;
+            }
+
+            // Buy VIP points button
+            var buyGO = new GameObject("BuyVipBtn");
+            buyGO.transform.SetParent(panel.transform, false);
+            var buyRect = buyGO.AddComponent<RectTransform>();
+            buyRect.anchorMin = new Vector2(0.15f, 0.02f);
+            buyRect.anchorMax = new Vector2(0.55f, 0.10f);
+            buyRect.offsetMin = Vector2.zero;
+            buyRect.offsetMax = Vector2.zero;
+            var buyBg = buyGO.AddComponent<Image>();
+            buyBg.color = new Color(0.55f, 0.25f, 0.70f, 0.92f);
+            buyBg.raycastTarget = true;
+            var buyOutline = buyGO.AddComponent<Outline>();
+            buyOutline.effectColor = new Color(0.75f, 0.50f, 0.90f, 0.6f);
+            buyOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var buyBtn = buyGO.AddComponent<Button>();
+            buyBtn.targetGraphic = buyBg;
+            buyBtn.onClick.AddListener(() =>
+            {
+                _vipPoints += 200;
+                // Check for level up
+                while (_vipLevel + 1 < VipTiers.Length && _vipPoints >= VipTiers[_vipLevel + 1].PointsRequired)
+                    _vipLevel++;
+                if (_vipPanel != null) { Destroy(_vipPanel); _vipPanel = null; }
+                ShowVipPanel(); // Refresh
+                ShowUpgradeBlockedToast($"\u2B50 +200 VIP Points! Now VIP {_vipLevel}");
+            });
+            AddInfoPanelText(buyGO.transform, "Label", "\u2B25 200 Gems \u2192 200 VIP", 9, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.60f, 0.02f);
+            closeRect.anchorMax = new Vector2(0.85f, 0.10f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.40f, 0.35f, 0.35f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_vipPanel != null) { Destroy(_vipPanel); _vipPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "Label", "Close", 10, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var fadeCg = _vipPanel.AddComponent<CanvasGroup>();
+            fadeCg.alpha = 0f;
+            StartCoroutine(FadeInDialog(fadeCg));
+        }
+
+        // ====================================================================
+        // P&C: Building Skin / Appearance Selector
+        // ====================================================================
+
+        private readonly Dictionary<string, int> _buildingSkins = new(); // instanceId → skin index
+        private GameObject _skinPanel;
+
+        /// <summary>P&C: Available skins per building type. Each skin has a name, tint, and style description.</summary>
+        private static readonly (string Name, Color Tint, string Desc)[] BuildingSkinOptions = new[]
+        {
+            ("Default", Color.white, "Standard appearance"),
+            ("Frost", new Color(0.75f, 0.88f, 1.0f), "Ice-blue winter theme"),
+            ("Infernal", new Color(1.0f, 0.70f, 0.55f), "Lava-forged dark stone"),
+            ("Verdant", new Color(0.75f, 1.0f, 0.80f), "Overgrown with vines"),
+            ("Royal", new Color(1.0f, 0.90f, 0.65f), "Gold-trimmed palace style"),
+            ("Shadow", new Color(0.70f, 0.65f, 0.80f), "Void-touched dark magic"),
+        };
+
+        /// <summary>P&C: Show skin selector for a specific building.</summary>
+        private void ShowBuildingSkinPanel(string instanceId, string buildingId, int tier)
+        {
+            if (_skinPanel != null) { Destroy(_skinPanel); _skinPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _skinPanel = new GameObject("SkinPanel");
+            _skinPanel.transform.SetParent(canvas.transform, false);
+
+            var dimRect = _skinPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _skinPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _skinPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_skinPanel != null) { Destroy(_skinPanel); _skinPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_skinPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.25f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.75f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            AddInfoPanelText(panel.transform, "Title", $"\u2728 Building Skins — {displayName}", 13, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.88f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            int currentSkin = _buildingSkins.TryGetValue(instanceId, out var s) ? s : 0;
+
+            // Building preview with current skin
+            Sprite buildSprite = LoadBuildingSprite(buildingId, tier);
+            if (buildSprite != null)
+            {
+                var previewGO = new GameObject("Preview");
+                previewGO.transform.SetParent(panel.transform, false);
+                var previewRect = previewGO.AddComponent<RectTransform>();
+                previewRect.anchorMin = new Vector2(0.35f, 0.55f);
+                previewRect.anchorMax = new Vector2(0.65f, 0.87f);
+                previewRect.offsetMin = Vector2.zero;
+                previewRect.offsetMax = Vector2.zero;
+                var previewImg = previewGO.AddComponent<Image>();
+                previewImg.sprite = buildSprite;
+                previewImg.preserveAspect = true;
+                previewImg.color = BuildingSkinOptions[currentSkin].Tint;
+                previewImg.raycastTarget = false;
+            }
+
+            // Skin option grid (2 rows x 3 cols)
+            for (int i = 0; i < BuildingSkinOptions.Length; i++)
+            {
+                var (name, tint, desc) = BuildingSkinOptions[i];
+                int row = i / 3;
+                int col = i % 3;
+                float x0 = 0.03f + col * 0.32f;
+                float x1 = x0 + 0.30f;
+                float y1 = 0.50f - row * 0.22f;
+                float y0 = y1 - 0.20f;
+
+                bool isSelected = i == currentSkin;
+                bool isLocked = i >= 3 && _vipLevel < i; // Higher skins need VIP
+
+                var skinGO = new GameObject($"Skin_{i}");
+                skinGO.transform.SetParent(panel.transform, false);
+                var skinRect = skinGO.AddComponent<RectTransform>();
+                skinRect.anchorMin = new Vector2(x0, y0);
+                skinRect.anchorMax = new Vector2(x1, y1);
+                skinRect.offsetMin = Vector2.zero;
+                skinRect.offsetMax = Vector2.zero;
+
+                var skinBg = skinGO.AddComponent<Image>();
+                skinBg.color = isSelected
+                    ? new Color(tint.r * 0.25f, tint.g * 0.25f, tint.b * 0.25f, 0.85f)
+                    : isLocked
+                        ? new Color(0.15f, 0.13f, 0.18f, 0.60f)
+                        : new Color(0.12f, 0.10f, 0.18f, 0.80f);
+                skinBg.raycastTarget = true;
+
+                if (isSelected)
+                {
+                    var skinOutline = skinGO.AddComponent<Outline>();
+                    skinOutline.effectColor = new Color(tint.r, tint.g, tint.b, 0.7f);
+                    skinOutline.effectDistance = new Vector2(0.8f, -0.8f);
+                }
+
+                // Color swatch
+                var swatchGO = new GameObject("Swatch");
+                swatchGO.transform.SetParent(skinGO.transform, false);
+                var swatchRect = swatchGO.AddComponent<RectTransform>();
+                swatchRect.anchorMin = new Vector2(0.05f, 0.50f);
+                swatchRect.anchorMax = new Vector2(0.30f, 0.90f);
+                swatchRect.offsetMin = Vector2.zero;
+                swatchRect.offsetMax = Vector2.zero;
+                var swatchImg = swatchGO.AddComponent<Image>();
+                swatchImg.color = isLocked ? new Color(0.30f, 0.28f, 0.32f) : tint;
+                swatchImg.raycastTarget = false;
+
+                // Name
+                Color nameColor = isLocked ? new Color(0.45f, 0.43f, 0.40f) : Color.white;
+                AddInfoPanelText(skinGO.transform, "Name", name, 9, FontStyle.Bold,
+                    nameColor, new Vector2(0.32f, 0.50f), new Vector2(0.98f, 0.95f), TextAnchor.MiddleLeft);
+
+                // Status
+                string status = isSelected ? "\u2713 Active" : isLocked ? $"\u26BF VIP {i}" : "Tap to apply";
+                Color statusColor = isSelected ? new Color(0.50f, 0.90f, 0.50f)
+                    : isLocked ? new Color(0.70f, 0.55f, 0.25f) : new Color(0.60f, 0.58f, 0.55f);
+                AddInfoPanelText(skinGO.transform, "Status", status, 8, FontStyle.Normal,
+                    statusColor, new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.45f), TextAnchor.MiddleCenter);
+
+                if (!isLocked && !isSelected)
+                {
+                    var skinBtn = skinGO.AddComponent<Button>();
+                    skinBtn.targetGraphic = skinBg;
+                    int capSkinIdx = i;
+                    string capInstId = instanceId;
+                    string capBldId = buildingId;
+                    int capTierL = tier;
+                    skinBtn.onClick.AddListener(() =>
+                    {
+                        _buildingSkins[capInstId] = capSkinIdx;
+                        ApplyBuildingSkin(capInstId, capSkinIdx);
+                        if (_skinPanel != null) { Destroy(_skinPanel); _skinPanel = null; }
+                        ShowBuildingSkinPanel(capInstId, capBldId, capTierL);
+                    });
+                }
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.88f);
+            closeRect.anchorMax = new Vector2(0.98f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_skinPanel != null) { Destroy(_skinPanel); _skinPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var fadeCg = _skinPanel.AddComponent<CanvasGroup>();
+            fadeCg.alpha = 0f;
+            StartCoroutine(FadeInDialog(fadeCg));
+        }
+
+        /// <summary>P&C: Apply a skin tint to a building's visual.</summary>
+        private void ApplyBuildingSkin(string instanceId, int skinIndex)
+        {
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId != instanceId || p.VisualGO == null) continue;
+                var img = p.VisualGO.GetComponent<Image>();
+                if (img != null && skinIndex < BuildingSkinOptions.Length)
+                    img.color = BuildingSkinOptions[skinIndex].Tint;
+                break;
+            }
+        }
+
+        // ====================================================================
+        // P&C: Burning / Under Attack State — buildings show fire after enemy raid
+        // ====================================================================
+
+        private readonly HashSet<string> _burningBuildings = new();
+        private GameObject _raidAlertBanner;
+
+        /// <summary>P&C: Set a building as burning (post-raid damage state).</summary>
+        private void SetBuildingBurning(string instanceId, bool burning)
+        {
+            if (burning)
+                _burningBuildings.Add(instanceId);
+            else
+                _burningBuildings.Remove(instanceId);
+
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId != instanceId || p.VisualGO == null) continue;
+                if (burning)
+                    AddBurningOverlay(p.VisualGO);
+                else
+                    RemoveBurningOverlay(p.VisualGO);
+                break;
+            }
+        }
+
+        /// <summary>P&C: Add fire/damage overlay to a building.</summary>
+        private void AddBurningOverlay(GameObject building)
+        {
+            RemoveBurningOverlay(building);
+
+            var fire = new GameObject("BurningOverlay");
+            fire.transform.SetParent(building.transform, false);
+            var rect = fire.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.05f, 0.30f);
+            rect.anchorMax = new Vector2(1.05f, 1.10f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Red-orange tint overlay
+            var tintImg = fire.AddComponent<Image>();
+            tintImg.color = new Color(0.90f, 0.30f, 0.10f, 0.20f);
+            tintImg.raycastTarget = false;
+
+            // Animated fire embers
+            for (int i = 0; i < 3; i++)
+            {
+                var ember = new GameObject($"Ember_{i}");
+                ember.transform.SetParent(fire.transform, false);
+                var eRect = ember.AddComponent<RectTransform>();
+                float xPos = 0.15f + i * 0.30f;
+                eRect.anchorMin = new Vector2(xPos - 0.05f, 0.20f);
+                eRect.anchorMax = new Vector2(xPos + 0.05f, 0.40f);
+                eRect.offsetMin = Vector2.zero;
+                eRect.offsetMax = Vector2.zero;
+                var eText = ember.AddComponent<Text>();
+                eText.text = "\u2668"; // Hot springs / fire symbol
+                eText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                eText.fontSize = 10;
+                eText.alignment = TextAnchor.MiddleCenter;
+                eText.color = new Color(1f, 0.50f, 0.15f, 0.90f);
+                eText.raycastTarget = false;
+            }
+
+            // Smoke text above
+            var smoke = new GameObject("Smoke");
+            smoke.transform.SetParent(fire.transform, false);
+            var smokeRect = smoke.AddComponent<RectTransform>();
+            smokeRect.anchorMin = new Vector2(0.25f, 0.70f);
+            smokeRect.anchorMax = new Vector2(0.75f, 0.95f);
+            smokeRect.offsetMin = Vector2.zero;
+            smokeRect.offsetMax = Vector2.zero;
+            var smokeText = smoke.AddComponent<Text>();
+            smokeText.text = "\u2601\u2601"; // Cloud symbols for smoke
+            smokeText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            smokeText.fontSize = 12;
+            smokeText.alignment = TextAnchor.MiddleCenter;
+            smokeText.color = new Color(0.35f, 0.30f, 0.25f, 0.65f);
+            smokeText.raycastTarget = false;
+
+            StartCoroutine(AnimateBurningOverlay(fire));
+        }
+
+        private IEnumerator AnimateBurningOverlay(GameObject overlay)
+        {
+            while (overlay != null)
+            {
+                // Flicker the fire tint
+                var img = overlay.GetComponent<Image>();
+                if (img != null)
+                {
+                    float flicker = 0.15f + 0.10f * Mathf.Sin(Time.time * 5f + Random.value * 2f);
+                    img.color = new Color(0.90f, 0.30f, 0.10f, flicker);
+                }
+
+                // Animate embers rising
+                for (int i = 0; i < overlay.transform.childCount; i++)
+                {
+                    var child = overlay.transform.GetChild(i);
+                    if (child.name.StartsWith("Ember_"))
+                    {
+                        var eRect = child.GetComponent<RectTransform>();
+                        if (eRect != null)
+                        {
+                            float bob = Mathf.Sin(Time.time * 4f + i * 2.1f) * 0.05f;
+                            float baseY = 0.20f + bob;
+                            eRect.anchorMin = new Vector2(eRect.anchorMin.x, baseY);
+                            eRect.anchorMax = new Vector2(eRect.anchorMax.x, baseY + 0.20f);
+                        }
+                    }
+                }
+                yield return null;
+            }
+        }
+
+        private void RemoveBurningOverlay(GameObject building)
+        {
+            var existing = building.transform.Find("BurningOverlay");
+            if (existing != null) Destroy(existing.gameObject);
+        }
+
+        /// <summary>P&C: Show raid alert banner at top of screen.</summary>
+        private void ShowRaidAlertBanner(string attackerName)
+        {
+            if (_raidAlertBanner != null) Destroy(_raidAlertBanner);
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _raidAlertBanner = new GameObject("RaidAlertBanner");
+            _raidAlertBanner.transform.SetParent(canvas.transform, false);
+            _raidAlertBanner.transform.SetAsLastSibling();
+
+            var rect = _raidAlertBanner.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.05f, 0.85f);
+            rect.anchorMax = new Vector2(0.95f, 0.92f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _raidAlertBanner.AddComponent<Image>();
+            bg.color = new Color(0.70f, 0.15f, 0.10f, 0.92f);
+            bg.raycastTarget = true;
+
+            var outline = _raidAlertBanner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.95f, 0.35f, 0.20f, 0.7f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            var btn = _raidAlertBanner.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(() => { if (_raidAlertBanner != null) { Destroy(_raidAlertBanner); _raidAlertBanner = null; } });
+
+            AddInfoPanelText(_raidAlertBanner.transform, "Text",
+                $"\u26A0 UNDER ATTACK! {attackerName} is raiding your city! Tap to defend.", 11, FontStyle.Bold,
+                Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            StartCoroutine(FlashRaidBanner());
+        }
+
+        private IEnumerator FlashRaidBanner()
+        {
+            float duration = 10f;
+            float elapsed = 0f;
+            while (elapsed < duration && _raidAlertBanner != null)
+            {
+                elapsed += Time.deltaTime;
+                var bg = _raidAlertBanner.GetComponent<Image>();
+                if (bg != null)
+                {
+                    float flash = 0.80f + 0.12f * Mathf.Sin(elapsed * 6f);
+                    bg.color = new Color(flash, 0.15f, 0.10f, 0.92f);
+                }
+                yield return null;
+            }
+            if (_raidAlertBanner != null) { Destroy(_raidAlertBanner); _raidAlertBanner = null; }
+        }
+
+        /// <summary>P&C: Simulate a raid for testing — burns random buildings + shows alert.</summary>
+        private void SimulateRaid()
+        {
+            string[] attackNames = { "DarkLord42", "ShadowKing", "IceQueen99", "DragonSlayer" };
+            string attacker = attackNames[Random.Range(0, attackNames.Length)];
+
+            // Burn 2-3 random buildings
+            int burnCount = Random.Range(2, 4);
+            var shuffled = new List<CityBuildingPlacement>(_placements);
+            for (int i = shuffled.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
+            }
+            for (int i = 0; i < Mathf.Min(burnCount, shuffled.Count); i++)
+            {
+                if (shuffled[i].BuildingId != "stronghold") // Don't burn stronghold
+                    SetBuildingBurning(shuffled[i].InstanceId, true);
+            }
+
+            ShowRaidAlertBanner(attacker);
+
+            // Auto-repair after 30 seconds
+            StartCoroutine(AutoRepairAfterRaid(30f));
+        }
+
+        private IEnumerator AutoRepairAfterRaid(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            var toRepair = new List<string>(_burningBuildings);
+            foreach (var id in toRepair)
+                SetBuildingBurning(id, false);
+            ShowUpgradeBlockedToast("\u2692 Buildings repaired!");
         }
     }
 

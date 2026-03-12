@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.76.0] — 2026-03-12 (Ralph Loop Iteration 71: VIP System, Building Skins, Raid/Burning State)
+
+### ADDED
+- **VIP level system** — P&C-style VIP tiers (0-6) with city-wide bonuses: resource production %, build speed %, research speed %, extra builder slots. Power rating HUD now opens VIP panel on tap. Shows current VIP level with tier color, points progress bar, all tier rows with unlock status, and gem purchase button (+200 VIP points). VIP level gates premium building skins.
+- **`ShowVipPanel()` method** — full VIP panel with 7 tiers, progress tracking, bonus descriptions, and gem purchase. `VipTiers` static array defines thresholds and bonuses.
+- **Building skin/appearance selector** — new "Skin" button in radial context menu. Opens skin panel with 6 options (Default, Frost, Infernal, Verdant, Royal, Shadow) showing color swatch, name, and VIP lock status. Building preview updates with selected tint. Higher skins require VIP level. Skin tint applied directly to building Image component.
+- **`ShowBuildingSkinPanel()` / `ApplyBuildingSkin()` methods** — skin selection UI with VIP gating and live tint application.
+- **Burning/under-attack state** — buildings can be set to burning state with fire overlay (red-orange tint, animated fire embers, rising smoke). Raid alert banner at top of screen with flashing red background and attacker name. Auto-repair after 30 seconds. `SimulateRaid()` method for testing burns 2-3 random buildings.
+- **`SetBuildingBurning()` / `AddBurningOverlay()` / `ShowRaidAlertBanner()` methods** — burning visual system with flicker animation, ember animation, and raid banner with auto-dismiss.
+
+---
+
 ## [0.75.0] — 2026-03-12 (Ralph Loop Iteration 70: Hero Assignment, Peace Shield, Cancel Upgrade)
 
 ### ADDED
