@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.62.0] — 2026-03-12 (Ralph Loop Iteration 57: Zoom Indicator, Building Unlock Previews)
+
+### ADDED
+- **Zoom level indicator** — a floating "⤢ x1.5" badge appears briefly at screen center during pinch or scroll zoom, showing the current zoom multiplier. Auto-fades after 1.5 seconds. Dark pill with gold text and border, matching P&C's zoom feedback style.
+- **`ShowZoomLevelIndicator()` / `FadeZoomIndicator()` coroutine** — creates and manages the zoom indicator lifecycle with smooth fade-out.
+- **Building unlock preview ghosts** — greyed-out, semi-transparent building sprites appear on the grid near the stronghold for building types that would unlock at the next stronghold level. Each ghost shows a lock icon and "⚿ SH Lv.X / BuildingName" label. Max 4 previews to avoid visual clutter. Matches P&C's "upgrade your castle to unlock" visual hints.
+- **`CreateBuildingUnlockPreviews()` method** — finds empty grid spots near the stronghold and places dimmed preview sprites with lock overlay and unlock requirement labels.
+
+### CHANGED
+- `ApplyZoom()` now calls `ShowZoomLevelIndicator()` on every zoom change for real-time feedback.
+
+---
+
 ## [0.61.0] — 2026-03-12 (Ralph Loop Iteration 56: Resource Countdown Timers, Building Count in Info Panel)
 
 ### ADDED

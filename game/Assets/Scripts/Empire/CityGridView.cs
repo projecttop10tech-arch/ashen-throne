@@ -132,6 +132,12 @@ namespace AshenThrone.Empire
         private float _lastPinchDistance;
         private int _touchCount;
 
+        // P&C: Zoom level indicator
+        private GameObject _zoomIndicator;
+        private Text _zoomIndicatorText;
+        private float _zoomIndicatorFadeTimer;
+        private const float ZoomIndicatorShowDuration = 1.5f;
+
         private EventSubscription _upgradeCompletedSub;
         private EventSubscription _demolishedSub;
         private EventSubscription _doubleTapZoomSub;
@@ -245,6 +251,8 @@ namespace AshenThrone.Empire
             CreateAmbientTintOverlay();
             CreateMiniMap();
             StartCoroutine(UpdateResourceCountdownTimers());
+            // P&C: Show greyed-out building unlock previews for next SH level
+            CreateBuildingUnlockPreviews();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
             // P&C: Show "Welcome back" offline earnings banner
@@ -554,6 +562,85 @@ namespace AshenThrone.Empire
 
             // P&C: Hide detail labels at far zoom levels
             UpdateZoomDetailVisibility();
+
+            // P&C: Show zoom level indicator briefly
+            ShowZoomLevelIndicator();
+        }
+
+        /// <summary>P&C: Floating zoom level indicator that appears during zoom changes.</summary>
+        private void ShowZoomLevelIndicator()
+        {
+            _zoomIndicatorFadeTimer = ZoomIndicatorShowDuration;
+
+            if (_zoomIndicator == null)
+            {
+                var canvas = GetComponentInParent<Canvas>();
+                if (canvas == null) return;
+
+                _zoomIndicator = new GameObject("ZoomIndicator");
+                _zoomIndicator.transform.SetParent(canvas.transform, false);
+                var rect = _zoomIndicator.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.40f, 0.50f);
+                rect.anchorMax = new Vector2(0.60f, 0.54f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var bg = _zoomIndicator.AddComponent<Image>();
+                bg.color = new Color(0.05f, 0.03f, 0.10f, 0.70f);
+                bg.raycastTarget = false;
+                var outline = _zoomIndicator.AddComponent<Outline>();
+                outline.effectColor = new Color(0.70f, 0.55f, 0.20f, 0.50f);
+                outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(_zoomIndicator.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                _zoomIndicatorText = textGO.AddComponent<Text>();
+                _zoomIndicatorText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                _zoomIndicatorText.fontSize = 11;
+                _zoomIndicatorText.fontStyle = FontStyle.Bold;
+                _zoomIndicatorText.alignment = TextAnchor.MiddleCenter;
+                _zoomIndicatorText.color = new Color(0.90f, 0.80f, 0.50f);
+                _zoomIndicatorText.raycastTarget = false;
+                var shadow = textGO.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0, 0, 0, 0.9f);
+                shadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+                StartCoroutine(FadeZoomIndicator());
+            }
+
+            if (_zoomIndicatorText != null)
+                _zoomIndicatorText.text = $"\u2922 x{_currentZoom:F1}";
+
+            // Ensure visible
+            var cg = _zoomIndicator.GetComponent<CanvasGroup>();
+            if (cg == null) cg = _zoomIndicator.AddComponent<CanvasGroup>();
+            cg.alpha = 0.9f;
+        }
+
+        /// <summary>P&C: Fade out zoom indicator after timeout.</summary>
+        private IEnumerator FadeZoomIndicator()
+        {
+            while (_zoomIndicator != null)
+            {
+                if (_zoomIndicatorFadeTimer > 0f)
+                {
+                    _zoomIndicatorFadeTimer -= Time.deltaTime;
+                }
+                else
+                {
+                    var cg = _zoomIndicator.GetComponent<CanvasGroup>();
+                    if (cg != null && cg.alpha > 0f)
+                    {
+                        cg.alpha = Mathf.MoveTowards(cg.alpha, 0f, Time.deltaTime * 2f);
+                    }
+                }
+                yield return null;
+            }
         }
 
         /// <summary>
@@ -4945,6 +5032,149 @@ namespace AshenThrone.Empire
                 "archive" => 7,
                 _ => 1
             };
+        }
+
+        /// <summary>
+        /// P&C: Show greyed-out ghost buildings on the grid for building types
+        /// that unlock at the next stronghold level. Gives the player a preview
+        /// of what they'll gain from upgrading their stronghold.
+        /// </summary>
+        private void CreateBuildingUnlockPreviews()
+        {
+            if (buildingContainer == null) return;
+
+            // Find current stronghold tier
+            int shTier = 1;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "stronghold") { shTier = p.Tier; break; }
+            }
+            int nextShTier = shTier + 1;
+
+            // Find building types that unlock at the next SH level
+            var unlockableTypes = new List<string>();
+            string[] allBuildingTypes = { "grain_farm", "iron_mine", "stone_quarry", "barracks",
+                "wall", "watch_tower", "marketplace", "academy", "training_ground", "forge",
+                "arcane_tower", "guild_hall", "armory", "laboratory", "embassy",
+                "enchanting_tower", "library", "hero_shrine", "observatory", "archive" };
+
+            foreach (string bType in allBuildingTypes)
+            {
+                int unlockLevel = GetBuildingUnlockLevel(bType);
+                if (unlockLevel == nextShTier)
+                    unlockableTypes.Add(bType);
+            }
+            if (unlockableTypes.Count == 0) return;
+
+            // Place ghost previews near the stronghold area — pick empty grid spots
+            Vector2Int strongholdOrigin = new Vector2Int(22, 22);
+            int previewIndex = 0;
+            // Try positions around the stronghold in expanding rings
+            int[] offsets = { -6, -4, -2, 2, 4, 6 };
+            foreach (string buildType in unlockableTypes)
+            {
+                if (previewIndex >= 4) break; // Max 4 previews to avoid clutter
+
+                // Find an empty spot near stronghold
+                Vector2Int ghostPos = strongholdOrigin;
+                bool found = false;
+                foreach (int ox in offsets)
+                {
+                    foreach (int oy in offsets)
+                    {
+                        var testPos = strongholdOrigin + new Vector2Int(ox, oy);
+                        if (testPos.x < 2 || testPos.y < 2 || testPos.x > 44 || testPos.y > 44) continue;
+                        if (CanPlaceAt(testPos, new Vector2Int(2, 2), null))
+                        {
+                            ghostPos = testPos;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+                if (!found) continue;
+
+                // Create ghost building visual
+                var ghostGO = new GameObject($"UnlockPreview_{buildType}");
+                ghostGO.transform.SetParent(buildingContainer, false);
+                var ghostRect = ghostGO.AddComponent<RectTransform>();
+
+                // Position using isometric conversion
+                float screenX = (ghostPos.x - ghostPos.y) * CellSize * 0.5f;
+                float screenY = (ghostPos.x + ghostPos.y) * CellSize * 0.25f;
+                ghostRect.anchoredPosition = new Vector2(screenX, screenY);
+                float w = 2 * CellSize;
+                ghostRect.sizeDelta = new Vector2(w, w * 1.5f);
+
+                var ghostImg = ghostGO.AddComponent<Image>();
+                ghostImg.color = new Color(0.40f, 0.40f, 0.50f, 0.30f); // Greyed-out ghost
+                ghostImg.raycastTarget = false;
+
+                // Try to load a dimmed sprite
+                Sprite previewSprite = LoadBuildingSprite(buildType, 1);
+                if (previewSprite != null)
+                {
+                    ghostImg.sprite = previewSprite;
+                    ghostImg.preserveAspect = true;
+                }
+
+                // Dashed border effect
+                var borderOutline = ghostGO.AddComponent<Outline>();
+                borderOutline.effectColor = new Color(0.60f, 0.50f, 0.20f, 0.35f);
+                borderOutline.effectDistance = new Vector2(1f, -1f);
+
+                // "Unlocks at SH Lv.X" label
+                string displayName = BuildingDisplayNames.TryGetValue(buildType, out var dn) ? dn : buildType;
+                var labelGO = new GameObject("UnlockLabel");
+                labelGO.transform.SetParent(ghostGO.transform, false);
+                var labelRect = labelGO.AddComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(-0.1f, -0.05f);
+                labelRect.anchorMax = new Vector2(1.1f, 0.15f);
+                labelRect.offsetMin = Vector2.zero;
+                labelRect.offsetMax = Vector2.zero;
+
+                var labelBg = labelGO.AddComponent<Image>();
+                labelBg.color = new Color(0.06f, 0.04f, 0.10f, 0.80f);
+                labelBg.raycastTarget = false;
+
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(labelGO.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+                var text = textGO.AddComponent<Text>();
+                text.text = $"\u26BF SH Lv.{nextShTier}\n{displayName}";
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 7;
+                text.fontStyle = FontStyle.Bold;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.color = new Color(0.70f, 0.60f, 0.30f, 0.70f);
+                text.raycastTarget = false;
+                var shadow = textGO.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0, 0, 0, 0.8f);
+                shadow.effectDistance = new Vector2(0.4f, -0.4f);
+
+                // Lock icon
+                var lockGO = new GameObject("Lock");
+                lockGO.transform.SetParent(ghostGO.transform, false);
+                var lockRect = lockGO.AddComponent<RectTransform>();
+                lockRect.anchorMin = new Vector2(0.30f, 0.40f);
+                lockRect.anchorMax = new Vector2(0.70f, 0.65f);
+                lockRect.offsetMin = Vector2.zero;
+                lockRect.offsetMax = Vector2.zero;
+                var lockText = lockGO.AddComponent<Text>();
+                lockText.text = "\u26BF";
+                lockText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                lockText.fontSize = 16;
+                lockText.alignment = TextAnchor.MiddleCenter;
+                lockText.color = new Color(0.80f, 0.65f, 0.25f, 0.55f);
+                lockText.raycastTarget = false;
+
+                previewIndex++;
+            }
         }
 
         /// <summary>P&C: Short production/function hint for build selector buttons.</summary>
