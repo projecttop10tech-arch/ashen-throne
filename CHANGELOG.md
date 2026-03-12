@@ -4,6 +4,26 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.86.0] — 2026-03-12 (Ralph Loop Iteration 81: P&C Circular Event Icons, Unified HUD)
+
+### ADDED
+- **P&C circular event icon column** — Left side now uses a uniform vertical column of circular icons with glow rings, matching Puzzles & Chaos event icon style. Icons use `radial_gradient` sprite for circular appearance with colored glow halos and gold/colored outline borders.
+- **Event Hub icon** — Red circular icon (slot 2) for alliance events, with notification dot badge showing count.
+- **Gifts icon** — Green circular icon (slot 3) for alliance gift collection, with notification dot badge.
+- **`CreateCircularEventIcon()` helper** — Reusable factory method for left-column circular event icons with configurable slot, colors, icon, glow, and click handler.
+- **`AddNotificationDot()` helper** — Red badge with count overlay for circular event icons.
+
+### CHANGED
+- **Daily Chest converted to circular** — Now uses circular event icon style (slot 0) with red "FREE" badge overlay instead of rectangular panel.
+- **Merchant icon converted to circular** — Purple circular icon (slot 1) with timer badge below, matching P&C style.
+- **BuilderCountHUD merged with PowerRating** — Single compact pill at top-left showing builder count (top) and power rating (bottom) with gold divider. Eliminates separate PowerRatingHUD panel.
+- **Right-side QuickNav converted to circular buttons** — Category buttons now use circular `radial_gradient` sprites with colored glow, individually placed (not inside a container panel). Sized 7.2% × 5% for compact circular appearance.
+
+### REMOVED
+- **Separate PowerRatingHUD panel** — Merged into BuilderCountHUD pill.
+
+---
+
 ## [0.85.0] — 2026-03-12 (Ralph Loop Iteration 80: Compact Sidebar UI, P&C Queue Strips)
 
 ### CHANGED

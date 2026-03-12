@@ -270,10 +270,11 @@ namespace AshenThrone.Empire
             CreateEventTimerBanners();
             // P&C: Auto-collect toggle button
             CreateAutoCollectToggle();
-            // P&C: Daily treasure chest
-            CreateDailyChest();
-            // P&C: Traveling merchant icon
-            CreateMerchantIcon();
+            // P&C: Left-side circular event icon column
+            CreateDailyChest();       // slot 0 (bottom)
+            CreateMerchantIcon();     // slot 1
+            CreateEventHubIcon();     // slot 2
+            CreateGiftsIcon();        // slot 3
             // P&C: City prosperity badge
             UpdateProsperityBadge();
         }
@@ -7948,119 +7949,89 @@ namespace AshenThrone.Empire
             while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
                 canvasRoot = canvasRoot.parent;
 
+            // P&C: Compact pill left of info panel — builder + power in one row
             var hud = new GameObject("BuilderCountHUD");
             hud.transform.SetParent(canvasRoot, false);
             hud.transform.SetAsLastSibling();
 
             var hudRect = hud.AddComponent<RectTransform>();
-            hudRect.anchorMin = new Vector2(0.02f, 0.88f);
-            hudRect.anchorMax = new Vector2(0.18f, 0.93f);
+            hudRect.anchorMin = new Vector2(0.005f, 0.895f);
+            hudRect.anchorMax = new Vector2(0.185f, 0.940f);
             hudRect.offsetMin = Vector2.zero;
             hudRect.offsetMax = Vector2.zero;
 
             var hudBg = hud.AddComponent<Image>();
-            hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
+            hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.90f);
             hudBg.raycastTarget = true;
 
-            // P&C: Tap to expand queue detail panel
             var hudBtn = hud.AddComponent<Button>();
             hudBtn.targetGraphic = hudBg;
             hudBtn.onClick.AddListener(ToggleBuildQueuePanel);
 
             var hudOutline = hud.AddComponent<Outline>();
-            hudOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.5f);
-            hudOutline.effectDistance = new Vector2(0.8f, -0.8f);
+            hudOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.6f);
+            hudOutline.effectDistance = new Vector2(1f, -1f);
 
-            var textGO = new GameObject("Text");
-            textGO.transform.SetParent(hud.transform, false);
-            var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(4, 0);
-            textRect.offsetMax = new Vector2(-4, 0);
+            // Builder count (top half)
+            var builderGO = new GameObject("BuilderText");
+            builderGO.transform.SetParent(hud.transform, false);
+            var bRect = builderGO.AddComponent<RectTransform>();
+            bRect.anchorMin = new Vector2(0, 0.50f);
+            bRect.anchorMax = new Vector2(1, 1);
+            bRect.offsetMin = new Vector2(3, 0);
+            bRect.offsetMax = new Vector2(-3, 0);
 
-            _builderCountText = textGO.AddComponent<Text>();
+            _builderCountText = builderGO.AddComponent<Text>();
             _builderCountText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _builderCountText.fontSize = 10;
+            _builderCountText.fontSize = 9;
             _builderCountText.fontStyle = FontStyle.Bold;
             _builderCountText.alignment = TextAnchor.MiddleCenter;
             _builderCountText.color = new Color(0.95f, 0.85f, 0.45f);
             _builderCountText.raycastTarget = false;
             _builderCountText.text = "\u2692 Builder 0/2";
+            var bOutline = builderGO.AddComponent<Outline>();
+            bOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            bOutline.effectDistance = new Vector2(0.6f, -0.6f);
 
-            var textOutline = textGO.AddComponent<Outline>();
-            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
-            textOutline.effectDistance = new Vector2(0.8f, -0.8f);
+            // Power rating (bottom half)
+            var powerGO = new GameObject("PowerText");
+            powerGO.transform.SetParent(hud.transform, false);
+            var pRect = powerGO.AddComponent<RectTransform>();
+            pRect.anchorMin = new Vector2(0, 0);
+            pRect.anchorMax = new Vector2(1, 0.50f);
+            pRect.offsetMin = new Vector2(3, 0);
+            pRect.offsetMax = new Vector2(-3, 0);
 
-            _builderCountHUD = hud;
-            UpdateBuilderCountHUD();
-
-            // P&C: Power rating HUD below builder count
-            CreatePowerRatingHUD(canvasRoot);
-        }
-
-        private GameObject _powerRatingHUD;
-        private Text _powerRatingText;
-
-        private void CreatePowerRatingHUD(Transform canvasRoot)
-        {
-            if (_powerRatingHUD != null) return;
-
-            var hud = new GameObject("PowerRatingHUD");
-            hud.transform.SetParent(canvasRoot, false);
-            hud.transform.SetAsLastSibling();
-
-            var hudRect = hud.AddComponent<RectTransform>();
-            hudRect.anchorMin = new Vector2(0.02f, 0.83f);
-            hudRect.anchorMax = new Vector2(0.18f, 0.87f);
-            hudRect.offsetMin = Vector2.zero;
-            hudRect.offsetMax = Vector2.zero;
-
-            var hudBg = hud.AddComponent<Image>();
-            hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.80f);
-            hudBg.raycastTarget = true;
-            var hudOutline = hud.AddComponent<Outline>();
-            hudOutline.effectColor = new Color(0.70f, 0.45f, 0.15f, 0.4f);
-            hudOutline.effectDistance = new Vector2(0.6f, -0.6f);
-            // Tap power HUD to open VIP panel; long-press opens power breakdown
-            var vipBtn = hud.AddComponent<Button>();
-            vipBtn.targetGraphic = hudBg;
-            vipBtn.onClick.AddListener(() =>
-            {
-                if (_powerLongPressTriggered) { _powerLongPressTriggered = false; return; }
-                ShowVipPanel();
-            });
-            // Long-press: open power breakdown
-            var powerTrigger = hud.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-            var pointerDown = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown };
-            pointerDown.callback.AddListener((_) => StartCoroutine(PowerHudLongPress()));
-            powerTrigger.triggers.Add(pointerDown);
-            var pointerUp = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerUp };
-            pointerUp.callback.AddListener((_) => _powerLongPressCoroutine = null);
-            powerTrigger.triggers.Add(pointerUp);
-
-            var textGO = new GameObject("Text");
-            textGO.transform.SetParent(hud.transform, false);
-            var textRect = textGO.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(4, 0);
-            textRect.offsetMax = new Vector2(-4, 0);
-
-            _powerRatingText = textGO.AddComponent<Text>();
+            _powerRatingText = powerGO.AddComponent<Text>();
             _powerRatingText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _powerRatingText.fontSize = 9;
+            _powerRatingText.fontSize = 8;
             _powerRatingText.fontStyle = FontStyle.Bold;
             _powerRatingText.alignment = TextAnchor.MiddleCenter;
             _powerRatingText.color = new Color(0.95f, 0.70f, 0.35f);
             _powerRatingText.raycastTarget = false;
-            var textOutline = textGO.AddComponent<Outline>();
-            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
-            textOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var pOutline = powerGO.AddComponent<Outline>();
+            pOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            pOutline.effectDistance = new Vector2(0.6f, -0.6f);
 
-            _powerRatingHUD = hud;
+            // Gold divider line
+            var divider = new GameObject("Divider");
+            divider.transform.SetParent(hud.transform, false);
+            var dRect = divider.AddComponent<RectTransform>();
+            dRect.anchorMin = new Vector2(0.10f, 0.48f);
+            dRect.anchorMax = new Vector2(0.90f, 0.52f);
+            dRect.offsetMin = Vector2.zero;
+            dRect.offsetMax = Vector2.zero;
+            var dImg = divider.AddComponent<Image>();
+            dImg.color = new Color(0.70f, 0.55f, 0.15f, 0.35f);
+            dImg.raycastTarget = false;
+
+            _builderCountHUD = hud;
+            UpdateBuilderCountHUD();
             UpdatePowerRatingHUD();
         }
+
+        // _powerRatingHUD merged into BuilderCountHUD — no separate GO needed
+        private Text _powerRatingText;
 
         private void UpdatePowerRatingHUD()
         {
@@ -8102,20 +8073,7 @@ namespace AshenThrone.Empire
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
-            var navGO = new GameObject("QuickNav");
-            navGO.transform.SetParent(canvas.transform, false);
-            var navRect = navGO.AddComponent<RectTransform>();
-            navRect.anchorMin = new Vector2(0.94f, 0.30f);
-            navRect.anchorMax = new Vector2(1.0f, 0.70f);
-            navRect.offsetMin = Vector2.zero;
-            navRect.offsetMax = Vector2.zero;
-
-            // Semi-transparent bg
-            var navBg = navGO.AddComponent<Image>();
-            navBg.color = new Color(0.04f, 0.03f, 0.08f, 0.50f);
-            navBg.raycastTarget = false;
-
-            // Category buttons
+            // P&C: Right-side circular category buttons, stacked vertically
             var categories = new (string icon, string label, string buildingId, Color color)[]
             {
                 ("\u265B", "SH", "stronghold", new Color(0.95f, 0.75f, 0.20f)),
@@ -8126,27 +8084,39 @@ namespace AshenThrone.Empire
                 ("\u2609", "SCI", "academy", new Color(0.40f, 0.75f, 0.85f)),
             };
 
-            float buttonHeight = 1f / categories.Length;
+            float iconW = 0.072f;
+            float iconH = 0.050f;
+            float gap = 0.010f;
+            float totalH = categories.Length * iconH + (categories.Length - 1) * gap;
+            float startY = 0.50f + totalH * 0.5f; // centered vertically
+            float xMin = 1f - iconW - 0.005f;
+            float xMax = 1f - 0.005f;
+
+            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+
             for (int i = 0; i < categories.Length; i++)
             {
                 var cat = categories[i];
-                float yMin = 1f - (i + 1) * buttonHeight + 0.01f;
-                float yMax = 1f - i * buttonHeight - 0.01f;
+                float yTop = startY - i * (iconH + gap);
+                float yBot = yTop - iconH;
 
                 var btnGO = new GameObject($"Nav_{cat.label}");
-                btnGO.transform.SetParent(navGO.transform, false);
+                btnGO.transform.SetParent(canvas.transform, false);
                 var btnRect = btnGO.AddComponent<RectTransform>();
-                btnRect.anchorMin = new Vector2(0.05f, yMin);
-                btnRect.anchorMax = new Vector2(0.95f, yMax);
+                btnRect.anchorMin = new Vector2(xMin, yBot);
+                btnRect.anchorMax = new Vector2(xMax, yTop);
                 btnRect.offsetMin = Vector2.zero;
                 btnRect.offsetMax = Vector2.zero;
 
+                // Circular bg
                 var btnBg = btnGO.AddComponent<Image>();
-                btnBg.color = new Color(cat.color.r * 0.25f, cat.color.g * 0.25f, cat.color.b * 0.25f, 0.80f);
+                btnBg.color = new Color(cat.color.r * 0.30f, cat.color.g * 0.30f, cat.color.b * 0.30f, 0.88f);
+                if (radialSpr != null) { btnBg.sprite = radialSpr; btnBg.type = Image.Type.Simple; }
                 btnBg.raycastTarget = true;
+
                 var btnOutline = btnGO.AddComponent<Outline>();
-                btnOutline.effectColor = new Color(cat.color.r, cat.color.g, cat.color.b, 0.40f);
-                btnOutline.effectDistance = new Vector2(0.5f, -0.5f);
+                btnOutline.effectColor = new Color(cat.color.r, cat.color.g, cat.color.b, 0.55f);
+                btnOutline.effectDistance = new Vector2(0.8f, -0.8f);
 
                 var btn = btnGO.AddComponent<Button>();
                 btn.targetGraphic = btnBg;
@@ -8154,36 +8124,30 @@ namespace AshenThrone.Empire
                 string catLabel = cat.label;
                 btn.onClick.AddListener(() =>
                 {
-                    // Single tap: scroll to building. If already filtered to this category, clear filter.
-                    if (_activeCategoryFilter == catLabel)
-                    {
-                        ClearCategoryFilter();
-                        return;
-                    }
+                    if (_activeCategoryFilter == catLabel) { ClearCategoryFilter(); return; }
                     ScrollToBuildingType(targetBuildingId);
                 });
 
-                // Long-press: toggle category filter (dim non-matching buildings)
                 var longPress = btnGO.AddComponent<LongPressDetector>();
                 longPress.OnLongPress = () => ToggleCategoryFilter(catLabel);
 
-                // Icon + label
-                var textGO = new GameObject("Text");
-                textGO.transform.SetParent(btnGO.transform, false);
-                var textRect = textGO.AddComponent<RectTransform>();
-                textRect.anchorMin = Vector2.zero;
-                textRect.anchorMax = Vector2.one;
-                textRect.offsetMin = Vector2.zero;
-                textRect.offsetMax = Vector2.zero;
-                var text = textGO.AddComponent<Text>();
-                text.text = $"{cat.icon}\n{cat.label}";
-                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                text.fontSize = 8;
-                text.fontStyle = FontStyle.Bold;
-                text.alignment = TextAnchor.MiddleCenter;
-                text.color = cat.color;
-                text.raycastTarget = false;
-                var shadow = textGO.AddComponent<Shadow>();
+                // Icon
+                var iconGO = new GameObject("Icon");
+                iconGO.transform.SetParent(btnGO.transform, false);
+                var iconRect = iconGO.AddComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.10f, 0.20f);
+                iconRect.anchorMax = new Vector2(0.90f, 0.80f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconText = iconGO.AddComponent<Text>();
+                iconText.text = cat.icon;
+                iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                iconText.fontSize = 12;
+                iconText.fontStyle = FontStyle.Bold;
+                iconText.alignment = TextAnchor.MiddleCenter;
+                iconText.color = cat.color;
+                iconText.raycastTarget = false;
+                var shadow = iconGO.AddComponent<Shadow>();
                 shadow.effectColor = new Color(0, 0, 0, 0.9f);
                 shadow.effectDistance = new Vector2(0.4f, -0.4f);
             }
@@ -16408,6 +16372,91 @@ namespace AshenThrone.Empire
     }
 
     // ====================================================================
+    // P&C: Left-side circular event icon column
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        // P&C-style: uniform circular event icon column on left edge
+        // Slot 0 = bottom (above chat bar), slots go upward
+        private const float EventIconX = 0.008f;
+        private const float EventIconW = 0.088f;   // 8.8% width
+        private const float EventIconH = 0.060f;   // ~square on phone
+        private const float EventIconGap = 0.012f;
+        private const float EventIconBaseY = 0.225f; // above chat bar
+
+        /// <summary>Creates a P&C-style circular event icon at a given slot in the left column.</summary>
+        private GameObject CreateCircularEventIcon(Transform parent, string name, int slot,
+            Color bgColor, Color borderColor, string icon, Color iconColor,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            float yBot = EventIconBaseY + slot * (EventIconH + EventIconGap);
+            float yTop = yBot + EventIconH;
+
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(EventIconX, yBot);
+            rect.anchorMax = new Vector2(EventIconX + EventIconW, yTop);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Glow ring (slightly larger, behind)
+            var glow = new GameObject("Glow");
+            glow.transform.SetParent(go.transform, false);
+            glow.transform.SetAsFirstSibling();
+            var glowRect = glow.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.20f, -0.20f);
+            glowRect.anchorMax = new Vector2(1.20f, 1.20f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glow.AddComponent<Image>();
+            glowImg.color = new Color(borderColor.r, borderColor.g, borderColor.b, 0.25f);
+            glowImg.raycastTarget = false;
+            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            if (radialSpr != null) glowImg.sprite = radialSpr;
+
+            // Main circular bg
+            var bg = go.AddComponent<Image>();
+            bg.color = bgColor;
+            bg.raycastTarget = true;
+            if (radialSpr != null) { bg.sprite = radialSpr; bg.type = Image.Type.Simple; }
+
+            // Gold border ring
+            var ring = go.AddComponent<Outline>();
+            ring.effectColor = new Color(borderColor.r, borderColor.g, borderColor.b, 0.80f);
+            ring.effectDistance = new Vector2(1.2f, -1.2f);
+
+            // Button
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            if (onClick != null) btn.onClick.AddListener(onClick);
+
+            // Icon text
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(go.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.10f, 0.15f);
+            iconRect.anchorMax = new Vector2(0.90f, 0.85f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = icon;
+            iconText.fontSize = 18;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = iconColor;
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.raycastTarget = false;
+            var iconShadow = iconGO.AddComponent<Shadow>();
+            iconShadow.effectColor = new Color(0, 0, 0, 0.85f);
+            iconShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            return go;
+        }
+    }
+
+    // ====================================================================
     // P&C: Daily Treasure Chest — Tappable reward on city view
     // ====================================================================
 
@@ -16423,86 +16472,41 @@ namespace AshenThrone.Empire
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
-            _dailyChest = new GameObject("DailyChest");
-            _dailyChest.transform.SetParent(canvas.transform, false);
-            var rect = _dailyChest.AddComponent<RectTransform>();
-            // Position left of center, above nav bar
-            rect.anchorMin = new Vector2(0.08f, 0.20f);
-            rect.anchorMax = new Vector2(0.20f, 0.30f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            // P&C circular icon — slot 0 in left event column (bottom)
+            _dailyChest = CreateCircularEventIcon(canvas.transform, "DailyChest",
+                0, new Color(0.55f, 0.35f, 0.12f, 0.95f), new Color(0.90f, 0.75f, 0.25f),
+                "\u2620", new Color(1f, 0.85f, 0.30f), CollectDailyChest);
 
-            // Glow background
-            var glow = new GameObject("Glow");
-            glow.transform.SetParent(_dailyChest.transform, false);
-            var glowRect = glow.AddComponent<RectTransform>();
-            glowRect.anchorMin = new Vector2(-0.3f, -0.3f);
-            glowRect.anchorMax = new Vector2(1.3f, 1.3f);
-            glowRect.offsetMin = Vector2.zero;
-            glowRect.offsetMax = Vector2.zero;
-            var glowImg = glow.AddComponent<Image>();
-            glowImg.color = new Color(1f, 0.85f, 0.30f, 0.20f);
-            glowImg.raycastTarget = false;
-            var radialSprite = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
-            if (radialSprite != null) glowImg.sprite = radialSprite;
+            // "FREE" red badge
+            var badge = new GameObject("FreeBadge");
+            badge.transform.SetParent(_dailyChest.transform, false);
+            var badgeRect = badge.AddComponent<RectTransform>();
+            badgeRect.anchorMin = new Vector2(0.50f, 0.72f);
+            badgeRect.anchorMax = new Vector2(1.10f, 1.05f);
+            badgeRect.offsetMin = Vector2.zero;
+            badgeRect.offsetMax = Vector2.zero;
+            var badgeBg = badge.AddComponent<Image>();
+            badgeBg.color = new Color(0.90f, 0.15f, 0.10f, 0.95f);
+            badgeBg.raycastTarget = false;
+            var badgeOutline = badge.AddComponent<Outline>();
+            badgeOutline.effectColor = new Color(1f, 1f, 1f, 0.4f);
+            badgeOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            var bt = new GameObject("Text");
+            bt.transform.SetParent(badge.transform, false);
+            var btRect = bt.AddComponent<RectTransform>();
+            btRect.anchorMin = Vector2.zero;
+            btRect.anchorMax = Vector2.one;
+            btRect.offsetMin = Vector2.zero;
+            btRect.offsetMax = Vector2.zero;
+            var btText = bt.AddComponent<Text>();
+            btText.text = "FREE";
+            btText.fontSize = 7;
+            btText.fontStyle = FontStyle.Bold;
+            btText.alignment = TextAnchor.MiddleCenter;
+            btText.color = Color.white;
+            btText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            btText.raycastTarget = false;
 
-            // Chest body
-            var bg = _dailyChest.AddComponent<Image>();
-            bg.color = new Color(0.55f, 0.35f, 0.12f, 0.95f);
-            bg.raycastTarget = true;
-            var outline = _dailyChest.AddComponent<Outline>();
-            outline.effectColor = new Color(0.90f, 0.75f, 0.25f, 0.8f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
-
-            // Chest icon
-            var iconGO = new GameObject("Icon");
-            iconGO.transform.SetParent(_dailyChest.transform, false);
-            var iconRect = iconGO.AddComponent<RectTransform>();
-            iconRect.anchorMin = new Vector2(0.15f, 0.20f);
-            iconRect.anchorMax = new Vector2(0.85f, 0.75f);
-            iconRect.offsetMin = Vector2.zero;
-            iconRect.offsetMax = Vector2.zero;
-            var iconText = iconGO.AddComponent<Text>();
-            iconText.text = "\u2620"; // chest-like symbol
-            iconText.fontSize = 22;
-            iconText.alignment = TextAnchor.MiddleCenter;
-            iconText.color = new Color(1f, 0.85f, 0.30f);
-            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            iconText.raycastTarget = false;
-
-            // "FREE" label
-            var labelGO = new GameObject("Label");
-            labelGO.transform.SetParent(_dailyChest.transform, false);
-            var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0f, 0.70f);
-            labelRect.anchorMax = new Vector2(1f, 1f);
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-            var labelBg = labelGO.AddComponent<Image>();
-            labelBg.color = new Color(0.85f, 0.20f, 0.15f, 0.92f);
-            labelBg.raycastTarget = false;
-            var label = new GameObject("Text");
-            label.transform.SetParent(labelGO.transform, false);
-            var ltRect = label.AddComponent<RectTransform>();
-            ltRect.anchorMin = Vector2.zero;
-            ltRect.anchorMax = Vector2.one;
-            ltRect.offsetMin = Vector2.zero;
-            ltRect.offsetMax = Vector2.zero;
-            var lt = label.AddComponent<Text>();
-            lt.text = "FREE";
-            lt.fontSize = 9;
-            lt.fontStyle = FontStyle.Bold;
-            lt.alignment = TextAnchor.MiddleCenter;
-            lt.color = Color.white;
-            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            lt.raycastTarget = false;
-
-            // Tap to collect
-            var btn = _dailyChest.AddComponent<Button>();
-            btn.targetGraphic = bg;
-            btn.onClick.AddListener(CollectDailyChest);
-
-            // Bounce animation
             StartCoroutine(AnimateDailyChest());
         }
 
@@ -16581,34 +16585,30 @@ namespace AshenThrone.Empire
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
-            _merchantIcon = new GameObject("MerchantIcon");
-            _merchantIcon.transform.SetParent(canvas.transform, false);
-            var rect = _merchantIcon.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.03f, 0.35f);
-            rect.anchorMax = new Vector2(0.13f, 0.44f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            // P&C circular icon — slot 1 in left event column
+            _merchantIcon = CreateCircularEventIcon(canvas.transform, "MerchantIcon",
+                1, new Color(0.40f, 0.25f, 0.55f, 0.92f), new Color(0.70f, 0.50f, 0.85f),
+                "\u2655", new Color(1f, 0.85f, 0.30f), ShowMerchantPanel);
 
-            var bg = _merchantIcon.AddComponent<Image>();
-            bg.color = new Color(0.40f, 0.25f, 0.55f, 0.92f);
-            bg.raycastTarget = true;
-            var outline = _merchantIcon.AddComponent<Outline>();
-            outline.effectColor = new Color(0.70f, 0.50f, 0.85f, 0.7f);
-            outline.effectDistance = new Vector2(1f, -1f);
-
-            var btn = _merchantIcon.AddComponent<Button>();
-            btn.targetGraphic = bg;
-            btn.onClick.AddListener(ShowMerchantPanel);
-
-            // Merchant face icon
-            AddInfoPanelText(_merchantIcon.transform, "Icon", "\u2655", 18, FontStyle.Bold,
-                new Color(1f, 0.85f, 0.30f), new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.70f), TextAnchor.MiddleCenter);
-            AddInfoPanelText(_merchantIcon.transform, "Label", "SHOP", 8, FontStyle.Bold,
-                Color.white, new Vector2(0f, 0.72f), new Vector2(1f, 1f), TextAnchor.MiddleCenter);
-
-            // Timer label (merchant stays for 2h)
-            AddInfoPanelText(_merchantIcon.transform, "Timer", "1:59:45", 7, FontStyle.Normal,
-                new Color(0.8f, 0.8f, 0.8f), new Vector2(0f, 0f), new Vector2(1f, 0.18f), TextAnchor.MiddleCenter);
+            // Timer badge below icon
+            var timerGO = new GameObject("Timer");
+            timerGO.transform.SetParent(_merchantIcon.transform, false);
+            var timerRect = timerGO.AddComponent<RectTransform>();
+            timerRect.anchorMin = new Vector2(0.0f, -0.15f);
+            timerRect.anchorMax = new Vector2(1.0f, 0.08f);
+            timerRect.offsetMin = Vector2.zero;
+            timerRect.offsetMax = Vector2.zero;
+            var timerText = timerGO.AddComponent<Text>();
+            timerText.text = "1:59:45";
+            timerText.fontSize = 6;
+            timerText.fontStyle = FontStyle.Normal;
+            timerText.alignment = TextAnchor.MiddleCenter;
+            timerText.color = new Color(0.8f, 0.8f, 0.8f);
+            timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            timerText.raycastTarget = false;
+            var timerShadow = timerGO.AddComponent<Shadow>();
+            timerShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            timerShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             StartCoroutine(AnimateMerchantIcon());
         }
@@ -16740,6 +16740,128 @@ namespace AshenThrone.Empire
             var cg = _merchantPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
+        }
+    }
+
+    // ====================================================================
+    // P&C: Event Hub + Gifts — Additional left-side circular event icons
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _eventHubIcon;
+        private GameObject _giftsIcon;
+
+        /// <summary>P&C: Events hub icon — slot 2 in left column.</summary>
+        private void CreateEventHubIcon()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+            _eventHubIcon = CreateCircularEventIcon(canvas.transform, "EventHubIcon",
+                2, new Color(0.70f, 0.22f, 0.18f, 0.92f), new Color(0.95f, 0.45f, 0.25f),
+                "\u2694", new Color(1f, 0.80f, 0.50f), ShowEventHubPanel);
+
+            // "EVENT" label below
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_eventHubIcon.transform, false);
+            var lr = labelGO.AddComponent<RectTransform>();
+            lr.anchorMin = new Vector2(0f, -0.18f);
+            lr.anchorMax = new Vector2(1f, 0.05f);
+            lr.offsetMin = Vector2.zero;
+            lr.offsetMax = Vector2.zero;
+            var lt = labelGO.AddComponent<Text>();
+            lt.text = "EVENT";
+            lt.fontSize = 6;
+            lt.fontStyle = FontStyle.Bold;
+            lt.alignment = TextAnchor.MiddleCenter;
+            lt.color = new Color(0.95f, 0.80f, 0.50f);
+            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            lt.raycastTarget = false;
+            var ls = labelGO.AddComponent<Shadow>();
+            ls.effectColor = new Color(0, 0, 0, 0.9f);
+            ls.effectDistance = new Vector2(0.4f, -0.4f);
+
+            // Notification dot
+            AddNotificationDot(_eventHubIcon.transform, "3");
+        }
+
+        /// <summary>P&C: Gifts/mail icon — slot 3 in left column.</summary>
+        private void CreateGiftsIcon()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+            _giftsIcon = CreateCircularEventIcon(canvas.transform, "GiftsIcon",
+                3, new Color(0.20f, 0.50f, 0.30f, 0.92f), new Color(0.40f, 0.80f, 0.45f),
+                "\u2618", new Color(0.80f, 1f, 0.70f), ShowGiftsPanel);
+
+            // "GIFTS" label below
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_giftsIcon.transform, false);
+            var lr = labelGO.AddComponent<RectTransform>();
+            lr.anchorMin = new Vector2(0f, -0.18f);
+            lr.anchorMax = new Vector2(1f, 0.05f);
+            lr.offsetMin = Vector2.zero;
+            lr.offsetMax = Vector2.zero;
+            var lt = labelGO.AddComponent<Text>();
+            lt.text = "GIFTS";
+            lt.fontSize = 6;
+            lt.fontStyle = FontStyle.Bold;
+            lt.alignment = TextAnchor.MiddleCenter;
+            lt.color = new Color(0.70f, 1f, 0.70f);
+            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            lt.raycastTarget = false;
+            var ls = labelGO.AddComponent<Shadow>();
+            ls.effectColor = new Color(0, 0, 0, 0.9f);
+            ls.effectDistance = new Vector2(0.4f, -0.4f);
+
+            // Notification dot
+            AddNotificationDot(_giftsIcon.transform, "5");
+        }
+
+        /// <summary>Red notification dot with count — top-right corner of icon.</summary>
+        private void AddNotificationDot(Transform parent, string count)
+        {
+            var dot = new GameObject("NotifDot");
+            dot.transform.SetParent(parent, false);
+            var dr = dot.AddComponent<RectTransform>();
+            dr.anchorMin = new Vector2(0.62f, 0.65f);
+            dr.anchorMax = new Vector2(1.08f, 1.08f);
+            dr.offsetMin = Vector2.zero;
+            dr.offsetMax = Vector2.zero;
+            var dbg = dot.AddComponent<Image>();
+            dbg.color = new Color(0.90f, 0.15f, 0.10f, 0.95f);
+            dbg.raycastTarget = false;
+            var dOutline = dot.AddComponent<Outline>();
+            dOutline.effectColor = new Color(1f, 1f, 1f, 0.4f);
+            dOutline.effectDistance = new Vector2(0.4f, -0.4f);
+
+            var dt = new GameObject("Text");
+            dt.transform.SetParent(dot.transform, false);
+            var dtr = dt.AddComponent<RectTransform>();
+            dtr.anchorMin = Vector2.zero;
+            dtr.anchorMax = Vector2.one;
+            dtr.offsetMin = Vector2.zero;
+            dtr.offsetMax = Vector2.zero;
+            var dtxt = dt.AddComponent<Text>();
+            dtxt.text = count;
+            dtxt.fontSize = 7;
+            dtxt.fontStyle = FontStyle.Bold;
+            dtxt.alignment = TextAnchor.MiddleCenter;
+            dtxt.color = Color.white;
+            dtxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            dtxt.raycastTarget = false;
+        }
+
+        private void ShowEventHubPanel()
+        {
+            ShowUpgradeBlockedToast("\u2694 Events — Coming soon! Check back during Alliance Wars.");
+            PlaySfx(_sfxTap);
+        }
+
+        private void ShowGiftsPanel()
+        {
+            ShowUpgradeBlockedToast("\u2618 Gifts — 5 unclaimed alliance gifts available!");
+            PlaySfx(_sfxTap);
         }
     }
 
