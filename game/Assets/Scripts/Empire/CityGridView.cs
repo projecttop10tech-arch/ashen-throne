@@ -135,6 +135,7 @@ namespace AshenThrone.Empire
         private EventSubscription _upgradeCompletedSub;
         private EventSubscription _demolishedSub;
         private EventSubscription _doubleTapZoomSub;
+        private EventSubscription _allianceHelpSub;
 
         // P&C: Smooth zoom-to-building on double-tap
         private Coroutine _smoothZoomCoroutine;
@@ -204,6 +205,7 @@ namespace AshenThrone.Empire
             _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
             _buildingTappedSub = EventBus.Subscribe<BuildingTappedEvent>(OnBuildingTappedShowPopup);
             _emptyCellTappedSub = EventBus.Subscribe<EmptyCellTappedEvent>(OnEmptyCellTapped);
+            _allianceHelpSub = EventBus.Subscribe<AllianceHelpRequestedEvent>(evt => ShowAllianceHelpReceived(evt.PlacedId, 300));
         }
 
         private void OnDisable()
@@ -458,14 +460,15 @@ namespace AshenThrone.Empire
                 RefreshAllNotificationBadges();
             }
 
-            // P&C: Pulse selection ring glow
+            // P&C: Pulse selection ring glow (preserves category hue)
             if (_selectionRing != null)
             {
                 var ringImg = _selectionRing.GetComponent<Image>();
                 if (ringImg != null)
                 {
                     float pulse = 0.35f + 0.15f * Mathf.Sin(Time.time * 3f);
-                    ringImg.color = new Color(0.90f, 0.75f, 0.25f, pulse);
+                    var c = ringImg.color;
+                    ringImg.color = new Color(c.r, c.g, c.b, pulse);
                 }
             }
 
@@ -1172,6 +1175,82 @@ namespace AshenThrone.Empire
                 "barracks" or "training_ground" or "armory" => 0.09f,
                 _ => 0.08f                 // Standard bounce
             };
+        }
+
+        /// <summary>P&C: Category-colored selection ring glow (matches header color but softer).</summary>
+        private static Color GetCategorySelectionColor(string buildingId)
+        {
+            var hdr = GetCategoryHeaderColor(buildingId);
+            return new Color(hdr.r, hdr.g, hdr.b, 0.45f);
+        }
+
+        // ====================================================================
+        // P&C: Alliance help received visual
+        // ====================================================================
+
+        /// <summary>P&C: Show help-received indicator on a building (handshake icon + timer reduction text).</summary>
+        private void ShowAllianceHelpReceived(string instanceId, int secondsReduced)
+        {
+            CityBuildingPlacement placement = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == instanceId) { placement = p; break; }
+            }
+            if (placement == null || placement.VisualGO == null) return;
+
+            // Remove existing help indicator
+            var existing = placement.VisualGO.transform.Find("HelpReceived");
+            if (existing != null) Destroy(existing.gameObject);
+
+            var helpGO = new GameObject("HelpReceived");
+            helpGO.transform.SetParent(placement.VisualGO.transform, false);
+            var rect = helpGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.10f, 0.70f);
+            rect.anchorMax = new Vector2(0.90f, 0.90f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = helpGO.AddComponent<Image>();
+            bg.color = new Color(0.15f, 0.40f, 0.75f, 0.85f);
+            bg.raycastTarget = false;
+            var outline = helpGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.30f, 0.60f, 1f, 0.6f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(helpGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            string timeStr = FormatTimeRemaining(secondsReduced);
+            text.text = $"\u2764 -{timeStr}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            // Auto-destroy after 3 seconds with fade
+            StartCoroutine(FadeAndDestroyHelpIndicator(helpGO));
+        }
+
+        private IEnumerator FadeAndDestroyHelpIndicator(GameObject helpGO)
+        {
+            yield return new WaitForSeconds(2f);
+            if (helpGO == null) yield break;
+            var cg = helpGO.AddComponent<CanvasGroup>();
+            float elapsed = 0f;
+            while (elapsed < 1f && helpGO != null)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = 1f - elapsed;
+                yield return null;
+            }
+            if (helpGO != null) Destroy(helpGO);
         }
 
         /// <summary>P&C: Show "x3" count badge on buildings with multiple instances of the same type.</summary>
@@ -6460,7 +6539,8 @@ namespace AshenThrone.Empire
 
             var img = _selectionRing.AddComponent<Image>();
             img.raycastTarget = false;
-            img.color = new Color(0.90f, 0.75f, 0.25f, 0.45f); // Gold glow
+            // P&C: Category-colored selection glow
+            img.color = GetCategorySelectionColor(placement.BuildingId);
 
             // Use radial gradient for soft edge
             var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");

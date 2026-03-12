@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.59.0] — 2026-03-12 (Ralph Loop Iteration 54: Alliance Help Visual, Category Selection Glow)
+
+### ADDED
+- **Alliance help received visual indicator** — when an AllianceHelpRequestedEvent fires for a building, a blue badge with "❤ -5m 0s" appears on the building, auto-fading after 2+1 seconds. Subscribed via EventBus in CityGridView start-up.
+- **`ShowAllianceHelpReceived()` / `FadeAndDestroyHelpIndicator()` methods** — badge creation and timed fade-out coroutine for alliance help feedback.
+- **Category-colored selection ring glow** — building selection rings now use the category header color (military=red, resource=green, magic=purple, etc.) at 0.45 alpha instead of uniform gold. Pulse animation preserves the category hue.
+- **`GetCategorySelectionColor()` method** — derives selection ring color from `GetCategoryHeaderColor()` with adjusted alpha.
+
+### CHANGED
+- Selection ring pulse now preserves category hue (`new Color(c.r, c.g, c.b, pulse)`) instead of overwriting with gold tint.
+
+---
+
 ## [0.58.0] — 2026-03-12 (Ralph Loop Iteration 53: Celebration Flash, Vault Glow, Category SFX)
 
 ### ADDED
