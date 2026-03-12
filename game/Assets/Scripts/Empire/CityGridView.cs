@@ -811,6 +811,10 @@ namespace AshenThrone.Empire
             // P&C-style production rate label on resource buildings
             CreateProductionLabel(go, placement.BuildingId, placement.Tier);
 
+            // P&C: Stronghold gets a special golden glow aura
+            if (placement.BuildingId == "stronghold")
+                CreateStrongholdGlow(go);
+
             placement.VisualGO = go;
         }
 
@@ -838,6 +842,88 @@ namespace AshenThrone.Empire
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
             if (spr != null) img.sprite = spr;
+        }
+
+        /// <summary>P&C: Stronghold gets a special multi-layer golden glow aura that pulses.</summary>
+        private void CreateStrongholdGlow(GameObject building)
+        {
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+
+            // Layer 1: Large outer warm glow
+            var glow1 = new GameObject("StrongholdGlow_Outer");
+            glow1.transform.SetParent(building.transform, false);
+            glow1.transform.SetAsFirstSibling();
+            var rect1 = glow1.AddComponent<RectTransform>();
+            rect1.anchorMin = new Vector2(-0.25f, -0.15f);
+            rect1.anchorMax = new Vector2(1.25f, 1.15f);
+            rect1.offsetMin = Vector2.zero;
+            rect1.offsetMax = Vector2.zero;
+            var img1 = glow1.AddComponent<Image>();
+            img1.color = new Color(0.85f, 0.65f, 0.15f, 0.12f);
+            img1.raycastTarget = false;
+            if (spr != null) img1.sprite = spr;
+
+            // Layer 2: Inner bright gold glow
+            var glow2 = new GameObject("StrongholdGlow_Inner");
+            glow2.transform.SetParent(building.transform, false);
+            glow2.transform.SetSiblingIndex(1);
+            var rect2 = glow2.AddComponent<RectTransform>();
+            rect2.anchorMin = new Vector2(-0.10f, -0.05f);
+            rect2.anchorMax = new Vector2(1.10f, 1.05f);
+            rect2.offsetMin = Vector2.zero;
+            rect2.offsetMax = Vector2.zero;
+            var img2 = glow2.AddComponent<Image>();
+            img2.color = new Color(1f, 0.85f, 0.30f, 0.08f);
+            img2.raycastTarget = false;
+            if (spr != null) img2.sprite = spr;
+
+            StartCoroutine(PulseStrongholdGlow(img1, img2));
+        }
+
+        private IEnumerator PulseStrongholdGlow(Image outer, Image inner)
+        {
+            float phase = 0f;
+            while (outer != null && inner != null)
+            {
+                phase += Time.deltaTime * 1.2f;
+                float outerAlpha = 0.10f + 0.06f * Mathf.Sin(phase);
+                float innerAlpha = 0.06f + 0.04f * Mathf.Sin(phase * 1.5f + 1f);
+                outer.color = new Color(0.85f, 0.65f, 0.15f, outerAlpha);
+                inner.color = new Color(1f, 0.85f, 0.30f, innerAlpha);
+                yield return null;
+            }
+        }
+
+        /// <summary>P&C: Category-specific popup header color.</summary>
+        private static Color GetCategoryHeaderColor(string buildingId)
+        {
+            return buildingId switch
+            {
+                "stronghold" => new Color(1f, 0.85f, 0.25f),
+                "barracks" or "training_ground" or "armory" => new Color(0.90f, 0.40f, 0.35f),
+                "wall" or "watch_tower" => new Color(0.70f, 0.70f, 0.75f),
+                "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.60f, 0.85f, 0.40f),
+                "arcane_tower" or "enchanting_tower" or "hero_shrine" => new Color(0.70f, 0.45f, 1f),
+                "academy" or "library" or "archive" or "observatory" or "laboratory" => new Color(0.45f, 0.70f, 1f),
+                "guild_hall" or "embassy" => new Color(1f, 0.75f, 0.40f),
+                "marketplace" or "forge" => new Color(0.85f, 0.60f, 0.30f),
+                _ => new Color(1f, 0.90f, 0.50f)
+            };
+        }
+
+        /// <summary>P&C: Category-specific bounce intensity (stronghold = bigger bounce).</summary>
+        private static float GetCategoryBounceScale(string buildingId)
+        {
+            return buildingId switch
+            {
+                "stronghold" => 0.12f,    // Bigger, more dramatic
+                "barracks" or "training_ground" or "armory" => 0.09f,
+                _ => 0.08f                 // Standard bounce
+            };
         }
 
         /// <summary>P&C: Show "x3" count badge on buildings with multiple instances of the same type.</summary>
@@ -1786,7 +1872,7 @@ namespace AshenThrone.Empire
             nameText.fontSize = 12;
             nameText.fontStyle = FontStyle.Bold;
             nameText.alignment = TextAnchor.MiddleCenter;
-            nameText.color = new Color(1f, 0.90f, 0.50f);
+            nameText.color = GetCategoryHeaderColor(evt.BuildingId);
             nameText.raycastTarget = false;
             var nameOutline = nameGO.AddComponent<Outline>();
             nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
@@ -2321,9 +2407,9 @@ namespace AshenThrone.Empire
             Handheld.Vibrate();
             #endif
 
-            // Bounce animation
+            // P&C: Category-specific bounce animation
             if (tapped.VisualGO != null)
-                StartCoroutine(BounceBuilding(tapped.VisualGO.transform));
+                StartCoroutine(BounceBuilding(tapped.VisualGO.transform, GetCategoryBounceScale(tapped.BuildingId)));
 
             // P&C: Double-tap quick-upgrade detection
             if (tapped.InstanceId == _lastTappedInstanceId && (Time.time - _lastTapTime) < DoubleTapWindow)
@@ -2343,7 +2429,7 @@ namespace AshenThrone.Empire
             EventBus.Publish(new BuildingTappedEvent(tapped));
         }
 
-        private IEnumerator BounceBuilding(Transform building)
+        private IEnumerator BounceBuilding(Transform building, float bounceScale = 0.08f)
         {
             var original = building.localScale;
             float duration = 0.2f;
@@ -2354,7 +2440,7 @@ namespace AshenThrone.Empire
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / (duration * 0.4f);
-                building.localScale = original * (1f + 0.08f * t);
+                building.localScale = original * (1f + bounceScale * t);
                 yield return null;
             }
 
@@ -2364,7 +2450,7 @@ namespace AshenThrone.Empire
             {
                 elapsed += Time.deltaTime;
                 float t = elapsed / (duration * 0.6f);
-                float bounce = 1f + 0.08f * (1f - t) * Mathf.Cos(t * Mathf.PI);
+                float bounce = 1f + bounceScale * (1f - t) * Mathf.Cos(t * Mathf.PI);
                 building.localScale = original * bounce;
                 yield return null;
             }

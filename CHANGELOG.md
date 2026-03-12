@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.36.0] — 2026-03-11 (Ralph Loop Iteration 31: Stronghold Glow, Category Colors, Bounce Scale)
+
+### ADDED
+- **Stronghold special glow** — 2-layer radial gradient glow beneath stronghold building (outer amber 120px, inner gold 80px) with continuous pulse animation cycling opacity. P&C-style dramatic focal centerpiece.
+- **Category-specific popup header colors** — building info popup name text now colored by category: military buildings (red), resource producers (green), research/magic (blue), defense (steel), stronghold (gold). Matches P&C visual differentiation.
+- **Category-specific bounce scale** — tap bounce intensity varies by building type: stronghold 12%, military 9%, default 8%. Gives important buildings more visual weight on tap.
+
+### CHANGED
+- `CreateBuildingVisual` now calls `CreateStrongholdGlow` for stronghold placement
+- `OnBuildingTappedShowPopup` uses `GetCategoryHeaderColor` for popup name coloring
+- `BounceBuilding` accepts optional `bounceScale` parameter (default 0.08f)
+- Tap handler passes `GetCategoryBounceScale` result to `BounceBuilding`
+
+---
+
 ## [0.35.0] — 2026-03-11 (Ralph Loop Iteration 30: Collect-All Pulse, Alliance Help, Zoom LOD)
 
 ### ADDED
