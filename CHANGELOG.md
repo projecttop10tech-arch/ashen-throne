@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.71.0] — 2026-03-12 (Ralph Loop Iteration 66: Alliance Help, Decorations, Garrison Deploy)
+
+### ADDED
+- **Alliance help request system** — buildings under construction show a pulsing blue "Help" button. Tapping sends a help request (up to 5 per building). Alliance members respond after a short delay, reducing build time by 60s each. Visual indicator shows help count and animated feedback when help arrives.
+- **`CreateAllianceHelpButton()` method** — renders pulsing help button on constructing buildings with tap-to-request and animated pulse.
+- **`RequestAllianceHelp()` / `SimulateAllianceHelpResponse()` methods** — handle help request flow with alliance response simulation.
+- **Decoration placement system** — 6 cosmetic decoration types (Road, Fountain, Tree, Statue, Garden, Torch) placeable on empty grid cells. Opens a 2x3 selector grid with color-coded icons. Decorations are purely cosmetic with no gameplay effect. Creates visual on the isometric grid at the selected cell.
+- **`ShowDecorationSelector()` / `PlaceDecoration()` / `CreateDecorationVisual()` methods** — full decoration workflow from selection to placement to visual rendering.
+- **`DecorationTypes` dictionary** — maps 6 decoration IDs to their icons, names, and color tints.
+- **Garrison quick-deploy panel** — wall, watch tower, and stronghold buildings now show a "Garrison" button in their info panel. Opens a deployment interface showing troop type, fill bar (color-coded: red/yellow/green), defense power, +25%/+50%/MAX deploy buttons, withdraw option, and auto-garrison toggle.
+- **`ShowGarrisonDeployPanel()` method** — full garrison UI with capacity bars, deploy buttons, withdraw, and auto-garrison toggle.
+- **`DefensiveGarrisonMap` dictionary** — maps defensive building types to their troop names and base capacities.
+- **Garrison button in Overview tab** — wall, watch_tower, and stronghold info panels now show a red "Garrison" button.
+
+---
+
 ## [0.70.0] — 2026-03-12 (Ralph Loop Iteration 65: Research Panel, Crafting Panel)
 
 ### ADDED

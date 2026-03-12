@@ -4587,6 +4587,36 @@ namespace AshenThrone.Empire
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
+            // P&C: Garrison quick-deploy for defensive buildings
+            if (buildingId == "wall" || buildingId == "watch_tower" || buildingId == "stronghold")
+            {
+                var garrGO = new GameObject("GarrisonBtn");
+                garrGO.transform.SetParent(panel.transform, false);
+                var garrRect = garrGO.AddComponent<RectTransform>();
+                garrRect.anchorMin = new Vector2(0.50f, 0.20f);
+                garrRect.anchorMax = new Vector2(0.95f, 0.27f);
+                garrRect.offsetMin = Vector2.zero;
+                garrRect.offsetMax = Vector2.zero;
+                var garrBg = garrGO.AddComponent<Image>();
+                garrBg.color = new Color(0.50f, 0.20f, 0.20f, 0.90f);
+                garrBg.raycastTarget = true;
+                var garrOutline = garrGO.AddComponent<Outline>();
+                garrOutline.effectColor = new Color(0.85f, 0.40f, 0.30f, 0.6f);
+                garrOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var garrBtn = garrGO.AddComponent<Button>();
+                garrBtn.targetGraphic = garrBg;
+                string capGarrInstId = instanceId;
+                string capGarrBid = buildingId;
+                int capGarrTier = tier;
+                garrBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowGarrisonDeployPanel(capGarrInstId, capGarrBid, capGarrTier);
+                });
+                AddInfoPanelText(garrGO.transform, "Label", "\u26E8 Garrison", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
             // P&C: Stronghold — show what unlocks at next level
             if (buildingId == "stronghold" && tier < 3)
             {
@@ -10527,6 +10557,550 @@ namespace AshenThrone.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
+        }
+
+        // ====================================================================
+        // P&C: Alliance Help Request (from upgrade confirm / building under construction)
+        // ====================================================================
+
+        private GameObject _allianceHelpPanel;
+        private readonly Dictionary<string, int> _allianceHelpsReceived = new();
+        private const int MaxAllianceHelps = 5;
+        private const int HelpReductionSeconds = 60;
+
+        /// <summary>P&C: Show "Request Help" floating button on buildings under construction.</summary>
+        private void CreateAllianceHelpButton(GameObject building, string instanceId, string buildingId)
+        {
+            if (building == null) return;
+            var existing = building.transform.Find("AllianceHelpBtn");
+            if (existing != null) Destroy(existing.gameObject);
+
+            var helpGO = new GameObject("AllianceHelpBtn");
+            helpGO.transform.SetParent(building.transform, false);
+            var rect = helpGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.15f, 0.55f);
+            rect.anchorMax = new Vector2(0.25f, 0.72f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = helpGO.AddComponent<Image>();
+            bg.color = new Color(0.20f, 0.45f, 0.75f, 0.90f);
+            bg.raycastTarget = true;
+            var outline = helpGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.40f, 0.70f, 1f, 0.7f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var btn = helpGO.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            string capInstId = instanceId;
+            string capBldId = buildingId;
+            btn.onClick.AddListener(() => RequestAllianceHelp(capInstId, capBldId));
+
+            // Help count text
+            int received = _allianceHelpsReceived.TryGetValue(instanceId, out var c) ? c : 0;
+            string helpText = received >= MaxAllianceHelps ? "\u2764 Max" : $"\u2764 Help ({received}/{MaxAllianceHelps})";
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(helpGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = helpText;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.4f, -0.4f);
+
+            // Pulse if help available
+            if (received < MaxAllianceHelps)
+                StartCoroutine(PulseAllianceHelpButton(helpGO));
+        }
+
+        private void RequestAllianceHelp(string instanceId, string buildingId)
+        {
+            int received = _allianceHelpsReceived.TryGetValue(instanceId, out var c) ? c : 0;
+            if (received >= MaxAllianceHelps)
+            {
+                ShowUpgradeBlockedToast("Maximum alliance helps reached for this building");
+                return;
+            }
+
+            _allianceHelpsReceived[instanceId] = received + 1;
+            string bName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            ShowUpgradeBlockedToast($"\u2764 Requested help for {bName} ({received + 1}/{MaxAllianceHelps})");
+
+            // Simulate alliance response after short delay
+            StartCoroutine(SimulateAllianceHelpResponse(instanceId, received + 1));
+
+            // Refresh the help button text
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == instanceId && p.VisualGO != null)
+                {
+                    CreateAllianceHelpButton(p.VisualGO, instanceId, buildingId);
+                    break;
+                }
+            }
+        }
+
+        private IEnumerator SimulateAllianceHelpResponse(string instanceId, int helpCount)
+        {
+            yield return new WaitForSeconds(1.5f + Random.Range(0f, 2f));
+            ShowAllianceHelpReceived(instanceId, HelpReductionSeconds);
+        }
+
+        private IEnumerator PulseAllianceHelpButton(GameObject helpGO)
+        {
+            while (helpGO != null)
+            {
+                var bg = helpGO.GetComponent<Image>();
+                if (bg != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 2.5f);
+                    bg.color = new Color(0.20f, 0.45f * pulse, 0.75f * pulse, 0.90f);
+                }
+                yield return null;
+            }
+        }
+
+        // ====================================================================
+        // P&C: Decoration Placement System
+        // ====================================================================
+
+        private GameObject _decorationSelector;
+
+        private static readonly Dictionary<string, (string Icon, string Name, Color Tint)> DecorationTypes = new()
+        {
+            { "road", ("\u2550", "Road", new Color(0.65f, 0.55f, 0.40f)) },
+            { "fountain", ("\u26F2", "Fountain", new Color(0.40f, 0.65f, 0.90f)) },
+            { "tree", ("\u2742", "Tree", new Color(0.35f, 0.70f, 0.30f)) },
+            { "statue", ("\u2655", "Statue", new Color(0.80f, 0.70f, 0.20f)) },
+            { "garden", ("\u2741", "Garden", new Color(0.55f, 0.80f, 0.40f)) },
+            { "torch", ("\u2739", "Torch", new Color(0.90f, 0.55f, 0.20f)) },
+        };
+
+        /// <summary>P&C: Show decoration selector on empty cell tap (if not already in build mode).</summary>
+        private void ShowDecorationSelector(Vector2Int gridPos)
+        {
+            DismissDecorationSelector();
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _decorationSelector = new GameObject("DecorationSelector");
+            _decorationSelector.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _decorationSelector.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _decorationSelector.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.45f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _decorationSelector.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissDecorationSelector);
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_decorationSelector.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.65f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.05f, 0.08f, 0.04f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.45f, 0.70f, 0.30f, 0.80f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", "\u2742 Place Decoration", 14, FontStyle.Bold,
+                new Color(0.55f, 0.85f, 0.40f),
+                new Vector2(0.05f, 0.82f), new Vector2(0.75f, 0.97f), TextAnchor.MiddleLeft);
+
+            AddInfoPanelText(panel.transform, "SubTitle",
+                "Decorations are cosmetic — no gameplay effect", 8, FontStyle.Italic,
+                new Color(0.50f, 0.50f, 0.40f),
+                new Vector2(0.05f, 0.73f), new Vector2(0.95f, 0.82f), TextAnchor.MiddleLeft);
+
+            // Grid of decoration options (2 rows x 3 cols)
+            int idx = 0;
+            foreach (var kvp in DecorationTypes)
+            {
+                int row = idx / 3;
+                int col = idx % 3;
+                float x0 = 0.03f + col * 0.32f;
+                float x1 = x0 + 0.30f;
+                float y1 = 0.70f - row * 0.35f;
+                float y0 = y1 - 0.32f;
+
+                var itemGO = new GameObject($"Deco_{kvp.Key}");
+                itemGO.transform.SetParent(panel.transform, false);
+                var itemRect = itemGO.AddComponent<RectTransform>();
+                itemRect.anchorMin = new Vector2(x0, y0);
+                itemRect.anchorMax = new Vector2(x1, y1);
+                itemRect.offsetMin = Vector2.zero;
+                itemRect.offsetMax = Vector2.zero;
+                var itemBg = itemGO.AddComponent<Image>();
+                itemBg.color = new Color(kvp.Value.Tint.r * 0.2f, kvp.Value.Tint.g * 0.2f, kvp.Value.Tint.b * 0.2f, 0.80f);
+                itemBg.raycastTarget = true;
+                var itemOutline = itemGO.AddComponent<Outline>();
+                itemOutline.effectColor = new Color(kvp.Value.Tint.r, kvp.Value.Tint.g, kvp.Value.Tint.b, 0.4f);
+                itemOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+                // Icon
+                AddInfoPanelText(itemGO.transform, "Icon", kvp.Value.Icon, 18, FontStyle.Normal,
+                    kvp.Value.Tint,
+                    new Vector2(0.10f, 0.35f), new Vector2(0.90f, 0.90f), TextAnchor.MiddleCenter);
+
+                // Name
+                AddInfoPanelText(itemGO.transform, "Name", kvp.Value.Name, 8, FontStyle.Bold,
+                    new Color(0.85f, 0.82f, 0.75f),
+                    new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.32f), TextAnchor.MiddleCenter);
+
+                // Button
+                var itemBtn = itemGO.AddComponent<Button>();
+                itemBtn.targetGraphic = itemBg;
+                string decoId = kvp.Key;
+                Vector2Int capPos = gridPos;
+                itemBtn.onClick.AddListener(() => PlaceDecoration(decoId, capPos));
+
+                idx++;
+            }
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.88f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(DismissDecorationSelector);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _decorationSelector.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void PlaceDecoration(string decoId, Vector2Int gridPos)
+        {
+            DismissDecorationSelector();
+
+            if (!DecorationTypes.TryGetValue(decoId, out var decoData)) return;
+
+            // Create decoration as a placement
+            string instanceId = $"{decoId}_{gridPos.x}_{gridPos.y}";
+            var placement = new CityBuildingPlacement
+            {
+                InstanceId = instanceId,
+                BuildingId = decoId,
+                Tier = 1,
+                GridOrigin = gridPos,
+                Size = new Vector2Int(1, 1)
+            };
+            _placements.Add(placement);
+            _occupancy[gridPos] = instanceId;
+
+            // Create visual
+            CreateDecorationVisual(placement, decoData);
+
+            string displayName = decoData.Name;
+            ShowUpgradeBlockedToast($"\u2742 Placed {displayName} at ({gridPos.x}, {gridPos.y})");
+            Debug.Log($"[Decoration] Placed {decoId} at {gridPos}.");
+        }
+
+        private void CreateDecorationVisual(CityBuildingPlacement placement, (string Icon, string Name, Color Tint) data)
+        {
+            var container = buildingContainer != null ? buildingContainer : contentContainer;
+            if (container == null) return;
+
+            Vector2 screenPos = GridToLocalCenter(placement.GridOrigin, placement.Size);
+            float decoSize = CellSize * 0.8f;
+
+            var decoGO = new GameObject($"Deco_{placement.InstanceId}");
+            decoGO.transform.SetParent(container, false);
+            var rect = decoGO.AddComponent<RectTransform>();
+            rect.anchoredPosition = screenPos;
+            rect.sizeDelta = new Vector2(decoSize, decoSize);
+
+            // Background circle
+            var bg = decoGO.AddComponent<Image>();
+            bg.color = new Color(data.Tint.r * 0.3f, data.Tint.g * 0.3f, data.Tint.b * 0.3f, 0.70f);
+            bg.raycastTarget = false;
+
+            // Icon
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(decoGO.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.10f, 0.10f);
+            iconRect.anchorMax = new Vector2(0.90f, 0.90f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = data.Icon;
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = Mathf.RoundToInt(decoSize * 0.5f);
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = data.Tint;
+            iconText.raycastTarget = false;
+
+            placement.VisualGO = decoGO;
+        }
+
+        private void DismissDecorationSelector()
+        {
+            if (_decorationSelector != null) { Destroy(_decorationSelector); _decorationSelector = null; }
+        }
+
+        // ====================================================================
+        // P&C: Garrison Quick-Deploy on Defensive Buildings
+        // ====================================================================
+
+        private GameObject _garrisonPanel;
+
+        private static readonly Dictionary<string, (string TroopName, int BaseCapacity)> DefensiveGarrisonMap = new()
+        {
+            { "wall", ("Sentinels", 200) },
+            { "watch_tower", ("Archers", 150) },
+            { "stronghold", ("Royal Guard", 500) },
+        };
+
+        /// <summary>P&C: Show garrison deploy panel for defensive buildings.</summary>
+        private void ShowGarrisonDeployPanel(string instanceId, string buildingId, int tier)
+        {
+            if (_garrisonPanel != null) { Destroy(_garrisonPanel); _garrisonPanel = null; }
+
+            if (!DefensiveGarrisonMap.TryGetValue(buildingId, out var garrisonInfo)) return;
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _garrisonPanel = new GameObject("GarrisonPanel");
+            _garrisonPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _garrisonPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _garrisonPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _garrisonPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_garrisonPanel != null) { Destroy(_garrisonPanel); _garrisonPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_garrisonPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.28f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.72f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.04f, 0.04f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.35f, 0.25f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string bName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            int maxCapacity = garrisonInfo.BaseCapacity * tier;
+            int currentGarrison = maxCapacity / 2; // Simulated current garrison
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title",
+                $"\u26E8 {bName} — Garrison", 14, FontStyle.Bold,
+                new Color(0.90f, 0.40f, 0.30f),
+                new Vector2(0.05f, 0.87f), new Vector2(0.80f, 0.98f), TextAnchor.MiddleLeft);
+
+            // Current garrison info
+            AddInfoPanelText(panel.transform, "TroopType",
+                $"Stationed: {garrisonInfo.TroopName}", 10, FontStyle.Normal,
+                new Color(0.75f, 0.70f, 0.65f),
+                new Vector2(0.05f, 0.76f), new Vector2(0.60f, 0.85f), TextAnchor.MiddleLeft);
+
+            // Garrison fill bar
+            float fillRatio = (float)currentGarrison / maxCapacity;
+            var barBgGO = new GameObject("BarBg");
+            barBgGO.transform.SetParent(panel.transform, false);
+            var barBgRect = barBgGO.AddComponent<RectTransform>();
+            barBgRect.anchorMin = new Vector2(0.05f, 0.64f);
+            barBgRect.anchorMax = new Vector2(0.95f, 0.74f);
+            barBgRect.offsetMin = Vector2.zero;
+            barBgRect.offsetMax = Vector2.zero;
+            var barBgImg = barBgGO.AddComponent<Image>();
+            barBgImg.color = new Color(0.15f, 0.10f, 0.10f, 0.90f);
+            barBgImg.raycastTarget = false;
+
+            var barFillGO = new GameObject("BarFill");
+            barFillGO.transform.SetParent(barBgGO.transform, false);
+            var barFillRect = barFillGO.AddComponent<RectTransform>();
+            barFillRect.anchorMin = Vector2.zero;
+            barFillRect.anchorMax = new Vector2(fillRatio, 1f);
+            barFillRect.offsetMin = Vector2.zero;
+            barFillRect.offsetMax = Vector2.zero;
+            var barFillImg = barFillGO.AddComponent<Image>();
+            Color barColor = fillRatio > 0.7f ? new Color(0.30f, 0.75f, 0.35f) :
+                             fillRatio > 0.3f ? new Color(0.85f, 0.70f, 0.25f) :
+                             new Color(0.85f, 0.30f, 0.25f);
+            barFillImg.color = barColor;
+            barFillImg.raycastTarget = false;
+
+            AddInfoPanelText(barBgGO.transform, "Label",
+                $"{currentGarrison} / {maxCapacity}", 9, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Defense power from garrison
+            int defPower = currentGarrison * 3 * tier;
+            AddInfoPanelText(panel.transform, "DefPower",
+                $"\u26E8 Defense Power: {FormatStatValue(defPower)}", 10, FontStyle.Bold,
+                new Color(0.85f, 0.55f, 0.30f),
+                new Vector2(0.05f, 0.54f), new Vector2(0.60f, 0.63f), TextAnchor.MiddleLeft);
+
+            // Deploy buttons: +25%, +50%, Max
+            var deployOptions = new[] { ("+ 25%", 0.25f), ("+ 50%", 0.50f), ("MAX", 1.0f) };
+            float btnX = 0.05f;
+            foreach (var (label, fraction) in deployOptions)
+            {
+                int troopsToAdd = Mathf.Min(
+                    Mathf.RoundToInt((maxCapacity - currentGarrison) * fraction),
+                    maxCapacity - currentGarrison);
+                if (troopsToAdd < 0) troopsToAdd = 0;
+
+                var deployGO = new GameObject($"Deploy_{label}");
+                deployGO.transform.SetParent(panel.transform, false);
+                var deployRect = deployGO.AddComponent<RectTransform>();
+                deployRect.anchorMin = new Vector2(btnX, 0.38f);
+                deployRect.anchorMax = new Vector2(btnX + 0.28f, 0.52f);
+                deployRect.offsetMin = Vector2.zero;
+                deployRect.offsetMax = Vector2.zero;
+                var deployBg = deployGO.AddComponent<Image>();
+                bool canDeploy = troopsToAdd > 0;
+                deployBg.color = canDeploy
+                    ? new Color(0.55f, 0.20f, 0.18f, 0.90f)
+                    : new Color(0.30f, 0.28f, 0.26f, 0.70f);
+                deployBg.raycastTarget = true;
+                var deployOutln = deployGO.AddComponent<Outline>();
+                deployOutln.effectColor = new Color(0.85f, 0.40f, 0.30f, 0.4f);
+                deployOutln.effectDistance = new Vector2(0.4f, -0.4f);
+                var deployBtn = deployGO.AddComponent<Button>();
+                deployBtn.targetGraphic = deployBg;
+
+                int capTroops = troopsToAdd;
+                string capLabel = label;
+                string capBName = bName;
+                deployBtn.onClick.AddListener(() =>
+                {
+                    if (capTroops <= 0) { ShowUpgradeBlockedToast("Garrison is full!"); return; }
+                    Debug.Log($"[Garrison] Deployed {capTroops} troops to {capBName}.");
+                    if (_garrisonPanel != null) { Destroy(_garrisonPanel); _garrisonPanel = null; }
+                    ShowUpgradeBlockedToast($"\u26E8 Deployed {capTroops} {garrisonInfo.TroopName} to {capBName}");
+                });
+
+                string btnLabel = canDeploy ? $"{label}\n+{capTroops}" : "FULL";
+                AddInfoPanelText(deployGO.transform, "Label", btnLabel, 9, FontStyle.Bold,
+                    canDeploy ? Color.white : new Color(0.55f, 0.50f, 0.45f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                btnX += 0.31f;
+            }
+
+            // Withdraw button
+            var withdrawGO = new GameObject("WithdrawBtn");
+            withdrawGO.transform.SetParent(panel.transform, false);
+            var withdrawRect = withdrawGO.AddComponent<RectTransform>();
+            withdrawRect.anchorMin = new Vector2(0.05f, 0.22f);
+            withdrawRect.anchorMax = new Vector2(0.50f, 0.34f);
+            withdrawRect.offsetMin = Vector2.zero;
+            withdrawRect.offsetMax = Vector2.zero;
+            var withdrawBg = withdrawGO.AddComponent<Image>();
+            withdrawBg.color = new Color(0.35f, 0.30f, 0.25f, 0.85f);
+            withdrawBg.raycastTarget = true;
+            var withdrawBtn = withdrawGO.AddComponent<Button>();
+            withdrawBtn.targetGraphic = withdrawBg;
+            withdrawBtn.onClick.AddListener(() =>
+            {
+                Debug.Log($"[Garrison] Withdrew all troops from {bName}.");
+                if (_garrisonPanel != null) { Destroy(_garrisonPanel); _garrisonPanel = null; }
+                ShowUpgradeBlockedToast($"\u26E8 Withdrew troops from {bName}");
+            });
+            AddInfoPanelText(withdrawGO.transform, "Label", "Withdraw All", 10, FontStyle.Bold,
+                new Color(0.80f, 0.70f, 0.55f),
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Auto-garrison toggle
+            var autoGO = new GameObject("AutoGarrison");
+            autoGO.transform.SetParent(panel.transform, false);
+            var autoRect = autoGO.AddComponent<RectTransform>();
+            autoRect.anchorMin = new Vector2(0.55f, 0.22f);
+            autoRect.anchorMax = new Vector2(0.95f, 0.34f);
+            autoRect.offsetMin = Vector2.zero;
+            autoRect.offsetMax = Vector2.zero;
+            var autoBg = autoGO.AddComponent<Image>();
+            autoBg.color = new Color(0.20f, 0.40f, 0.25f, 0.85f);
+            autoBg.raycastTarget = true;
+            var autoBtn = autoGO.AddComponent<Button>();
+            autoBtn.targetGraphic = autoBg;
+            autoBtn.onClick.AddListener(() =>
+            {
+                ShowUpgradeBlockedToast("\u2705 Auto-garrison enabled");
+            });
+            AddInfoPanelText(autoGO.transform, "Label", "\u2705 Auto-Garrison", 9, FontStyle.Bold,
+                new Color(0.50f, 0.85f, 0.55f),
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Garrison tip
+            AddInfoPanelText(panel.transform, "Tip",
+                "Tip: Garrisoned troops defend against enemy raids automatically", 7, FontStyle.Italic,
+                new Color(0.50f, 0.45f, 0.40f),
+                new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.18f), TextAnchor.MiddleCenter);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_garrisonPanel != null) { Destroy(_garrisonPanel); _garrisonPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _garrisonPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
         }
     }
 
