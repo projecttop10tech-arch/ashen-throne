@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.55.0] — 2026-03-12 (Ralph Loop Iteration 50: Build Queue Panel, Resource Fly Animation)
+
+### ADDED
+- **Enhanced build queue panel** — tapping the builder HUD now opens a rich panel with: title bar with slot count (used/total), per-slot building sprite thumbnails, "Name → Lv.X" tier labels, progress bars with green fill, countdown timers, "FREE" speed-up button (green, for <5min remaining) or gem speed-up button (purple), and alliance "Help" button (blue) that publishes `AllianceHelpRequestedEvent`. Empty slots shown with dashed border and "Slot N — Empty" label.
+- **`CreateFilledQueueSlot()` method** — builds a complete queue slot with sprite thumbnail, name, tier, progress bar, timer, speed-up and help buttons.
+- **`CreateEmptyQueueSlot()` method** — renders an inactive slot placeholder with dashed-style border.
+- **Resource collection bezier arc fly animation** — collected resource bubbles now fly in a smooth quadratic bezier arc toward the resource bar at the top of the screen instead of just floating upward. Animation uses ease-in-out timing, punch-then-shrink scale, and late-phase fade-out over 0.5 seconds. Target position varies by resource type (Stone→left, Iron→mid-left, Grain→mid-right, Arcane→right).
+
+### CHANGED
+- Build queue panel expanded from 0.40 to 0.48 width, 0.68 to 0.58 bottom anchor for more room
+- Auto-dismiss timer increased from 5s to 8s for richer queue panel
+- `ResourceCollectBubble.CollectDuration` increased from 0.3s to 0.5s for longer fly arc
+- Collect animation replaced: was scale-up + fade-up, now bezier arc + ease-in-out + punch-shrink
+
+---
+
 ## [0.54.0] — 2026-03-12 (Ralph Loop Iteration 49: Building Locks, Power HUD, Construction Dust)
 
 ### ADDED

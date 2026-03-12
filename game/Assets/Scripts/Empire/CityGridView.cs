@@ -5396,8 +5396,8 @@ namespace AshenThrone.Empire
             _buildQueuePanel.transform.SetAsLastSibling();
 
             var panelRect = _buildQueuePanel.AddComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.02f, 0.68f);
-            panelRect.anchorMax = new Vector2(0.40f, 0.87f);
+            panelRect.anchorMin = new Vector2(0.02f, 0.58f);
+            panelRect.anchorMax = new Vector2(0.48f, 0.87f);
             panelRect.offsetMin = Vector2.zero;
             panelRect.offsetMax = Vector2.zero;
 
@@ -5408,59 +5408,264 @@ namespace AshenThrone.Empire
             panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
             panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
-            // Title
-            AddInfoPanelText(_buildQueuePanel.transform, "QTitle", "BUILD QUEUE", 11, FontStyle.Bold,
+            // Title bar
+            var titleBar = new GameObject("TitleBar");
+            titleBar.transform.SetParent(_buildQueuePanel.transform, false);
+            var tbRect = titleBar.AddComponent<RectTransform>();
+            tbRect.anchorMin = new Vector2(0f, 0.88f);
+            tbRect.anchorMax = new Vector2(1f, 1f);
+            tbRect.offsetMin = Vector2.zero;
+            tbRect.offsetMax = Vector2.zero;
+            var tbBg = titleBar.AddComponent<Image>();
+            tbBg.color = new Color(0.12f, 0.08f, 0.20f, 0.95f);
+            tbBg.raycastTarget = false;
+
+            AddInfoPanelText(titleBar.transform, "QTitle", "\u2692 BUILD QUEUE", 11, FontStyle.Bold,
                 new Color(0.95f, 0.82f, 0.35f),
-                new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+                new Vector2(0.05f, 0f), new Vector2(0.70f, 1f), TextAnchor.MiddleLeft);
+
+            // Slot count
+            int totalSlots = 2;
+            AddInfoPanelText(titleBar.transform, "SlotCount", $"{bm.BuildQueue.Count}/{totalSlots}", 10, FontStyle.Bold,
+                new Color(0.70f, 0.90f, 0.70f),
+                new Vector2(0.75f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleRight);
 
             var queue = bm.BuildQueue;
             if (queue.Count == 0)
             {
-                AddInfoPanelText(_buildQueuePanel.transform, "Empty", "No upgrades in progress", 10, FontStyle.Normal,
-                    new Color(0.6f, 0.6f, 0.6f),
-                    new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
+                // Empty state with slot indicators
+                for (int s = 0; s < totalSlots; s++)
+                {
+                    float yTop = 0.82f - s * 0.42f;
+                    float yBot = yTop - 0.38f;
+                    CreateEmptyQueueSlot(_buildQueuePanel.transform, s + 1, yBot, yTop);
+                }
             }
             else
             {
-                float rowHeight = 0.35f;
-                for (int i = 0; i < queue.Count && i < 2; i++)
+                for (int i = 0; i < totalSlots; i++)
                 {
-                    var entry = queue[i];
-                    float yTop = 0.78f - i * (rowHeight + 0.03f);
-                    float yBot = yTop - rowHeight;
+                    float yTop = 0.82f - i * 0.42f;
+                    float yBot = yTop - 0.38f;
 
-                    // Find placement info for display name
-                    string displayName = entry.PlacedId;
-                    foreach (var p in _placements)
+                    if (i < queue.Count)
                     {
-                        if (p.InstanceId == entry.PlacedId)
-                        {
-                            displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
-                            break;
-                        }
+                        var entry = queue[i];
+                        CreateFilledQueueSlot(_buildQueuePanel.transform, entry, i, yBot, yTop);
                     }
-
-                    // Slot number + building name
-                    string slotLabel = $"[{i + 1}] {displayName} \u2192 Lv {entry.TargetTier}";
-                    AddInfoPanelText(_buildQueuePanel.transform, $"Slot{i}", slotLabel, 10, FontStyle.Bold,
-                        Color.white,
-                        new Vector2(0.05f, yBot + 0.15f), new Vector2(0.95f, yTop), TextAnchor.MiddleLeft);
-
-                    // Time remaining estimate
-                    string timeStr = FormatTimeRemaining(Mathf.RoundToInt(entry.RemainingSeconds));
-                    AddInfoPanelText(_buildQueuePanel.transform, $"Time{i}", timeStr, 9, FontStyle.Normal,
-                        new Color(0.80f, 0.75f, 0.60f),
-                        new Vector2(0.05f, yBot), new Vector2(0.95f, yBot + 0.15f), TextAnchor.MiddleLeft);
+                    else
+                    {
+                        CreateEmptyQueueSlot(_buildQueuePanel.transform, i + 1, yBot, yTop);
+                    }
                 }
             }
 
-            // Auto-dismiss after 5 seconds
+            // Auto-dismiss after 8 seconds (longer for richer panel)
             StartCoroutine(AutoDismissQueuePanel());
+        }
+
+        private void CreateEmptyQueueSlot(Transform parent, int slotNum, float yBot, float yTop)
+        {
+            var slot = new GameObject($"EmptySlot{slotNum}");
+            slot.transform.SetParent(parent, false);
+            var slotRect = slot.AddComponent<RectTransform>();
+            slotRect.anchorMin = new Vector2(0.03f, yBot);
+            slotRect.anchorMax = new Vector2(0.97f, yTop);
+            slotRect.offsetMin = Vector2.zero;
+            slotRect.offsetMax = Vector2.zero;
+
+            var slotBg = slot.AddComponent<Image>();
+            slotBg.color = new Color(0.10f, 0.08f, 0.16f, 0.6f);
+            slotBg.raycastTarget = false;
+
+            // Dashed border effect
+            var border = slot.AddComponent<Outline>();
+            border.effectColor = new Color(0.4f, 0.35f, 0.5f, 0.4f);
+            border.effectDistance = new Vector2(1f, -1f);
+
+            AddInfoPanelText(slot.transform, "Empty", $"Slot {slotNum} — Empty", 10, FontStyle.Normal,
+                new Color(0.5f, 0.5f, 0.55f),
+                new Vector2(0.05f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleCenter);
+        }
+
+        private void CreateFilledQueueSlot(Transform parent, BuildQueueEntry entry, int slotIndex, float yBot, float yTop)
+        {
+            var slot = new GameObject($"Slot{slotIndex}");
+            slot.transform.SetParent(parent, false);
+            var slotRect = slot.AddComponent<RectTransform>();
+            slotRect.anchorMin = new Vector2(0.03f, yBot);
+            slotRect.anchorMax = new Vector2(0.97f, yTop);
+            slotRect.offsetMin = Vector2.zero;
+            slotRect.offsetMax = Vector2.zero;
+
+            // Slot background — active slot glows slightly
+            var slotBg = slot.AddComponent<Image>();
+            slotBg.color = slotIndex == 0
+                ? new Color(0.12f, 0.10f, 0.22f, 0.85f)
+                : new Color(0.10f, 0.08f, 0.18f, 0.75f);
+            slotBg.raycastTarget = false;
+            var slotBorder = slot.AddComponent<Outline>();
+            slotBorder.effectColor = slotIndex == 0
+                ? new Color(0.85f, 0.65f, 0.20f, 0.6f)
+                : new Color(0.5f, 0.4f, 0.6f, 0.4f);
+            slotBorder.effectDistance = new Vector2(1f, -1f);
+
+            // Find placement info
+            string buildingId = "";
+            string displayName = entry.PlacedId;
+            int currentTier = entry.TargetTier - 1;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == entry.PlacedId)
+                {
+                    buildingId = p.BuildingId;
+                    displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
+                    currentTier = p.Tier;
+                    break;
+                }
+            }
+
+            // Building sprite thumbnail (left side)
+            var thumbGO = new GameObject("Thumb");
+            thumbGO.transform.SetParent(slot.transform, false);
+            var thumbRect = thumbGO.AddComponent<RectTransform>();
+            thumbRect.anchorMin = new Vector2(0.02f, 0.10f);
+            thumbRect.anchorMax = new Vector2(0.22f, 0.90f);
+            thumbRect.offsetMin = Vector2.zero;
+            thumbRect.offsetMax = Vector2.zero;
+            var thumbImg = thumbGO.AddComponent<Image>();
+            thumbImg.color = Color.white;
+            thumbImg.raycastTarget = false;
+            thumbImg.preserveAspect = true;
+            var sprite = LoadBuildingSprite(buildingId, entry.TargetTier);
+            if (sprite == null) sprite = LoadBuildingSprite(buildingId, currentTier);
+            if (sprite != null) thumbImg.sprite = sprite;
+            else thumbImg.color = new Color(0.3f, 0.25f, 0.4f, 0.5f);
+
+            // Building name + tier
+            AddInfoPanelText(slot.transform, "Name", $"{displayName}", 10, FontStyle.Bold,
+                Color.white,
+                new Vector2(0.25f, 0.60f), new Vector2(0.75f, 0.95f), TextAnchor.MiddleLeft);
+
+            AddInfoPanelText(slot.transform, "Tier", $"Lv {currentTier} \u2192 {entry.TargetTier}", 9, FontStyle.Normal,
+                new Color(0.80f, 0.75f, 0.55f),
+                new Vector2(0.25f, 0.38f), new Vector2(0.75f, 0.62f), TextAnchor.MiddleLeft);
+
+            // Progress bar
+            float totalTime = (float)(System.DateTime.Now - entry.StartTime).TotalSeconds + entry.RemainingSeconds;
+            float elapsed = totalTime - entry.RemainingSeconds;
+            float progress = totalTime > 0 ? Mathf.Clamp01(elapsed / totalTime) : 0f;
+
+            var barBg = new GameObject("BarBg");
+            barBg.transform.SetParent(slot.transform, false);
+            var barBgRect = barBg.AddComponent<RectTransform>();
+            barBgRect.anchorMin = new Vector2(0.25f, 0.12f);
+            barBgRect.anchorMax = new Vector2(0.75f, 0.28f);
+            barBgRect.offsetMin = Vector2.zero;
+            barBgRect.offsetMax = Vector2.zero;
+            var barBgImg = barBg.AddComponent<Image>();
+            barBgImg.color = new Color(0.15f, 0.12f, 0.20f);
+            barBgImg.raycastTarget = false;
+
+            var barFill = new GameObject("BarFill");
+            barFill.transform.SetParent(barBg.transform, false);
+            var fillRect = barFill.AddComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(progress, 1f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fillImg = barFill.AddComponent<Image>();
+            fillImg.color = new Color(0.20f, 0.75f, 0.35f);
+            fillImg.raycastTarget = false;
+
+            // Time remaining text
+            string timeStr = FormatTimeRemaining(Mathf.RoundToInt(entry.RemainingSeconds));
+            AddInfoPanelText(slot.transform, "Time", timeStr, 9, FontStyle.Bold,
+                new Color(0.90f, 0.85f, 0.65f),
+                new Vector2(0.25f, 0.00f), new Vector2(0.75f, 0.14f), TextAnchor.MiddleLeft);
+
+            // Right side buttons
+            bool canFreeSpeedup = entry.RemainingSeconds <= FreeSpeedUpThresholdSeconds;
+
+            // Speed Up / Free button
+            var btnGO = new GameObject("SpeedUpBtn");
+            btnGO.transform.SetParent(slot.transform, false);
+            var btnRect = btnGO.AddComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.76f, 0.45f);
+            btnRect.anchorMax = new Vector2(0.98f, 0.95f);
+            btnRect.offsetMin = Vector2.zero;
+            btnRect.offsetMax = Vector2.zero;
+            var btnBg = btnGO.AddComponent<Image>();
+            btnBg.color = canFreeSpeedup
+                ? new Color(0.15f, 0.70f, 0.30f, 0.9f)
+                : new Color(0.55f, 0.25f, 0.70f, 0.9f);
+            btnBg.raycastTarget = true;
+            var btn = btnGO.AddComponent<Button>();
+            btn.targetGraphic = btnBg;
+            string capPlacedId = entry.PlacedId;
+            btn.onClick.AddListener(() =>
+            {
+                if (canFreeSpeedup)
+                    ShowUpgradeBlockedToast("Free speed-up applied!");
+                else
+                    ShowUpgradeBlockedToast("Gems required for speed-up");
+            });
+
+            var btnLabel = new GameObject("Label");
+            btnLabel.transform.SetParent(btnGO.transform, false);
+            var blRect = btnLabel.AddComponent<RectTransform>();
+            blRect.anchorMin = Vector2.zero;
+            blRect.anchorMax = Vector2.one;
+            blRect.offsetMin = Vector2.zero;
+            blRect.offsetMax = Vector2.zero;
+            var blText = btnLabel.AddComponent<Text>();
+            blText.text = canFreeSpeedup ? "FREE" : "\u26a1";
+            blText.fontSize = canFreeSpeedup ? 9 : 12;
+            blText.fontStyle = FontStyle.Bold;
+            blText.alignment = TextAnchor.MiddleCenter;
+            blText.color = Color.white;
+            blText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            blText.raycastTarget = false;
+
+            // Help button (alliance help)
+            var helpGO = new GameObject("HelpBtn");
+            helpGO.transform.SetParent(slot.transform, false);
+            var helpRect = helpGO.AddComponent<RectTransform>();
+            helpRect.anchorMin = new Vector2(0.76f, 0.05f);
+            helpRect.anchorMax = new Vector2(0.98f, 0.42f);
+            helpRect.offsetMin = Vector2.zero;
+            helpRect.offsetMax = Vector2.zero;
+            var helpBg = helpGO.AddComponent<Image>();
+            helpBg.color = new Color(0.20f, 0.45f, 0.75f, 0.9f);
+            helpBg.raycastTarget = true;
+            var helpBtn = helpGO.AddComponent<Button>();
+            helpBtn.targetGraphic = helpBg;
+            helpBtn.onClick.AddListener(() =>
+            {
+                EventBus.Publish(new AllianceHelpRequestedEvent(capPlacedId));
+                ShowUpgradeBlockedToast("Help requested from alliance!");
+            });
+
+            var helpLabel = new GameObject("Label");
+            helpLabel.transform.SetParent(helpGO.transform, false);
+            var hlRect = helpLabel.AddComponent<RectTransform>();
+            hlRect.anchorMin = Vector2.zero;
+            hlRect.anchorMax = Vector2.one;
+            hlRect.offsetMin = Vector2.zero;
+            hlRect.offsetMax = Vector2.zero;
+            var hlText = helpLabel.AddComponent<Text>();
+            hlText.text = "Help";
+            hlText.fontSize = 9;
+            hlText.fontStyle = FontStyle.Bold;
+            hlText.alignment = TextAnchor.MiddleCenter;
+            hlText.color = Color.white;
+            hlText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            hlText.raycastTarget = false;
         }
 
         private IEnumerator AutoDismissQueuePanel()
         {
-            yield return new WaitForSeconds(5f);
+            yield return new WaitForSeconds(8f);
             if (_buildQueuePanel != null)
             {
                 Destroy(_buildQueuePanel);

@@ -25,7 +25,12 @@ namespace AshenThrone.Empire
         private Vector2 _basePosition;
         private bool _collecting;
         private float _collectTimer;
-        private const float CollectDuration = 0.3f;
+        private const float CollectDuration = 0.5f;
+
+        // Fly-to-bar animation
+        private Vector2 _flyStartPos;
+        private Vector2 _flyTargetPos;
+        private Vector2 _flyControlPoint; // Bezier control for arc
 
         // Pulse glow
         private float _pulsePhase;
@@ -95,13 +100,20 @@ namespace AshenThrone.Empire
                     return;
                 }
 
-                // Scale up and fade out
-                float scale = 1f + t * 0.5f;
-                transform.localScale = Vector3.one * scale;
-                _canvasGroup.alpha = 1f - t;
+                // P&C: Ease-in-out timing for smooth arc
+                float eased = t < 0.5f ? 2f * t * t : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
 
-                // Float upward
-                _rect.anchoredPosition = _basePosition + Vector2.up * (t * 40f);
+                // Quadratic bezier arc: start → control → target
+                Vector2 a = Vector2.Lerp(_flyStartPos, _flyControlPoint, eased);
+                Vector2 b = Vector2.Lerp(_flyControlPoint, _flyTargetPos, eased);
+                _rect.anchoredPosition = Vector2.Lerp(a, b, eased);
+
+                // Scale: punch up then shrink as it reaches the bar
+                float scale = t < 0.15f ? 1f + t * 3f : Mathf.Lerp(1.45f, 0.4f, (t - 0.15f) / 0.85f);
+                transform.localScale = Vector3.one * scale;
+
+                // Fade: stay visible during flight, fade at end
+                _canvasGroup.alpha = t < 0.7f ? 1f : 1f - (t - 0.7f) / 0.3f;
                 return;
             }
 
@@ -141,11 +153,49 @@ namespace AshenThrone.Empire
             // P&C-style: quick punch scale on collect
             transform.localScale = Vector3.one * 1.4f;
 
+            // Set up fly-to-bar bezier arc
+            _flyStartPos = _rect.anchoredPosition;
+
+            // Target: resource bar at top of screen (approximate anchored position)
+            // Resource bar icons are at ~95% Y, spread across top: Stone(10%), Iron(30%), Grain(50%), Arcane(70%)
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                var canvasRect = canvas.GetComponent<RectTransform>();
+                float canvasH = canvasRect != null ? canvasRect.rect.height : 1920f;
+                float canvasW = canvasRect != null ? canvasRect.rect.width : 1080f;
+
+                float targetX = ResourceType switch
+                {
+                    ResourceType.Stone => canvasW * 0.08f,
+                    ResourceType.Iron => canvasW * 0.28f,
+                    ResourceType.Grain => canvasW * 0.48f,
+                    ResourceType.ArcaneEssence => canvasW * 0.68f,
+                    _ => canvasW * 0.5f,
+                };
+                float targetY = canvasH * 0.45f; // resource bar Y in anchored space
+
+                // Convert to local space if needed
+                _flyTargetPos = new Vector2(
+                    targetX - _flyStartPos.x + (_flyStartPos.x - canvasW * 0.5f) * 0.3f,
+                    targetY
+                );
+            }
+            else
+            {
+                _flyTargetPos = _flyStartPos + new Vector2(0f, 400f);
+            }
+
+            // Bezier control point: arc upward and slightly toward center
+            float midX = (_flyStartPos.x + _flyTargetPos.x) * 0.5f;
+            float peakY = Mathf.Max(_flyStartPos.y, _flyTargetPos.y) + 120f;
+            _flyControlPoint = new Vector2(midX, peakY);
+
             // Actually add the resources
             if (ServiceLocator.TryGet<ResourceManager>(out var rm))
                 rm.AddResource(ResourceType, Amount);
 
-            // Publish event for UI feedback (triggers burst fly animation)
+            // Publish event for UI feedback
             EventBus.Publish(new ResourceCollectedEvent(ResourceType, Amount, BuildingInstanceId));
         }
 
