@@ -16,11 +16,20 @@ namespace AshenThrone.Empire
         [SerializeField] private CityGridView cityGrid;
         [SerializeField] private RectTransform bubbleContainer;
 
-        private const float SpawnInterval = 20f;     // seconds between bubble spawns
+        public const float SpawnInterval = 20f;     // seconds between bubble spawns
         private const int MaxBubblesPerBuilding = 1;  // keep it clean — one per building
         private const long BaseCollectAmount = 50;    // base amount per bubble
 
         private float _spawnTimer;
+
+        /// <summary>Seconds until next bubble spawn wave.</summary>
+        public float SecondsUntilNextSpawn => Mathf.Max(0f, SpawnInterval - _spawnTimer);
+
+        /// <summary>Whether a specific building already has max bubbles (no new one will spawn).</summary>
+        public bool HasMaxBubbles(string instanceId)
+        {
+            return _activeBubbles.TryGetValue(instanceId, out var bubbles) && bubbles.Count >= MaxBubblesPerBuilding;
+        }
         private readonly Dictionary<string, List<ResourceCollectBubble>> _activeBubbles = new();
 
         // Which building types produce which resource

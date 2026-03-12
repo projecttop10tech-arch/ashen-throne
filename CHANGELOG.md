@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.61.0] — 2026-03-12 (Ralph Loop Iteration 56: Resource Countdown Timers, Building Count in Info Panel)
+
+### ADDED
+- **Auto-collect countdown timer on resource buildings** — each resource-producing building (grain farm, iron mine, stone quarry, arcane tower) now shows a small green-bordered timer label with seconds until the next collectible bubble spawns (e.g., "⏱ 12s"). When the building already has a bubble ready, the label switches to golden "⬆ Collect!" text. Updated every second via `UpdateResourceCountdownTimers()` coroutine.
+- **`CreateCollectCountdownLabel()` method** — creates the timer label GO on each resource building during visual setup.
+- **`ResourceBubbleSpawner.SecondsUntilNextSpawn` property** — exposes the time remaining until the next spawn wave for external UI consumption.
+- **`ResourceBubbleSpawner.HasMaxBubbles()` method** — checks whether a specific building instance already has the maximum number of uncollected bubbles.
+- **Building count/limit display in info panel** — for building types that allow multiples (e.g., grain farms 5 max, barracks 2 max), the info panel stats section now shows "Owned: 3/5" with red text when at max capacity, gray-blue otherwise.
+
+### CHANGED
+- `ResourceBubbleSpawner.SpawnInterval` changed from `private const` to `public const` to support external countdown display.
+
+---
+
 ## [0.60.0] — 2026-03-12 (Ralph Loop Iteration 55: Info Panel Upgrade-In-Progress, Prerequisite Display)
 
 ### ADDED

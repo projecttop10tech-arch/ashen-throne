@@ -241,9 +241,10 @@ namespace AshenThrone.Empire
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
             CreateBuilderCountHUD();
-            // P&C: Ambient tint and mini-map
+            // P&C: Ambient tint, mini-map, and resource countdown timers
             CreateAmbientTintOverlay();
             CreateMiniMap();
+            StartCoroutine(UpdateResourceCountdownTimers());
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
             // P&C: Show "Welcome back" offline earnings banner
@@ -1020,6 +1021,9 @@ namespace AshenThrone.Empire
             // P&C-style production rate label on resource buildings
             CreateProductionLabel(go, placement.BuildingId, placement.Tier);
 
+            // P&C: Auto-collect countdown timer on resource buildings
+            CreateCollectCountdownLabel(go, placement.BuildingId);
+
             // P&C: Garrison display on military buildings
             CreateGarrisonLabel(go, placement.BuildingId, placement.Tier);
 
@@ -1383,6 +1387,87 @@ namespace AshenThrone.Empire
             var shadow = textGO.AddComponent<Shadow>();
             shadow.effectColor = new Color(0, 0, 0, 0.9f);
             shadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        /// <summary>P&C: Countdown timer label showing seconds until next collectible bubble.</summary>
+        private void CreateCollectCountdownLabel(GameObject parent, string buildingId)
+        {
+            if (!ResourceBuildingTypes.ContainsKey(buildingId)) return;
+
+            var labelGO = new GameObject("CollectTimer");
+            labelGO.transform.SetParent(parent.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0.40f, 0.85f);
+            labelRect.anchorMax = new Vector2(1.05f, 1.02f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            var bgImg = labelGO.AddComponent<Image>();
+            bgImg.color = new Color(0.04f, 0.08f, 0.04f, 0.75f);
+            bgImg.raycastTarget = false;
+            var outline = labelGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.30f, 0.70f, 0.35f, 0.50f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var textGO = new GameObject("TimerText");
+            textGO.transform.SetParent(labelGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = "";
+            text.fontSize = 8;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.60f, 0.90f, 0.55f);
+            text.fontStyle = FontStyle.Bold;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        /// <summary>P&C: Periodically update countdown timer labels on all resource buildings.</summary>
+        private IEnumerator UpdateResourceCountdownTimers()
+        {
+            var wait = new WaitForSeconds(1f);
+            while (true)
+            {
+                var spawner = FindObjectOfType<ResourceBubbleSpawner>();
+                if (spawner != null)
+                {
+                    float secondsLeft = spawner.SecondsUntilNextSpawn;
+                    foreach (var placement in _placements)
+                    {
+                        if (placement.VisualGO == null) continue;
+                        if (!ResourceBuildingTypes.ContainsKey(placement.BuildingId)) continue;
+
+                        var timerGO = placement.VisualGO.transform.Find("CollectTimer");
+                        if (timerGO == null) continue;
+
+                        var textComp = timerGO.GetComponentInChildren<Text>();
+                        if (textComp == null) continue;
+
+                        bool hasBubble = spawner.HasMaxBubbles(placement.InstanceId);
+                        if (hasBubble)
+                        {
+                            textComp.text = "\u2B06 Collect!";
+                            textComp.color = new Color(0.95f, 0.85f, 0.30f);
+                            timerGO.GetComponent<Image>().color = new Color(0.10f, 0.08f, 0.02f, 0.80f);
+                        }
+                        else
+                        {
+                            int secs = Mathf.RoundToInt(secondsLeft);
+                            textComp.text = $"\u23F1 {secs}s";
+                            textComp.color = new Color(0.60f, 0.90f, 0.55f);
+                            timerGO.GetComponent<Image>().color = new Color(0.04f, 0.08f, 0.04f, 0.75f);
+                        }
+                    }
+                }
+                yield return wait;
+            }
         }
 
         /// <summary>P&C: Garrison troop count label on military buildings.</summary>
@@ -3844,6 +3929,18 @@ namespace AshenThrone.Empire
             AddInfoPanelText(panel.transform, "StatsHeader", "STATS", 12, FontStyle.Bold,
                 new Color(0.70f, 0.85f, 1f),
                 new Vector2(0.05f, statsY - 0.02f), new Vector2(0.50f, statsY + 0.04f), TextAnchor.MiddleLeft);
+
+            // P&C: Building count/limit (e.g., "3/5 Farms")
+            if (MaxBuildingCountPerType.TryGetValue(buildingId, out int maxAllowed) && maxAllowed > 1)
+            {
+                int ownedCount = 0;
+                foreach (var p in _placements) { if (p.BuildingId == buildingId) ownedCount++; }
+                Color countColor = ownedCount >= maxAllowed
+                    ? new Color(0.85f, 0.45f, 0.35f) : new Color(0.75f, 0.80f, 0.85f);
+                AddInfoPanelText(panel.transform, "BuildCount",
+                    $"Owned: {ownedCount}/{maxAllowed}", 10, FontStyle.Normal, countColor,
+                    new Vector2(0.55f, statsY - 0.02f), new Vector2(0.95f, statsY + 0.04f), TextAnchor.MiddleRight);
+            }
 
             // Resource production info (if applicable) — P&C-style hourly + daily forecast
             if (ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo))
