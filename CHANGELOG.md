@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.63.0] — 2026-03-12 (Ralph Loop Iteration 58: Weather Particles, Active Boost Badge)
+
+### ADDED
+- **Weather particle overlay** — ambient weather particles fall across the city screen based on time of day. Night: soft blue snow sparkles using radial gradient. Dawn/dusk: warm orange ember particles with wide drift. Daytime: subtle blue rain streaks falling fast. Max 25 particles at once, each with sinusoidal drift, fade-out lifecycle, and automatic off-screen cleanup. Created via `CreateWeatherOverlay()` + `AnimateWeatherParticles()` coroutine.
+- **`AnimateWeatherParticle()` coroutine** — per-particle lifecycle with configurable fall speed, drift amplitude, fade timing. 3-6 second random lifespan.
+- **Active VIP boost badge on upgrading buildings** — buildings in the upgrade queue now show a pulsing blue "⚡ VIP +10%" badge near their progress bar. Badge pulses between bright and dim blue at 3Hz via `PulseActiveBoostBadge()` coroutine. Automatically removed when upgrade completes alongside scaffolding and dust cleanup.
+- **`AddActiveBoostBadge()` / `RemoveActiveBoostBadge()` / `PulseActiveBoostBadge()` methods** — lifecycle management for the upgrade speed boost visual indicator.
+
+### CHANGED
+- `RefreshUpgradeIndicators()` now also calls `AddActiveBoostBadge()` for buildings in the build queue.
+- Upgrade completion handler (`OnUpgradeCompletedSfx`) now calls `RemoveActiveBoostBadge()` alongside scaffolding/dust removal.
+
+---
+
 ## [0.62.0] — 2026-03-12 (Ralph Loop Iteration 57: Zoom Indicator, Building Unlock Previews)
 
 ### ADDED

@@ -247,8 +247,9 @@ namespace AshenThrone.Empire
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
             CreateBuilderCountHUD();
-            // P&C: Ambient tint, mini-map, and resource countdown timers
+            // P&C: Ambient tint, weather, mini-map, and resource countdown timers
             CreateAmbientTintOverlay();
+            CreateWeatherOverlay();
             CreateMiniMap();
             StartCoroutine(UpdateResourceCountdownTimers());
             // P&C: Show greyed-out building unlock previews for next SH level
@@ -2571,6 +2572,7 @@ namespace AshenThrone.Empire
                     RemoveUpgradeIndicator(p.VisualGO);
                     RemoveScaffoldingOverlay(p.VisualGO);
                     RemoveConstructionDustEffect(p.VisualGO);
+                    RemoveActiveBoostBadge(p.VisualGO);
 
                     // P&C: Update tier on placement data
                     p.Tier = evt.NewTier;
@@ -3211,6 +3213,7 @@ namespace AshenThrone.Empire
                         CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds), entry.PlacedId);
                         AddScaffoldingOverlay(p.VisualGO);
                         AddConstructionDustEffect(p.VisualGO);
+                        AddActiveBoostBadge(p.VisualGO);
                         break;
                     }
                 }
@@ -7894,6 +7897,149 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Weather particle overlay
+        // ====================================================================
+
+        private GameObject _weatherOverlay;
+
+        /// <summary>
+        /// P&C: Ambient weather particle overlay. Spawns falling particles (rain/snow/dust)
+        /// based on time of day. Night = snow sparkles, dusk = embers/dust, rain at random.
+        /// </summary>
+        private void CreateWeatherOverlay()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _weatherOverlay = new GameObject("WeatherOverlay");
+            _weatherOverlay.transform.SetParent(canvas.transform, false);
+            _weatherOverlay.transform.SetSiblingIndex(2); // Above ambient tint, below UI
+
+            var rect = _weatherOverlay.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var cg = _weatherOverlay.AddComponent<CanvasGroup>();
+            cg.alpha = 1f;
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+
+            StartCoroutine(AnimateWeatherParticles());
+        }
+
+        private IEnumerator AnimateWeatherParticles()
+        {
+            var wait = new WaitForSeconds(0.12f);
+            int hour = System.DateTime.Now.Hour;
+            // Weather type based on time — deterministic per session
+            // Night: snow sparkles, dusk/dawn: floating embers, day: occasional rain
+            bool isNight = hour < 5 || hour >= 20;
+            bool isDusk = hour >= 18 && hour < 20;
+            bool isDawn = hour >= 5 && hour < 7;
+
+            Color particleColor;
+            float particleAlpha;
+            float fallSpeed;
+            float drift;
+
+            if (isNight)
+            {
+                particleColor = new Color(0.70f, 0.75f, 1f);
+                particleAlpha = 0.40f;
+                fallSpeed = 30f;
+                drift = 15f;
+            }
+            else if (isDusk || isDawn)
+            {
+                particleColor = new Color(1f, 0.65f, 0.25f);
+                particleAlpha = 0.35f;
+                fallSpeed = 20f;
+                drift = 25f;
+            }
+            else
+            {
+                // Day: subtle rain
+                particleColor = new Color(0.60f, 0.70f, 0.85f);
+                particleAlpha = 0.20f;
+                fallSpeed = 120f;
+                drift = 5f;
+            }
+
+            while (_weatherOverlay != null)
+            {
+                // Spawn a particle
+                if (_weatherOverlay.transform.childCount < 25) // Max particles
+                {
+                    var p = new GameObject("WP");
+                    p.transform.SetParent(_weatherOverlay.transform, false);
+                    var pRect = p.AddComponent<RectTransform>();
+                    float startX = Random.Range(0f, 1f);
+                    pRect.anchorMin = new Vector2(startX, 1.02f);
+                    pRect.anchorMax = new Vector2(startX + 0.005f, 1.04f);
+                    pRect.offsetMin = Vector2.zero;
+                    pRect.offsetMax = Vector2.zero;
+
+                    var pImg = p.AddComponent<Image>();
+                    pImg.color = new Color(particleColor.r, particleColor.g, particleColor.b, particleAlpha);
+                    pImg.raycastTarget = false;
+
+                    // Load radial gradient for soft look
+                    var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                    #if UNITY_EDITOR
+                    if (spr == null)
+                        spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+                    #endif
+                    if (spr != null && isNight) pImg.sprite = spr; // Snow uses soft dot
+
+                    StartCoroutine(AnimateWeatherParticle(p, pRect, fallSpeed, drift, particleAlpha));
+                }
+
+                yield return wait;
+            }
+        }
+
+        private IEnumerator AnimateWeatherParticle(GameObject p, RectTransform rect, float speed, float driftAmt, float alpha)
+        {
+            float life = 0f;
+            float maxLife = Random.Range(3f, 6f);
+            float driftPhase = Random.Range(0f, Mathf.PI * 2f);
+            float driftFreq = Random.Range(0.5f, 1.5f);
+
+            while (p != null && life < maxLife)
+            {
+                life += Time.deltaTime;
+
+                // Move down
+                float yDelta = speed * Time.deltaTime / 1920f; // Normalized to screen height
+                float xDrift = Mathf.Sin(life * driftFreq + driftPhase) * driftAmt * Time.deltaTime / 1080f;
+
+                rect.anchorMin += new Vector2(xDrift, -yDelta);
+                rect.anchorMax += new Vector2(xDrift, -yDelta);
+
+                // Fade at end of life
+                float fadeStart = maxLife * 0.7f;
+                if (life > fadeStart)
+                {
+                    var img = p.GetComponent<Image>();
+                    if (img != null)
+                    {
+                        float fadeT = (life - fadeStart) / (maxLife - fadeStart);
+                        img.color = new Color(img.color.r, img.color.g, img.color.b, alpha * (1f - fadeT));
+                    }
+                }
+
+                // Off screen — destroy early
+                if (rect.anchorMin.y < -0.05f) break;
+
+                yield return null;
+            }
+
+            if (p != null) Destroy(p);
+        }
+
+        // ====================================================================
         // P&C: Mini-map overview indicator
         // ====================================================================
 
@@ -8008,6 +8154,75 @@ namespace AshenThrone.Empire
         // ====================================================================
         // P&C: VIP boost indicator on boosted buildings
         // ====================================================================
+
+        /// <summary>
+        /// P&C: Active boost badge on upgrading buildings — shows VIP speed boost
+        /// with a pulse glow effect to indicate the boost is actively reducing build time.
+        /// </summary>
+        private void AddActiveBoostBadge(GameObject building)
+        {
+            if (building == null) return;
+            // Don't duplicate
+            if (building.transform.Find("ActiveBoost") != null) return;
+
+            var badge = new GameObject("ActiveBoost");
+            badge.transform.SetParent(building.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.65f, 0.68f);
+            rect.anchorMax = new Vector2(1.05f, 0.82f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.15f, 0.50f, 0.75f, 0.88f);
+            bg.raycastTarget = false;
+            var border = badge.AddComponent<Outline>();
+            border.effectColor = new Color(0.40f, 0.75f, 1f, 0.70f);
+            border.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = "\u26A1 VIP +10%";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.4f, -0.4f);
+
+            StartCoroutine(PulseActiveBoostBadge(badge));
+        }
+
+        private IEnumerator PulseActiveBoostBadge(GameObject badge)
+        {
+            while (badge != null)
+            {
+                var bg = badge.GetComponent<Image>();
+                if (bg != null)
+                {
+                    float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * 3f);
+                    bg.color = new Color(0.15f, 0.50f * pulse, 0.75f * pulse, 0.88f);
+                }
+                yield return null;
+            }
+        }
+
+        private void RemoveActiveBoostBadge(GameObject building)
+        {
+            if (building == null) return;
+            var existing = building.transform.Find("ActiveBoost");
+            if (existing != null) Destroy(existing.gameObject);
+        }
 
         private void AddVIPBoostIndicator(GameObject building, string buildingId)
         {
