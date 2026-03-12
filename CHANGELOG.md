@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.69.0] — 2026-03-12 (Ralph Loop Iteration 64: Resource Ticker, Troop Training)
+
+### ADDED
+- **Resource income ticker bar** — P&C-style scrolling horizontal bar below the resource HUD showing live production rates for all resource types, total power, and building count. Text scrolls left continuously at 30px/s with seamless looping. Masked with `RectMask2D` to clip at edges. Semi-transparent dark background.
+- **`CreateResourceIncomeTicker()` method** — builds ticker content from all resource-producing buildings' rates and empire stats.
+- **`ScrollTicker()` coroutine** — continuous left-scrolling animation with seamless loop reset at 500px offset.
+- **Troop training panel** — tapping "Train Troops" button on barracks or training_ground info panels opens a dedicated training interface. Shows available troop tiers (T1/T2/T3 based on building level), each with batch size, power gain, training time, and resource cost. Each tier has a red "TRAIN" button that queues the batch and shows a confirmation toast.
+- **`ShowTroopTrainingPanel()` method** — full training panel with tier rows, stats, costs, and train buttons.
+- **Train Troops button in Overview tab** — barracks and training_ground info panels now show a red "Train Infantry/Specialists" button that opens the training panel.
+- Troop types: Barracks trains Infantry (Recruits→Soldiers→Veterans), Training Ground trains Specialists (Scouts→Rangers→Elites).
+
+### CHANGED
+- Overview tab for military buildings now includes a "Train Troops" shortcut button alongside the power contribution display.
+
+---
+
 ## [0.68.0] — 2026-03-12 (Ralph Loop Iteration 63: Category Filter, Upgrade Advisor)
 
 ### ADDED

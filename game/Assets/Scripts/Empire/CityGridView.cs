@@ -258,6 +258,7 @@ namespace AshenThrone.Empire
             StartCoroutine(UpdateResourceCountdownTimers());
             // P&C: Show greyed-out building unlock previews for next SH level
             CreateBuildingUnlockPreviews();
+            CreateResourceIncomeTicker();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
             // P&C: Show "Welcome back" offline earnings banner
@@ -4492,6 +4493,42 @@ namespace AshenThrone.Empire
                     new Vector2(0.05f, 0.20f), new Vector2(0.50f, 0.27f), TextAnchor.MiddleLeft);
             }
 
+            // P&C: Troop training quick-start for military buildings
+            if (buildingId == "barracks" || buildingId == "training_ground")
+            {
+                int troopCap = buildingId == "barracks" ? (tier + 1) * 500 : (tier + 1) * 300;
+                string troopType = buildingId == "barracks" ? "Infantry" : "Specialists";
+                int trainTime = buildingId == "barracks" ? 30 * (tier + 1) : 45 * (tier + 1);
+                string timeStr = FormatTimeRemaining(trainTime);
+
+                var trainGO = new GameObject("TrainBtn");
+                trainGO.transform.SetParent(panel.transform, false);
+                var trainRect = trainGO.AddComponent<RectTransform>();
+                trainRect.anchorMin = new Vector2(0.50f, 0.20f);
+                trainRect.anchorMax = new Vector2(0.95f, 0.27f);
+                trainRect.offsetMin = Vector2.zero;
+                trainRect.offsetMax = Vector2.zero;
+                var trainBg = trainGO.AddComponent<Image>();
+                trainBg.color = new Color(0.55f, 0.18f, 0.15f, 0.90f);
+                trainBg.raycastTarget = true;
+                var trainOutline = trainGO.AddComponent<Outline>();
+                trainOutline.effectColor = new Color(0.90f, 0.40f, 0.30f, 0.6f);
+                trainOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var trainBtn = trainGO.AddComponent<Button>();
+                trainBtn.targetGraphic = trainBg;
+                string capInstId = instanceId;
+                string capBldId = buildingId;
+                int capTierLocal = tier;
+                trainBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowTroopTrainingPanel(capInstId, capBldId, capTierLocal);
+                });
+                AddInfoPanelText(trainGO.transform, "Label",
+                    $"\u2694 Train {troopType}", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
             // P&C: Stronghold — show what unlocks at next level
             if (buildingId == "stronghold" && tier < 3)
             {
@@ -7758,6 +7795,159 @@ namespace AshenThrone.Empire
         }
 
         // ====================================================================
+        // P&C: Troop Training Panel
+        // ====================================================================
+
+        private GameObject _troopTrainingPanel;
+
+        private void ShowTroopTrainingPanel(string instanceId, string buildingId, int tier)
+        {
+            if (_troopTrainingPanel != null) { Destroy(_troopTrainingPanel); _troopTrainingPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _troopTrainingPanel = new GameObject("TroopTrainingPanel");
+            _troopTrainingPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _troopTrainingPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _troopTrainingPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _troopTrainingPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_troopTrainingPanel != null) { Destroy(_troopTrainingPanel); _troopTrainingPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_troopTrainingPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.25f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.75f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.90f, 0.35f, 0.25f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string bName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            bool isBarracks = buildingId == "barracks";
+            string troopType = isBarracks ? "Infantry" : "Specialists";
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", $"\u2694 {bName} — Train {troopType}", 15, FontStyle.Bold,
+                new Color(0.95f, 0.40f, 0.30f),
+                new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            // Troop tiers (T1, T2, T3 based on building tier)
+            float y = 0.78f;
+            for (int t = 1; t <= tier; t++)
+            {
+                string tierName = t switch
+                {
+                    1 => isBarracks ? "Recruits" : "Scouts",
+                    2 => isBarracks ? "Soldiers" : "Rangers",
+                    3 => isBarracks ? "Veterans" : "Elites",
+                    _ => "Troops"
+                };
+                int batchSize = isBarracks ? 100 * t : 50 * t;
+                int trainSec = isBarracks ? 30 * t : 45 * t;
+                int grainCost = 50 * t;
+                int ironCost = isBarracks ? 30 * t : 20 * t;
+                int power = isBarracks ? 10 * t : 15 * t;
+
+                string timeStr = FormatTimeRemaining(trainSec);
+
+                // Tier row background
+                var rowGO = new GameObject($"TroopTier{t}");
+                rowGO.transform.SetParent(panel.transform, false);
+                var rowRect = rowGO.AddComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.05f, y - 0.18f);
+                rowRect.anchorMax = new Vector2(0.95f, y);
+                rowRect.offsetMin = Vector2.zero;
+                rowRect.offsetMax = Vector2.zero;
+                var rowBg = rowGO.AddComponent<Image>();
+                rowBg.color = new Color(0.12f, 0.08f, 0.16f, 0.80f);
+                rowBg.raycastTarget = false;
+                var rowOutline = rowGO.AddComponent<Outline>();
+                rowOutline.effectColor = new Color(0.60f, 0.40f, 0.30f, 0.3f);
+                rowOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+                // Tier name + stats
+                AddInfoPanelText(rowGO.transform, "Name", $"T{t} {tierName}", 12, FontStyle.Bold,
+                    new Color(0.95f, 0.80f, 0.35f),
+                    new Vector2(0.03f, 0.55f), new Vector2(0.50f, 0.95f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(rowGO.transform, "Stats",
+                    $"x{batchSize}  |  \u2694+{power * batchSize}  |  \u23F1{timeStr}",
+                    9, FontStyle.Normal, new Color(0.75f, 0.72f, 0.68f),
+                    new Vector2(0.03f, 0.10f), new Vector2(0.60f, 0.50f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(rowGO.transform, "Cost",
+                    $"Cost: {grainCost} Grain, {ironCost} Iron", 8, FontStyle.Normal,
+                    new Color(0.65f, 0.62f, 0.58f),
+                    new Vector2(0.55f, 0.10f), new Vector2(0.95f, 0.50f), TextAnchor.MiddleRight);
+
+                // Train button
+                var trainBtnGO = new GameObject("TrainBtn");
+                trainBtnGO.transform.SetParent(rowGO.transform, false);
+                var trainBtnRect = trainBtnGO.AddComponent<RectTransform>();
+                trainBtnRect.anchorMin = new Vector2(0.65f, 0.55f);
+                trainBtnRect.anchorMax = new Vector2(0.97f, 0.95f);
+                trainBtnRect.offsetMin = Vector2.zero;
+                trainBtnRect.offsetMax = Vector2.zero;
+                var trainBtnBg = trainBtnGO.AddComponent<Image>();
+                trainBtnBg.color = new Color(0.55f, 0.18f, 0.15f, 0.92f);
+                trainBtnBg.raycastTarget = true;
+                var trainBtnOutln = trainBtnGO.AddComponent<Outline>();
+                trainBtnOutln.effectColor = new Color(0.90f, 0.45f, 0.35f, 0.5f);
+                trainBtnOutln.effectDistance = new Vector2(0.4f, -0.4f);
+                var trainBtnComp = trainBtnGO.AddComponent<Button>();
+                trainBtnComp.targetGraphic = trainBtnBg;
+                int capBatch = batchSize;
+                int capTierNum = t;
+                trainBtnComp.onClick.AddListener(() =>
+                {
+                    Debug.Log($"[TroopTraining] Queued {capBatch} T{capTierNum} {troopType} from {bName}.");
+                    if (_troopTrainingPanel != null) { Destroy(_troopTrainingPanel); _troopTrainingPanel = null; }
+                    ShowUpgradeBlockedToast($"\u2694 Training {capBatch} T{capTierNum} {troopType}...");
+                });
+                AddInfoPanelText(trainBtnGO.transform, "Label", "TRAIN", 9, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                y -= 0.22f;
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_troopTrainingPanel != null) { Destroy(_troopTrainingPanel); _troopTrainingPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _troopTrainingPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
         // P&C: Construction scaffolding overlay
         // ====================================================================
 
@@ -9409,6 +9599,98 @@ namespace AshenThrone.Empire
         // ====================================================================
         // P&C: Mini-map overview indicator
         // ====================================================================
+
+        // ====================================================================
+        // P&C: Resource Income Ticker (scrolling bar below resource HUD)
+        // ====================================================================
+
+        private GameObject _resourceTicker;
+
+        private void CreateResourceIncomeTicker()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _resourceTicker = new GameObject("ResourceTicker");
+            _resourceTicker.transform.SetParent(canvas.transform, false);
+            var rect = _resourceTicker.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0.905f);
+            rect.anchorMax = new Vector2(1f, 0.93f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Subtle dark bg
+            var bg = _resourceTicker.AddComponent<Image>();
+            bg.color = new Color(0.04f, 0.03f, 0.08f, 0.70f);
+            bg.raycastTarget = false;
+
+            // Mask to clip scrolling text
+            var mask = _resourceTicker.AddComponent<RectMask2D>();
+
+            // Build ticker text content
+            var tickerParts = new List<string>();
+            int totalHr = 0;
+            foreach (var resKvp in ResourceBuildingTypes)
+            {
+                int typeRate = 0;
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId == resKvp.Key)
+                        typeRate += (p.Tier + 1) * 250;
+                }
+                if (typeRate > 0)
+                {
+                    string rateStr = typeRate >= 1000 ? $"{typeRate / 1000f:F1}K" : $"{typeRate}";
+                    tickerParts.Add($"+{rateStr} {resKvp.Value.Name}/hr");
+                    totalHr += typeRate;
+                }
+            }
+            int totalPower = 0;
+            foreach (var p in _placements)
+                totalPower += GetBuildingPowerContribution(p.BuildingId, p.Tier);
+            string powerStr = totalPower >= 1000 ? $"{totalPower / 1000f:F1}K" : $"{totalPower}";
+            tickerParts.Add($"\u2694 {powerStr} Power");
+            tickerParts.Add($"\u2B50 {_placements.Count} Buildings");
+
+            string tickerContent = "    " + string.Join("   \u2022   ", tickerParts) + "   \u2022   ";
+            // Duplicate for seamless loop
+            string fullTicker = tickerContent + tickerContent;
+
+            var textGO = new GameObject("TickerText");
+            textGO.transform.SetParent(_resourceTicker.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = fullTicker;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Normal;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.color = new Color(0.70f, 0.68f, 0.62f, 0.85f);
+            text.raycastTarget = false;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+
+            StartCoroutine(ScrollTicker(textRect));
+        }
+
+        private IEnumerator ScrollTicker(RectTransform textRect)
+        {
+            float scrollSpeed = 30f; // pixels per second
+            float offset = 0f;
+            while (textRect != null)
+            {
+                offset -= scrollSpeed * Time.deltaTime;
+                // Reset when we've scrolled half the content (seamless loop)
+                if (offset < -500f) offset += 500f;
+                textRect.anchoredPosition = new Vector2(offset, 0f);
+                yield return null;
+            }
+        }
 
         private GameObject _miniMapPanel;
         private readonly List<Image> _miniMapDots = new();
