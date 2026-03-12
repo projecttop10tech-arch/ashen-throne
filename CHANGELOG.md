@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.52.0] — 2026-03-12 (Ralph Loop Iteration 47: Notification Badges, Build Selector Hints)
+
+### ADDED
+- **Event notification badges on buildings** — red dot badges appear on buildings with pending actions: resource buildings show "!" when vault is >90% capacity, academy/laboratory show "?" when no research is active, barracks/training show "⚔" when troops are ready (simulated cycle), marketplace shows "$" when trade is available. Badges refresh every 2.5s (periodic refresh cycle) and hide/show based on zoom level (medium+ zoom).
+- **Build selector production hints** — each building button in the placement selector now shows a green hint label at the top: resource buildings show "+250/hr", military shows troop capacity, defense shows "+DEF"/"+ATK", research shows "Research"/"Tech", social shows "Trade"/"Rally"/"Diplomacy".
+- **`RefreshNotificationBadge()` method** — creates/shows/hides notification dots based on building type and game state. Checks ResourceManager vault ratios and ResearchManager queue status.
+- **`RefreshAllNotificationBadges()` method** — refreshes all building notification badges in periodic update loop.
+- **`GetBuildingSelectorHint()` helper** — returns short production/function hint string for build selector buttons.
+
+### CHANGED
+- Building creation pipeline now calls `RefreshNotificationBadge()` after alliance flag creation
+- Periodic refresh block now includes `RefreshAllNotificationBadges()`
+- Notification dots added to zoom detail visibility system (medium+ zoom threshold)
+
+---
+
 ## [0.51.0] — 2026-03-12 (Ralph Loop Iteration 46: Placement Ghost Glow, Alliance Flags)
 
 ### ADDED

@@ -451,6 +451,7 @@ namespace AshenThrone.Empire
                 UpdateBuilderCountHUD();
                 RefreshResourceCapWarnings();
                 RefreshStrongholdUpgradeBanner();
+                RefreshAllNotificationBadges();
             }
 
             // P&C: Pulse selection ring glow
@@ -616,6 +617,10 @@ namespace AshenThrone.Empire
                 // P&C: Alliance flag — close zoom only
                 var allianceFlag = t.Find("AllianceFlag");
                 if (allianceFlag != null) allianceFlag.gameObject.SetActive(showClose);
+
+                // P&C: Notification dot — medium+ zoom (important alerts)
+                var notifDot = t.Find("NotifDot");
+                if (notifDot != null) notifDot.gameObject.SetActive(showMedium);
             }
 
             // Builder HUD + Collect All button: always visible (screen-space UI)
@@ -988,6 +993,9 @@ namespace AshenThrone.Empire
 
             // P&C: Alliance territory flag on military/defense buildings
             CreateAllianceFlag(go, placement.BuildingId);
+
+            // P&C: Event notification badges (red dot for pending actions)
+            RefreshNotificationBadge(go, placement);
 
             // P&C: Subtle idle breathing animation for life
             StartCoroutine(IdleBreathAnimation(go, placement.BuildingId));
@@ -1510,6 +1518,135 @@ namespace AshenThrone.Empire
             emblText.alignment = TextAnchor.MiddleCenter;
             emblText.color = new Color(0.95f, 0.85f, 0.40f);
             emblText.raycastTarget = false;
+        }
+
+        /// <summary>P&C: Refresh notification badges on all buildings (periodic).</summary>
+        private void RefreshAllNotificationBadges()
+        {
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                RefreshNotificationBadge(p.VisualGO, p);
+            }
+        }
+
+        /// <summary>
+        /// P&C: Show/hide a red notification dot on buildings with pending actions.
+        /// - Academy/Laboratory: active research completed
+        /// - Barracks/Training: troops finished training (simulated)
+        /// - Marketplace: trade offer available
+        /// - Resource buildings: vault near capacity
+        /// </summary>
+        private void RefreshNotificationBadge(GameObject building, CityBuildingPlacement placement)
+        {
+            bool hasNotification = false;
+            string notifText = "!";
+
+            // Resource buildings: check if vault is near cap (>90%)
+            if (placement.BuildingId == "grain_farm" || placement.BuildingId == "iron_mine" ||
+                placement.BuildingId == "stone_quarry" || placement.BuildingId == "arcane_tower")
+            {
+                if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+                {
+                    float ratio = placement.BuildingId switch
+                    {
+                        "grain_farm" => rm.MaxGrain > 0 ? (float)rm.Grain / rm.MaxGrain : 0,
+                        "iron_mine" => rm.MaxIron > 0 ? (float)rm.Iron / rm.MaxIron : 0,
+                        "stone_quarry" => rm.MaxStone > 0 ? (float)rm.Stone / rm.MaxStone : 0,
+                        "arcane_tower" => rm.MaxArcaneEssence > 0 ? (float)rm.ArcaneEssence / rm.MaxArcaneEssence : 0,
+                        _ => 0
+                    };
+                    if (ratio >= 0.90f)
+                    {
+                        hasNotification = true;
+                        notifText = "!";
+                    }
+                }
+            }
+
+            // Academy/Laboratory: show notification when no research is active (idle)
+            if (placement.BuildingId == "academy" || placement.BuildingId == "laboratory")
+            {
+                if (ServiceLocator.TryGet<ResearchManager>(out var resM))
+                {
+                    if (resM.ResearchQueue.Count == 0)
+                    {
+                        hasNotification = true;
+                        notifText = "?";
+                    }
+                }
+            }
+
+            // Barracks/Training: simulated troop readiness notification
+            if (placement.BuildingId == "barracks" || placement.BuildingId == "training_ground")
+            {
+                // Simulated: show notification periodically (every ~40s in-game)
+                float cycle = (Time.time + placement.InstanceId.GetHashCode() % 100) % 40f;
+                if (cycle < 10f)
+                {
+                    hasNotification = true;
+                    notifText = "\u2694"; // ⚔
+                }
+            }
+
+            // Marketplace: simulated trade available
+            if (placement.BuildingId == "marketplace")
+            {
+                float cycle = (Time.time + 17f) % 60f;
+                if (cycle < 15f)
+                {
+                    hasNotification = true;
+                    notifText = "$";
+                }
+            }
+
+            // Find or create/destroy the notification dot
+            var existingDot = building.transform.Find("NotifDot");
+            if (!hasNotification)
+            {
+                if (existingDot != null) existingDot.gameObject.SetActive(false);
+                return;
+            }
+
+            if (existingDot != null)
+            {
+                existingDot.gameObject.SetActive(true);
+                var dotText = existingDot.GetComponentInChildren<Text>();
+                if (dotText != null) dotText.text = notifText;
+                return;
+            }
+
+            // Create notification dot
+            var dotGO = new GameObject("NotifDot");
+            dotGO.transform.SetParent(building.transform, false);
+            var dotRect = dotGO.AddComponent<RectTransform>();
+            dotRect.anchorMin = new Vector2(0.78f, 0.82f);
+            dotRect.anchorMax = new Vector2(0.98f, 0.98f);
+            dotRect.offsetMin = Vector2.zero;
+            dotRect.offsetMax = Vector2.zero;
+
+            var dotBg = dotGO.AddComponent<Image>();
+            dotBg.color = new Color(0.90f, 0.20f, 0.15f, 0.92f);
+            dotBg.raycastTarget = false;
+            var dotOutline = dotGO.AddComponent<Outline>();
+            dotOutline.effectColor = new Color(0.5f, 0.1f, 0.1f, 0.6f);
+            dotOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var dotTextGO = new GameObject("Text");
+            dotTextGO.transform.SetParent(dotGO.transform, false);
+            var dtRect = dotTextGO.AddComponent<RectTransform>();
+            dtRect.anchorMin = Vector2.zero;
+            dtRect.anchorMax = Vector2.one;
+            dtRect.offsetMin = Vector2.zero;
+            dtRect.offsetMax = Vector2.zero;
+            var dt = dotTextGO.AddComponent<Text>();
+            dt.text = notifText;
+            dt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            dt.fontSize = 8;
+            dt.fontStyle = FontStyle.Bold;
+            dt.alignment = TextAnchor.MiddleCenter;
+            dt.color = Color.white;
+            dt.raycastTarget = false;
         }
 
         private void CreateNewBadge(GameObject building)
@@ -4055,6 +4192,26 @@ namespace AshenThrone.Empire
                     var lblShadow = lblGO.AddComponent<Shadow>();
                     lblShadow.effectColor = new Color(0, 0, 0, 0.8f);
                     lblShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+                    // P&C: Production/function hint on resource building buttons
+                    string prodHint = GetBuildingSelectorHint(bid);
+                    if (!string.IsNullOrEmpty(prodHint))
+                    {
+                        var hintGO = new GameObject("Hint");
+                        hintGO.transform.SetParent(btnGO.transform, false);
+                        var hintRect = hintGO.AddComponent<RectTransform>();
+                        hintRect.anchorMin = new Vector2(0, 0.90f);
+                        hintRect.anchorMax = new Vector2(1, 1.0f);
+                        hintRect.offsetMin = Vector2.zero;
+                        hintRect.offsetMax = Vector2.zero;
+                        var hintText = hintGO.AddComponent<Text>();
+                        hintText.text = prodHint;
+                        hintText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                        hintText.fontSize = 6;
+                        hintText.alignment = TextAnchor.MiddleCenter;
+                        hintText.color = new Color(0.65f, 0.90f, 0.65f);
+                        hintText.raycastTarget = false;
+                    }
                 }
 
                 yTop = rowBot - gap;
@@ -4064,6 +4221,29 @@ namespace AshenThrone.Empire
             var cg = _buildSelectorPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
+        }
+
+        /// <summary>P&C: Short production/function hint for build selector buttons.</summary>
+        private static string GetBuildingSelectorHint(string buildingId)
+        {
+            return buildingId switch
+            {
+                "grain_farm" => "+250/hr",
+                "iron_mine" => "+250/hr",
+                "stone_quarry" => "+250/hr",
+                "arcane_tower" => "+250/hr",
+                "barracks" => "500 troops",
+                "training_ground" => "300 troops",
+                "armory" => "+ATK",
+                "wall" => "+DEF",
+                "watch_tower" => "Scout",
+                "academy" => "Research",
+                "laboratory" => "Tech",
+                "marketplace" => "Trade",
+                "guild_hall" => "Rally",
+                "embassy" => "Diplomacy",
+                _ => null
+            };
         }
 
         private void DismissBuildSelector()
