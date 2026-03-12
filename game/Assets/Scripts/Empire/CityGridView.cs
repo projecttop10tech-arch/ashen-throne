@@ -2906,6 +2906,77 @@ namespace AshenThrone.Empire
                     new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
             }
 
+            // P&C: Power contribution
+            int powerContrib = GetBuildingPowerContribution(buildingId, tier);
+            if (powerContrib > 0)
+            {
+                string powerStr = powerContrib >= 1000 ? $"{powerContrib / 1000f:F1}K" : $"{powerContrib}";
+                AddInfoPanelText(panel.transform, "Power", $"\u2694 Power: +{powerStr}", 11, FontStyle.Normal,
+                    new Color(0.95f, 0.70f, 0.35f),
+                    new Vector2(0.05f, 0.20f), new Vector2(0.50f, 0.27f), TextAnchor.MiddleLeft);
+            }
+
+            // P&C: Demolish button (not for stronghold)
+            if (buildingId != "stronghold")
+            {
+                var demGO = new GameObject("DemolishBtn");
+                demGO.transform.SetParent(panel.transform, false);
+                var demRect = demGO.AddComponent<RectTransform>();
+                demRect.anchorMin = new Vector2(0.05f, 0.03f);
+                demRect.anchorMax = new Vector2(0.45f, 0.12f);
+                demRect.offsetMin = Vector2.zero;
+                demRect.offsetMax = Vector2.zero;
+                var demImg = demGO.AddComponent<Image>();
+                demImg.color = new Color(0.65f, 0.18f, 0.15f, 0.85f);
+                demImg.raycastTarget = true;
+                var demOutline = demGO.AddComponent<Outline>();
+                demOutline.effectColor = new Color(0.9f, 0.3f, 0.2f, 0.5f);
+                demOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var demBtn = demGO.AddComponent<Button>();
+                demBtn.targetGraphic = demImg;
+                string demInstanceId = instanceId;
+                string demBuildingId = buildingId;
+                demBtn.onClick.AddListener(() => ShowDemolishConfirmDialog(demInstanceId, demBuildingId));
+                AddInfoPanelText(demGO.transform, "Label", "\u2620 Demolish", 11, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Upgrade button in info panel
+            {
+                string infoCostStr = GetUpgradeCostString(instanceId, tier);
+                bool infoMaxLevel = infoCostStr == "MAX LEVEL";
+                var upgGO = new GameObject("UpgradeBtn");
+                upgGO.transform.SetParent(panel.transform, false);
+                var upgRect = upgGO.AddComponent<RectTransform>();
+                upgRect.anchorMin = new Vector2(0.55f, 0.03f);
+                upgRect.anchorMax = new Vector2(0.95f, 0.12f);
+                upgRect.offsetMin = Vector2.zero;
+                upgRect.offsetMax = Vector2.zero;
+                var upgImg = upgGO.AddComponent<Image>();
+                upgImg.color = infoMaxLevel
+                    ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
+                    : new Color(0.15f, 0.60f, 0.20f, 0.90f);
+                upgImg.raycastTarget = true;
+                var upgOutline = upgGO.AddComponent<Outline>();
+                upgOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
+                upgOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var upgBtn = upgGO.AddComponent<Button>();
+                upgBtn.targetGraphic = upgImg;
+                string upgInstanceId = instanceId;
+                string upgBuildingIdLocal = buildingId;
+                int upgTierLocal = tier;
+                upgBtn.onClick.AddListener(() =>
+                {
+                    if (infoMaxLevel) return;
+                    string warning = GetUpgradeBlockReason(upgInstanceId, upgTierLocal);
+                    if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
+                    EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingIdLocal, upgTierLocal));
+                    DismissBuildingInfoPanel();
+                });
+                AddInfoPanelText(upgGO.transform, "Label", infoMaxLevel ? "MAX LEVEL" : "\u2B06 Upgrade", 11,
+                    FontStyle.Bold, Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
             // Close button (X in top-right)
             var closeGO = new GameObject("CloseBtn");
             closeGO.transform.SetParent(panel.transform, false);
@@ -2988,6 +3059,133 @@ namespace AshenThrone.Empire
                 "archive" => "Preserves historical records and tactical manuals. Provides experience bonuses.",
                 _ => "A building in your empire."
             };
+        }
+
+        /// <summary>P&C: Approximate power contribution per building type+tier.</summary>
+        private static int GetBuildingPowerContribution(string buildingId, int tier)
+        {
+            int basePower = buildingId switch
+            {
+                "stronghold" => 5000,
+                "barracks" or "training_ground" => 1500,
+                "wall" or "watch_tower" => 1000,
+                "armory" or "forge" => 800,
+                "academy" or "laboratory" or "library" => 600,
+                "guild_hall" or "embassy" => 500,
+                "hero_shrine" => 400,
+                "grain_farm" or "iron_mine" or "stone_quarry" or "arcane_tower" => 300,
+                "enchanting_tower" or "observatory" or "archive" => 350,
+                "marketplace" => 250,
+                _ => 200
+            };
+            return basePower * (tier + 1);
+        }
+
+        /// <summary>P&C: Demolish confirmation dialog with "Are you sure?" prompt.</summary>
+        private GameObject _demolishDialog;
+
+        private void ShowDemolishConfirmDialog(string instanceId, string buildingId)
+        {
+            DismissBuildingInfoPanel();
+            if (_demolishDialog != null) { Destroy(_demolishDialog); _demolishDialog = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _demolishDialog = new GameObject("DemolishDialog");
+            _demolishDialog.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _demolishDialog.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _demolishDialog.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.5f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _demolishDialog.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissDemolishDialog);
+
+            // Dialog panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_demolishDialog.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.15f, 0.35f);
+            panelRect.anchorMax = new Vector2(0.85f, 0.65f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.08f, 0.05f, 0.14f, 0.96f);
+            panelImg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.25f, 0.15f, 0.8f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+
+            // Warning icon + title
+            AddInfoPanelText(panel.transform, "Title", $"\u2620 Demolish {displayName}?", 14, FontStyle.Bold,
+                new Color(0.95f, 0.35f, 0.25f),
+                new Vector2(0.05f, 0.70f), new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
+
+            // Warning text
+            AddInfoPanelText(panel.transform, "Warning", "This action is irreversible.\nNo resources will be refunded.", 11, FontStyle.Normal,
+                new Color(0.80f, 0.75f, 0.65f),
+                new Vector2(0.08f, 0.38f), new Vector2(0.92f, 0.68f), TextAnchor.MiddleCenter);
+
+            // Cancel button
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(panel.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.08f, 0.06f);
+            cancelRect.anchorMax = new Vector2(0.45f, 0.30f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.30f, 0.30f, 0.35f, 0.90f);
+            cancelImg.raycastTarget = true;
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            cancelBtn.onClick.AddListener(DismissDemolishDialog);
+            AddInfoPanelText(cancelGO.transform, "Label", "Cancel", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Confirm demolish button
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(panel.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.55f, 0.06f);
+            confirmRect.anchorMax = new Vector2(0.92f, 0.30f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmImg = confirmGO.AddComponent<Image>();
+            confirmImg.color = new Color(0.75f, 0.20f, 0.15f, 0.92f);
+            confirmImg.raycastTarget = true;
+            var confirmOutline = confirmGO.AddComponent<Outline>();
+            confirmOutline.effectColor = new Color(1f, 0.4f, 0.3f, 0.5f);
+            confirmOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmImg;
+            string capId = instanceId;
+            confirmBtn.onClick.AddListener(() =>
+            {
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+                    bm.DemolishBuilding(capId);
+                DismissDemolishDialog();
+            });
+            AddInfoPanelText(confirmGO.transform, "Label", "\u2620 DEMOLISH", 12, FontStyle.Bold,
+                Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _demolishDialog.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void DismissDemolishDialog()
+        {
+            if (_demolishDialog != null) { Destroy(_demolishDialog); _demolishDialog = null; }
         }
 
         // ====================================================================

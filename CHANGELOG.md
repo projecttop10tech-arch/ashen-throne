@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.45.0] — 2026-03-12 (Ralph Loop Iteration 40: Demolish Dialog, Power Display, Info Panel Actions)
+
+### ADDED
+- **Demolish confirmation dialog** — tapping "Demolish" in the building info panel opens a P&C-style confirmation dialog with skull icon, warning text ("This action is irreversible. No resources will be refunded."), Cancel and DEMOLISH buttons. Red-bordered panel with fade-in animation. Cannot demolish stronghold.
+- **Building power contribution** — info panel now shows "⚔ Power: +X" for each building based on type and tier. Stronghold gives 5K base, military 1.5K, defense 1K, research 600, resource 300, etc., multiplied by (tier+1).
+- **Upgrade button in info panel** — full info panel now has an Upgrade button (green) alongside Demolish (red) at the bottom. Checks upgrade block reasons before proceeding. Shows "MAX LEVEL" in grey when maxed.
+
+### CHANGED
+- Building info panel layout updated with action buttons row at bottom (Demolish left, Upgrade right)
+- Added `ShowDemolishConfirmDialog()` with dim overlay, warning text, Cancel/Confirm buttons
+- Added `GetBuildingPowerContribution()` static helper for power calculation
+
+---
+
 ## [0.44.0] — 2026-03-12 (Ralph Loop Iteration 39: Speed-Up Button, Queue Position Labels)
 
 ### ADDED
