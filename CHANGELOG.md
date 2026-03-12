@@ -4,6 +4,25 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.54.0] — 2026-03-12 (Ralph Loop Iteration 49: Building Locks, Power HUD, Construction Dust)
+
+### ADDED
+- **Building unlock/lock state in build selector** — buildings that require a higher Stronghold level are shown grayed out with a lock icon overlay and "SH Lv.X" requirement text. Tapping a locked building shows an "Upgrade Blocked" toast with the required Stronghold level. Uses `BuildingData.strongholdLevelRequired` with fallback unlock levels.
+- **`GetBuildingUnlockLevel()` helper** — returns the Stronghold level required to unlock a building type, checking BuildingData first then falling back to a hardcoded switch expression.
+- **Total power rating HUD** — displays aggregate empire power below the builder count HUD. Sums `GetBuildingPowerContribution()` for all placed buildings, formatted as K/M for large values. Gold text with dark background, refreshed in the periodic update cycle.
+- **`CreatePowerRatingHUD()` / `UpdatePowerRatingHUD()` methods** — power HUD creation and refresh logic.
+- **Construction dust particle effect** — upgrading buildings now show 6 animated dust/spark motes rising from the building base. Motes alternate between tan dust and orange spark colors, with staggered phases, lateral drift, and fade-in/fade-out lifecycle over 3-second cycles. Uses radial gradient sprite for soft particle look.
+- **`AddConstructionDustEffect()` / `RemoveConstructionDustEffect()` methods** — dust particle creation and cleanup, called alongside scaffolding overlay.
+- **`AnimateConstructionDust()` coroutine** — per-frame animation loop for dust motes with sinusoidal drift, scale pulsing, and alpha lifecycle.
+
+### CHANGED
+- All 3 scaffolding call sites now also trigger construction dust particles
+- Upgrade completion handler now removes dust effect alongside scaffolding
+- Build selector checks current Stronghold level against building requirements before allowing placement
+- Periodic refresh block now includes `UpdatePowerRatingHUD()`
+
+---
+
 ## [0.53.0] — 2026-03-12 (Ralph Loop Iteration 48: Upgrade Confirmation Dialog)
 
 ### ADDED

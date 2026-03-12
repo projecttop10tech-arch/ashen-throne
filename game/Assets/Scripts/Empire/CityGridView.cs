@@ -449,6 +449,7 @@ namespace AshenThrone.Empire
                 _upgradeArrowRefreshTimer = UpgradeArrowRefreshInterval;
                 RefreshUpgradeArrows();
                 UpdateBuilderCountHUD();
+                UpdatePowerRatingHUD();
                 RefreshResourceCapWarnings();
                 RefreshStrongholdUpgradeBanner();
                 RefreshAllNotificationBadges();
@@ -2014,6 +2015,7 @@ namespace AshenThrone.Empire
                 {
                     CreateUpgradeIndicator(p.VisualGO, evt.BuildTimeSeconds, evt.PlacedId);
                     AddScaffoldingOverlay(p.VisualGO);
+                    AddConstructionDustEffect(p.VisualGO);
                     // Remove upgrade arrow since building is now upgrading
                     var arrow = p.VisualGO.transform.Find("UpgradeArrow");
                     if (arrow != null) Destroy(arrow.gameObject);
@@ -2227,6 +2229,7 @@ namespace AshenThrone.Empire
                 {
                     RemoveUpgradeIndicator(p.VisualGO);
                     RemoveScaffoldingOverlay(p.VisualGO);
+                    RemoveConstructionDustEffect(p.VisualGO);
 
                     // P&C: Update tier on placement data
                     p.Tier = evt.NewTier;
@@ -2866,6 +2869,7 @@ namespace AshenThrone.Empire
                     {
                         CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds), entry.PlacedId);
                         AddScaffoldingOverlay(p.VisualGO);
+                        AddConstructionDustEffect(p.VisualGO);
                         break;
                     }
                 }
@@ -4332,12 +4336,28 @@ namespace AshenThrone.Empire
 
                 // Building buttons in row
                 float btnWidth = 0.78f / buildings.Length;
+
+                // P&C: Get current stronghold level for lock checking
+                int currentSHLevel = 0;
+                if (ServiceLocator.TryGet<BuildingManager>(out var selectorBm))
+                {
+                    foreach (var pb in selectorBm.PlacedBuildings.Values)
+                    {
+                        if (pb.Data != null && pb.Data.buildingId == "stronghold")
+                        { currentSHLevel = pb.CurrentTier; break; }
+                    }
+                }
+
                 for (int i = 0; i < buildings.Length; i++)
                 {
                     string bid = buildings[i];
                     string displayName = BuildingDisplayNames.TryGetValue(bid, out var dn) ? dn : bid;
                     float x0 = 0.20f + i * btnWidth;
                     float x1 = x0 + btnWidth - 0.005f;
+
+                    // P&C: Check if building is locked (stronghold level requirement)
+                    int requiredSH = GetBuildingUnlockLevel(bid);
+                    bool isLocked = currentSHLevel < requiredSH;
 
                     var btnGO = new GameObject($"Build_{bid}");
                     btnGO.transform.SetParent(panel.transform, false);
@@ -4348,17 +4368,27 @@ namespace AshenThrone.Empire
                     btnRect.offsetMax = Vector2.zero;
 
                     var btnBg = btnGO.AddComponent<Image>();
-                    btnBg.color = new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.85f);
+                    btnBg.color = isLocked
+                        ? new Color(0.15f, 0.15f, 0.18f, 0.85f)  // Grayed out
+                        : new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.85f);
                     btnBg.raycastTarget = true;
                     var btnOutline = btnGO.AddComponent<Outline>();
-                    btnOutline.effectColor = new Color(color.r, color.g, color.b, 0.5f);
+                    btnOutline.effectColor = isLocked
+                        ? new Color(0.3f, 0.3f, 0.3f, 0.4f)
+                        : new Color(color.r, color.g, color.b, 0.5f);
                     btnOutline.effectDistance = new Vector2(0.8f, -0.8f);
 
                     var btn = btnGO.AddComponent<Button>();
                     btn.targetGraphic = btnBg;
                     string capBid = bid;
                     Vector2Int capPos = gridPos;
+                    int capReqSH = requiredSH;
                     btn.onClick.AddListener(() => {
+                        if (currentSHLevel < capReqSH)
+                        {
+                            ShowUpgradeBlockedToast($"Requires Stronghold Lv.{capReqSH}");
+                            return;
+                        }
                         DismissBuildSelector();
                         EventBus.Publish(new PlacementConfirmedEvent(capBid, capPos,
                             BuildingSizes.TryGetValue(capBid, out var sz) ? sz : new Vector2Int(2, 2)));
@@ -4420,6 +4450,31 @@ namespace AshenThrone.Empire
                         hintText.color = new Color(0.65f, 0.90f, 0.65f);
                         hintText.raycastTarget = false;
                     }
+
+                    // P&C: Lock overlay for buildings that require higher stronghold
+                    if (isLocked)
+                    {
+                        var lockOverlay = new GameObject("LockOverlay");
+                        lockOverlay.transform.SetParent(btnGO.transform, false);
+                        var lockRect = lockOverlay.AddComponent<RectTransform>();
+                        lockRect.anchorMin = Vector2.zero;
+                        lockRect.anchorMax = Vector2.one;
+                        lockRect.offsetMin = Vector2.zero;
+                        lockRect.offsetMax = Vector2.zero;
+                        var lockImg = lockOverlay.AddComponent<Image>();
+                        lockImg.color = new Color(0.05f, 0.04f, 0.08f, 0.65f);
+                        lockImg.raycastTarget = false;
+
+                        // Lock icon
+                        AddInfoPanelText(btnGO.transform, "LockIcon", "\uD83D\uDD12", 14, FontStyle.Bold,
+                            new Color(0.60f, 0.55f, 0.50f),
+                            new Vector2(0.25f, 0.35f), new Vector2(0.75f, 0.75f), TextAnchor.MiddleCenter);
+
+                        // Required level text
+                        AddInfoPanelText(btnGO.transform, "ReqLevel", $"SH Lv.{requiredSH}", 6, FontStyle.Bold,
+                            new Color(0.85f, 0.55f, 0.25f),
+                            new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.25f), TextAnchor.MiddleCenter);
+                    }
                 }
 
                 yTop = rowBot - gap;
@@ -4429,6 +4484,32 @@ namespace AshenThrone.Empire
             var cg = _buildSelectorPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
+        }
+
+        /// <summary>P&C: Get stronghold level required to unlock a building type.</summary>
+        private static int GetBuildingUnlockLevel(string buildingId)
+        {
+            // Try to load from BuildingData ScriptableObject
+            if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+            {
+                foreach (var pb in bm.PlacedBuildings.Values)
+                {
+                    if (pb.Data != null && pb.Data.buildingId == buildingId)
+                        return pb.Data.strongholdLevelRequired;
+                }
+            }
+            // Fallback unlock levels for buildings not yet placed
+            return buildingId switch
+            {
+                "grain_farm" or "iron_mine" or "stone_quarry" or "barracks" => 1,
+                "wall" or "watch_tower" or "marketplace" => 2,
+                "academy" or "training_ground" or "forge" => 3,
+                "arcane_tower" or "guild_hall" or "armory" => 4,
+                "laboratory" or "embassy" or "enchanting_tower" => 5,
+                "library" or "hero_shrine" or "observatory" => 6,
+                "archive" => 7,
+                _ => 1
+            };
         }
 
         /// <summary>P&C: Short production/function hint for build selector buttons.</summary>
@@ -4759,6 +4840,7 @@ namespace AshenThrone.Empire
             {
                 CreateUpgradeProgressBar(placement.VisualGO, progress, placement.InstanceId, entry.RemainingSeconds);
                 AddScaffoldingOverlay(placement.VisualGO);
+                AddConstructionDustEffect(placement.VisualGO);
                 if (bm.BuildQueue.Count > 1)
                     CreateQueuePositionLabel(placement.VisualGO, queuePos, bm.BuildQueue.Count);
             }
@@ -5205,6 +5287,70 @@ namespace AshenThrone.Empire
 
             _builderCountHUD = hud;
             UpdateBuilderCountHUD();
+
+            // P&C: Power rating HUD below builder count
+            CreatePowerRatingHUD(canvasRoot);
+        }
+
+        private GameObject _powerRatingHUD;
+        private Text _powerRatingText;
+
+        private void CreatePowerRatingHUD(Transform canvasRoot)
+        {
+            if (_powerRatingHUD != null) return;
+
+            var hud = new GameObject("PowerRatingHUD");
+            hud.transform.SetParent(canvasRoot, false);
+            hud.transform.SetAsLastSibling();
+
+            var hudRect = hud.AddComponent<RectTransform>();
+            hudRect.anchorMin = new Vector2(0.02f, 0.83f);
+            hudRect.anchorMax = new Vector2(0.18f, 0.87f);
+            hudRect.offsetMin = Vector2.zero;
+            hudRect.offsetMax = Vector2.zero;
+
+            var hudBg = hud.AddComponent<Image>();
+            hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.80f);
+            hudBg.raycastTarget = false;
+            var hudOutline = hud.AddComponent<Outline>();
+            hudOutline.effectColor = new Color(0.70f, 0.45f, 0.15f, 0.4f);
+            hudOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(hud.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(4, 0);
+            textRect.offsetMax = new Vector2(-4, 0);
+
+            _powerRatingText = textGO.AddComponent<Text>();
+            _powerRatingText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _powerRatingText.fontSize = 9;
+            _powerRatingText.fontStyle = FontStyle.Bold;
+            _powerRatingText.alignment = TextAnchor.MiddleCenter;
+            _powerRatingText.color = new Color(0.95f, 0.70f, 0.35f);
+            _powerRatingText.raycastTarget = false;
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            _powerRatingHUD = hud;
+            UpdatePowerRatingHUD();
+        }
+
+        private void UpdatePowerRatingHUD()
+        {
+            if (_powerRatingText == null) return;
+
+            int totalPower = 0;
+            foreach (var p in _placements)
+                totalPower += GetBuildingPowerContribution(p.BuildingId, p.Tier);
+
+            string powerStr = totalPower >= 1_000_000 ? $"{totalPower / 1_000_000f:F1}M"
+                : totalPower >= 1_000 ? $"{totalPower / 1_000f:F1}K"
+                : $"{totalPower}";
+            _powerRatingText.text = $"\u2694 {powerStr}";
         }
 
         private void UpdateBuilderCountHUD()
@@ -5385,6 +5531,120 @@ namespace AshenThrone.Empire
         {
             if (building == null) return;
             var existing = building.transform.Find("Scaffolding");
+            if (existing != null) Destroy(existing.gameObject);
+        }
+
+        // ====================================================================
+        // P&C: Construction dust particle effect on upgrading buildings
+        // ====================================================================
+
+        /// <summary>P&C: Spawn rising dust/spark motes around a building under construction.</summary>
+        private void AddConstructionDustEffect(GameObject building)
+        {
+            if (building == null) return;
+            RemoveConstructionDustEffect(building);
+
+            var dustRoot = new GameObject("ConstructionDust");
+            dustRoot.transform.SetParent(building.transform, false);
+
+            var rootRect = dustRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(0f, 0f);
+            rootRect.anchorMax = new Vector2(1f, 0.85f);
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            // Spawn 6 dust motes that loop
+            for (int i = 0; i < 6; i++)
+            {
+                var mote = new GameObject($"Mote_{i}");
+                mote.transform.SetParent(dustRoot.transform, false);
+
+                var moteRect = mote.AddComponent<RectTransform>();
+                moteRect.sizeDelta = new Vector2(4f, 4f);
+                // Random start position along base
+                float xAnchor = 0.1f + (i * 0.15f);
+                moteRect.anchorMin = new Vector2(xAnchor, 0f);
+                moteRect.anchorMax = new Vector2(xAnchor, 0f);
+                moteRect.anchoredPosition = Vector2.zero;
+
+                var img = mote.AddComponent<Image>();
+                // Alternate between dust (tan) and spark (orange) colors
+                bool isSpark = i % 3 == 0;
+                img.color = isSpark
+                    ? new Color(1f, 0.7f, 0.2f, 0.7f)   // orange spark
+                    : new Color(0.75f, 0.65f, 0.45f, 0.5f); // tan dust
+                img.raycastTarget = false;
+
+                // Try to use radial gradient for softer look
+                var gradientSprite = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                if (gradientSprite != null) img.sprite = gradientSprite;
+            }
+
+            StartCoroutine(AnimateConstructionDust(dustRoot));
+        }
+
+        private IEnumerator AnimateConstructionDust(GameObject dustRoot)
+        {
+            if (dustRoot == null) yield break;
+
+            var motes = new List<RectTransform>();
+            var images = new List<Image>();
+            var phases = new List<float>();
+            var speeds = new List<float>();
+            var driftX = new List<float>();
+
+            for (int i = 0; i < dustRoot.transform.childCount; i++)
+            {
+                var child = dustRoot.transform.GetChild(i);
+                var rt = child.GetComponent<RectTransform>();
+                var img = child.GetComponent<Image>();
+                if (rt != null && img != null)
+                {
+                    motes.Add(rt);
+                    images.Add(img);
+                    phases.Add(i * 1.1f); // stagger start
+                    speeds.Add(18f + i * 4f); // different rise speeds
+                    driftX.Add((i % 2 == 0 ? 1f : -1f) * (3f + i * 1.5f)); // lateral drift
+                }
+            }
+
+            while (dustRoot != null)
+            {
+                for (int i = 0; i < motes.Count; i++)
+                {
+                    if (motes[i] == null) continue;
+
+                    phases[i] += Time.deltaTime;
+                    float cycle = phases[i] % 3f; // 3 second cycle
+                    float t = cycle / 3f; // 0..1
+
+                    // Rise from bottom
+                    float y = t * 50f;
+                    float x = Mathf.Sin(phases[i] * 2f) * driftX[i];
+                    motes[i].anchoredPosition = new Vector2(x, y);
+
+                    // Fade: appear at 0, full at 0.2, fade out at 0.7-1.0
+                    float alpha;
+                    if (t < 0.15f) alpha = t / 0.15f;
+                    else if (t < 0.6f) alpha = 1f;
+                    else alpha = 1f - (t - 0.6f) / 0.4f;
+
+                    var c = images[i].color;
+                    float baseAlpha = (i % 3 == 0) ? 0.7f : 0.5f;
+                    images[i].color = new Color(c.r, c.g, c.b, alpha * baseAlpha);
+
+                    // Scale: small→big→small
+                    float scale = 0.5f + 0.8f * Mathf.Sin(t * Mathf.PI);
+                    motes[i].localScale = Vector3.one * scale;
+                }
+                yield return null;
+            }
+        }
+
+        private void RemoveConstructionDustEffect(GameObject building)
+        {
+            if (building == null) return;
+            var existing = building.transform.Find("ConstructionDust");
             if (existing != null) Destroy(existing.gameObject);
         }
 
