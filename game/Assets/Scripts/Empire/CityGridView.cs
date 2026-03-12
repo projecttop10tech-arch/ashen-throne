@@ -158,6 +158,12 @@ namespace AshenThrone.Empire
         private GameObject _moveConfirmBar;
         private Vector2Int _moveOriginalOrigin;
 
+        // P&C: Upgrade-available arrows + builder count + scaffolding
+        private float _upgradeArrowRefreshTimer;
+        private const float UpgradeArrowRefreshInterval = 2f;
+        private GameObject _builderCountHUD;
+        private Text _builderCountText;
+
         // P&C: Long-press hold indicator
         private GameObject _holdIndicator;
         private Image _holdFillImage;
@@ -217,6 +223,8 @@ namespace AshenThrone.Empire
             SortBuildingsByDepth();
             RefreshInstanceCountBadges();
             RefreshUpgradeIndicators();
+            RefreshUpgradeArrows();
+            CreateBuilderCountHUD();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
         }
@@ -301,6 +309,15 @@ namespace AshenThrone.Empire
             else if (_holdIndicator != null)
             {
                 DestroyHoldIndicator();
+            }
+
+            // P&C: Periodic upgrade arrow refresh
+            _upgradeArrowRefreshTimer -= Time.deltaTime;
+            if (_upgradeArrowRefreshTimer <= 0f)
+            {
+                _upgradeArrowRefreshTimer = UpgradeArrowRefreshInterval;
+                RefreshUpgradeArrows();
+                UpdateBuilderCountHUD();
             }
 
             // P&C: Pulse selection ring glow
@@ -1277,6 +1294,10 @@ namespace AshenThrone.Empire
                 if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
                 {
                     CreateUpgradeIndicator(p.VisualGO, evt.BuildTimeSeconds, evt.PlacedId);
+                    AddScaffoldingOverlay(p.VisualGO);
+                    // Remove upgrade arrow since building is now upgrading
+                    var arrow = p.VisualGO.transform.Find("UpgradeArrow");
+                    if (arrow != null) Destroy(arrow.gameObject);
                     break;
                 }
             }
@@ -1293,8 +1314,9 @@ namespace AshenThrone.Empire
                 if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
                 {
                     RemoveUpgradeIndicator(p.VisualGO);
-                    // Refresh instance count badges (tier may change display)
+                    RemoveScaffoldingOverlay(p.VisualGO);
                     RefreshInstanceCountBadges();
+                    UpdateBuilderCountHUD();
                     break;
                 }
             }
@@ -1469,6 +1491,7 @@ namespace AshenThrone.Empire
                     if (p.InstanceId == entry.PlacedId && p.VisualGO != null)
                     {
                         CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds), entry.PlacedId);
+                        AddScaffoldingOverlay(p.VisualGO);
                         break;
                     }
                 }
@@ -1852,6 +1875,239 @@ namespace AshenThrone.Empire
             if (amount >= 1_000_000) return $"{amount / 1_000_000f:F1}M";
             if (amount >= 1_000) return $"{amount / 1_000f:F1}K";
             return amount.ToString();
+        }
+
+        // ====================================================================
+        // P&C: Upgrade-available arrow indicators
+        // ====================================================================
+
+        /// <summary>P&C: Orange pulsing arrows above buildings that can be upgraded (have enough resources).</summary>
+        private void RefreshUpgradeArrows()
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var existingArrow = p.VisualGO.transform.Find("UpgradeArrow");
+
+                // Check if building is currently upgrading (don't show arrow)
+                bool isUpgrading = false;
+                foreach (var entry in bm.BuildQueue)
+                {
+                    if (entry.PlacedId == p.InstanceId) { isUpgrading = true; break; }
+                }
+
+                if (isUpgrading)
+                {
+                    if (existingArrow != null) Destroy(existingArrow.gameObject);
+                    continue;
+                }
+
+                // Check if can afford next tier
+                bool canUpgrade = false;
+                if (bm.PlacedBuildings.TryGetValue(p.InstanceId, out var placed) && placed.Data != null)
+                {
+                    var nextTier = placed.Data.GetTier(p.Tier); // 0-based array, Tier is display tier
+                    if (nextTier != null)
+                    {
+                        canUpgrade = rm.CanAfford(nextTier.stoneCost, nextTier.ironCost,
+                            nextTier.grainCost, nextTier.arcaneEssenceCost);
+                    }
+                }
+
+                if (canUpgrade && existingArrow == null)
+                {
+                    CreateUpgradeArrow(p.VisualGO);
+                }
+                else if (!canUpgrade && existingArrow != null)
+                {
+                    Destroy(existingArrow.gameObject);
+                }
+            }
+        }
+
+        private void CreateUpgradeArrow(GameObject building)
+        {
+            var arrow = new GameObject("UpgradeArrow");
+            arrow.transform.SetParent(building.transform, false);
+
+            var rect = arrow.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.35f, 1.0f);
+            rect.anchorMax = new Vector2(0.65f, 1.0f);
+            rect.sizeDelta = new Vector2(20, 22);
+            rect.anchoredPosition = new Vector2(0, 8);
+
+            var text = arrow.AddComponent<Text>();
+            text.text = "\u25B2"; // ▲ upward triangle
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 16;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(1f, 0.65f, 0.10f); // Orange arrow
+            text.raycastTarget = false;
+
+            var outline = arrow.AddComponent<Outline>();
+            outline.effectColor = new Color(0.5f, 0.25f, 0f, 0.8f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Animate: bob up/down + pulse
+            StartCoroutine(AnimateUpgradeArrow(arrow, rect));
+        }
+
+        private IEnumerator AnimateUpgradeArrow(GameObject arrow, RectTransform rect)
+        {
+            float phase = 0f;
+            Vector2 basePos = rect.anchoredPosition;
+            var text = arrow.GetComponent<Text>();
+            while (arrow != null)
+            {
+                phase += Time.deltaTime * 3f;
+                rect.anchoredPosition = basePos + Vector2.up * (4f * Mathf.Sin(phase));
+                if (text != null)
+                {
+                    float alpha = 0.7f + 0.3f * Mathf.Sin(phase * 1.5f);
+                    text.color = new Color(1f, 0.65f, 0.10f, alpha);
+                }
+                yield return null;
+            }
+        }
+
+        // ====================================================================
+        // P&C: Builder count HUD
+        // ====================================================================
+
+        /// <summary>P&C: Create "Builder 1/2" HUD element near top of screen.</summary>
+        private void CreateBuilderCountHUD()
+        {
+            if (_builderCountHUD != null) return;
+
+            // Find root canvas
+            Transform canvasRoot = transform;
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            var hud = new GameObject("BuilderCountHUD");
+            hud.transform.SetParent(canvasRoot, false);
+            hud.transform.SetAsLastSibling();
+
+            var hudRect = hud.AddComponent<RectTransform>();
+            hudRect.anchorMin = new Vector2(0.02f, 0.88f);
+            hudRect.anchorMax = new Vector2(0.18f, 0.93f);
+            hudRect.offsetMin = Vector2.zero;
+            hudRect.offsetMax = Vector2.zero;
+
+            var hudBg = hud.AddComponent<Image>();
+            hudBg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
+            hudBg.raycastTarget = false;
+
+            var hudOutline = hud.AddComponent<Outline>();
+            hudOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.5f);
+            hudOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(hud.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(4, 0);
+            textRect.offsetMax = new Vector2(-4, 0);
+
+            _builderCountText = textGO.AddComponent<Text>();
+            _builderCountText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _builderCountText.fontSize = 10;
+            _builderCountText.fontStyle = FontStyle.Bold;
+            _builderCountText.alignment = TextAnchor.MiddleCenter;
+            _builderCountText.color = new Color(0.95f, 0.85f, 0.45f);
+            _builderCountText.raycastTarget = false;
+            _builderCountText.text = "\u2692 Builder 0/2";
+
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            _builderCountHUD = hud;
+            UpdateBuilderCountHUD();
+        }
+
+        private void UpdateBuilderCountHUD()
+        {
+            if (_builderCountText == null) return;
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+
+            int used = bm.BuildQueue.Count;
+            int total = 2; // Free queue slots (from EmpireConfig)
+            _builderCountText.text = $"\u2692 Builder {used}/{total}";
+            _builderCountText.color = used >= total
+                ? new Color(1f, 0.45f, 0.35f) // Red when full
+                : new Color(0.95f, 0.85f, 0.45f); // Gold when available
+        }
+
+        // ====================================================================
+        // P&C: Construction scaffolding overlay
+        // ====================================================================
+
+        /// <summary>P&C: Add scaffolding/construction lines overlay on a building during upgrade.</summary>
+        private void AddScaffoldingOverlay(GameObject building)
+        {
+            if (building == null) return;
+            RemoveScaffoldingOverlay(building);
+
+            var scaffold = new GameObject("Scaffolding");
+            scaffold.transform.SetParent(building.transform, false);
+
+            var rect = scaffold.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.05f, 0.05f);
+            rect.anchorMax = new Vector2(0.95f, 0.90f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Semi-transparent construction overlay
+            var img = scaffold.AddComponent<Image>();
+            img.color = new Color(0.40f, 0.30f, 0.15f, 0.25f);
+            img.raycastTarget = false;
+
+            // Diagonal construction lines (3 lines)
+            for (int i = 0; i < 3; i++)
+            {
+                var lineGO = new GameObject($"Line_{i}");
+                lineGO.transform.SetParent(scaffold.transform, false);
+                var lineRect = lineGO.AddComponent<RectTransform>();
+                float xOffset = 0.15f + i * 0.25f;
+                lineRect.anchorMin = new Vector2(xOffset, 0f);
+                lineRect.anchorMax = new Vector2(xOffset + 0.04f, 1f);
+                lineRect.offsetMin = Vector2.zero;
+                lineRect.offsetMax = Vector2.zero;
+                lineRect.localRotation = Quaternion.Euler(0, 0, 15f);
+
+                var lineImg = lineGO.AddComponent<Image>();
+                lineImg.color = new Color(0.65f, 0.50f, 0.20f, 0.35f);
+                lineImg.raycastTarget = false;
+            }
+
+            // Animated shimmer coroutine
+            StartCoroutine(AnimateScaffolding(scaffold));
+        }
+
+        private IEnumerator AnimateScaffolding(GameObject scaffold)
+        {
+            if (scaffold == null) yield break;
+            var cg = scaffold.AddComponent<CanvasGroup>();
+            float phase = 0f;
+            while (scaffold != null)
+            {
+                phase += Time.deltaTime * 1.5f;
+                cg.alpha = 0.6f + 0.2f * Mathf.Sin(phase);
+                yield return null;
+            }
+        }
+
+        private void RemoveScaffoldingOverlay(GameObject building)
+        {
+            if (building == null) return;
+            var existing = building.transform.Find("Scaffolding");
+            if (existing != null) Destroy(existing.gameObject);
         }
 
         /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>

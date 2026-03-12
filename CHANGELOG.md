@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.34.0] — 2026-03-11 (Ralph Loop Iteration 29: Upgrade Arrows, Builder HUD, Scaffolding)
+
+### ADDED
+- **Upgrade-available arrow indicators** — P&C-style orange pulsing ▲ arrows bob above buildings that can afford their next upgrade. Refreshed every 2s. Hidden when building is currently upgrading.
+- **Builder count HUD** — "⚒ Builder 0/2" display in top-left corner. Gold text when slots available, red when queue full. Updates on upgrade start/complete.
+- **Construction scaffolding overlay** — semi-transparent brown overlay with 3 diagonal construction lines and pulsing shimmer on buildings during upgrade. Added on upgrade start, removed on completion. Persists across scene load via RefreshUpgradeIndicators.
+
+### CHANGED
+- OnUpgradeStarted now also adds scaffolding overlay and removes upgrade arrow
+- OnUpgradeCompletedSfx now removes scaffolding and updates builder count HUD
+- RefreshUpgradeIndicators adds scaffolding for in-progress upgrades on scene load
+- Update() runs periodic upgrade arrow + builder count refresh every 2 seconds
+
+---
+
 ## [0.33.0] — 2026-03-11 (Ralph Loop Iteration 28: Move Confirm/Cancel, Upgrade Costs)
 
 ### ADDED
