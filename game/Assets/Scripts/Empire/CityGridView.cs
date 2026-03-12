@@ -1416,18 +1416,312 @@ namespace AshenThrone.Empire
         {
             PlaySfx(_sfxBuildComplete);
 
-            // Remove the builder indicator
+            // Remove the builder indicator and celebrate
             foreach (var p in _placements)
             {
                 if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
                 {
                     RemoveUpgradeIndicator(p.VisualGO);
                     RemoveScaffoldingOverlay(p.VisualGO);
+
+                    // P&C: Update tier on placement data
+                    p.Tier = evt.NewTier;
+
+                    // P&C: Refresh the level badge to show new tier
+                    RefreshLevelBadge(p.VisualGO, evt.NewTier);
+
+                    // P&C: Upgrade completion celebration — flash + burst + bounce
+                    StartCoroutine(UpgradeCompletionCelebration(p.VisualGO));
+
                     RefreshInstanceCountBadges();
                     UpdateBuilderCountHUD();
                     break;
                 }
             }
+        }
+
+        /// <summary>P&C: Celebration when upgrade completes — white flash, golden burst particles, big bounce.</summary>
+        private IEnumerator UpgradeCompletionCelebration(GameObject building)
+        {
+            if (building == null) yield break;
+
+            // --- White flash overlay ---
+            var flashGO = new GameObject("UpgradeFlash");
+            flashGO.transform.SetParent(building.transform, false);
+            var flashRect = flashGO.AddComponent<RectTransform>();
+            flashRect.anchorMin = Vector2.zero;
+            flashRect.anchorMax = Vector2.one;
+            flashRect.offsetMin = Vector2.zero;
+            flashRect.offsetMax = Vector2.zero;
+            var flashImg = flashGO.AddComponent<Image>();
+            flashImg.color = new Color(1f, 0.95f, 0.7f, 0.85f);
+            flashImg.raycastTarget = false;
+
+            // Flash fade out over 0.4s
+            float flashDuration = 0.4f;
+            float elapsed = 0f;
+            while (elapsed < flashDuration && flashGO != null)
+            {
+                elapsed += Time.deltaTime;
+                float alpha = Mathf.Lerp(0.85f, 0f, elapsed / flashDuration);
+                flashImg.color = new Color(1f, 0.95f, 0.7f, alpha);
+                yield return null;
+            }
+            if (flashGO != null) Destroy(flashGO);
+
+            // --- Golden burst particles (8 small squares flying outward) ---
+            var buildingRect = building.GetComponent<RectTransform>();
+            if (buildingRect != null)
+            {
+                var parent = buildingRect.parent as RectTransform;
+                if (parent != null)
+                {
+                    int burstCount = 8;
+                    for (int i = 0; i < burstCount; i++)
+                    {
+                        var particleGO = new GameObject($"UpgradeBurst_{i}");
+                        particleGO.transform.SetParent(parent, false);
+                        var pRect = particleGO.AddComponent<RectTransform>();
+                        pRect.sizeDelta = new Vector2(6f, 6f);
+                        pRect.anchoredPosition = buildingRect.anchoredPosition + new Vector2(0, buildingRect.sizeDelta.y * 0.3f);
+
+                        var pImg = particleGO.AddComponent<Image>();
+                        // Alternate gold and warm white
+                        pImg.color = (i % 2 == 0)
+                            ? new Color(0.95f, 0.78f, 0.20f, 1f)
+                            : new Color(1f, 0.92f, 0.60f, 1f);
+                        pImg.raycastTarget = false;
+
+                        float angle = (360f / burstCount) * i * Mathf.Deg2Rad;
+                        Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                        StartCoroutine(AnimateBurstParticle(particleGO, pRect, dir));
+                    }
+                }
+            }
+
+            // --- Big celebratory bounce ---
+            if (building != null)
+                yield return BounceBuilding(building.transform, 0.15f);
+        }
+
+        private IEnumerator AnimateBurstParticle(GameObject go, RectTransform rect, Vector2 direction)
+        {
+            float duration = 0.6f;
+            float speed = 80f;
+            float elapsed = 0f;
+            Vector2 startPos = rect.anchoredPosition;
+            var img = go.GetComponent<Image>();
+
+            while (elapsed < duration && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                rect.anchoredPosition = startPos + direction * speed * t;
+                rect.sizeDelta = Vector2.Lerp(new Vector2(6f, 6f), new Vector2(2f, 2f), t);
+                if (img != null)
+                    img.color = new Color(img.color.r, img.color.g, img.color.b, 1f - t);
+                yield return null;
+            }
+            if (go != null) Destroy(go);
+        }
+
+        /// <summary>Update the level badge on a building visual to reflect new tier.</summary>
+        private void RefreshLevelBadge(GameObject building, int newTier)
+        {
+            var existing = building.transform.Find("LevelBadge");
+            if (existing != null) Destroy(existing.gameObject);
+            CreateLevelBadge(building, newTier);
+        }
+
+        // ====================================================================
+        // P&C: Speed-Up Confirmation Dialog
+        // ====================================================================
+
+        private GameObject _speedUpDialog;
+
+        /// <summary>P&C: Confirmation dialog before spending gems to speed up an upgrade.</summary>
+        private void ShowSpeedUpDialog(string instanceId, int gemCost, int remainingSeconds)
+        {
+            DismissSpeedUpDialog();
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _speedUpDialog = new GameObject("SpeedUpDialog");
+            _speedUpDialog.transform.SetParent(canvas.transform, false);
+
+            // Full-screen dim overlay
+            var dimRect = _speedUpDialog.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _speedUpDialog.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.55f);
+            dimImg.raycastTarget = true;
+
+            // Tap dim to dismiss
+            var dimBtn = _speedUpDialog.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissSpeedUpDialog);
+
+            // Dialog panel (center of screen)
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_speedUpDialog.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.12f, 0.35f);
+            panelRect.anchorMax = new Vector2(0.88f, 0.65f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelImg.raycastTarget = true; // block click-through
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.8f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            var titleGO = new GameObject("Title");
+            titleGO.transform.SetParent(panel.transform, false);
+            var titleRect = titleGO.AddComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.05f, 0.72f);
+            titleRect.anchorMax = new Vector2(0.95f, 0.95f);
+            titleRect.offsetMin = Vector2.zero;
+            titleRect.offsetMax = Vector2.zero;
+            var titleText = titleGO.AddComponent<Text>();
+            titleText.text = "Speed Up Construction";
+            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            titleText.fontSize = 16;
+            titleText.fontStyle = FontStyle.Bold;
+            titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.color = new Color(0.95f, 0.82f, 0.35f);
+            titleText.raycastTarget = false;
+
+            // Cost info
+            string timeStr = FormatTimeRemaining(remainingSeconds);
+            var costGO = new GameObject("CostInfo");
+            costGO.transform.SetParent(panel.transform, false);
+            var costRect = costGO.AddComponent<RectTransform>();
+            costRect.anchorMin = new Vector2(0.05f, 0.38f);
+            costRect.anchorMax = new Vector2(0.95f, 0.70f);
+            costRect.offsetMin = Vector2.zero;
+            costRect.offsetMax = Vector2.zero;
+            var costText = costGO.AddComponent<Text>();
+            costText.text = $"Skip {timeStr} remaining?\n\u25C6 {gemCost} Gems";
+            costText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            costText.fontSize = 14;
+            costText.alignment = TextAnchor.MiddleCenter;
+            costText.color = Color.white;
+            costText.raycastTarget = false;
+
+            // Confirm button (green)
+            var confirmGO = new GameObject("ConfirmBtn");
+            confirmGO.transform.SetParent(panel.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.52f, 0.06f);
+            confirmRect.anchorMax = new Vector2(0.94f, 0.34f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmImg = confirmGO.AddComponent<Image>();
+            confirmImg.color = new Color(0.15f, 0.60f, 0.25f, 0.92f);
+            confirmImg.raycastTarget = true;
+            var confirmOutline = confirmGO.AddComponent<Outline>();
+            confirmOutline.effectColor = new Color(0.4f, 1f, 0.5f, 0.5f);
+            confirmOutline.effectDistance = new Vector2(1f, -1f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmImg;
+            string capId = instanceId;
+            int capGems = gemCost;
+            int capSecs = remainingSeconds;
+            confirmBtn.onClick.AddListener(() => {
+                EventBus.Publish(new SpeedupRequestedEvent(capId, capGems, capSecs));
+                DismissSpeedUpDialog();
+            });
+            AddDialogButtonLabel(confirmGO, "CONFIRM");
+
+            // Cancel button (dark)
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(panel.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.06f, 0.06f);
+            cancelRect.anchorMax = new Vector2(0.48f, 0.34f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.25f, 0.20f, 0.30f, 0.90f);
+            cancelImg.raycastTarget = true;
+            var cancelOutline = cancelGO.AddComponent<Outline>();
+            cancelOutline.effectColor = new Color(0.6f, 0.5f, 0.7f, 0.4f);
+            cancelOutline.effectDistance = new Vector2(1f, -1f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            cancelBtn.onClick.AddListener(DismissSpeedUpDialog);
+            AddDialogButtonLabel(cancelGO, "CANCEL");
+
+            // Fade in
+            var cg = _speedUpDialog.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void AddDialogButtonLabel(GameObject parent, string label)
+        {
+            var lblGO = new GameObject("Label");
+            lblGO.transform.SetParent(parent.transform, false);
+            var lblRect = lblGO.AddComponent<RectTransform>();
+            lblRect.anchorMin = Vector2.zero;
+            lblRect.anchorMax = Vector2.one;
+            lblRect.offsetMin = Vector2.zero;
+            lblRect.offsetMax = Vector2.zero;
+            var text = lblGO.AddComponent<Text>();
+            text.text = label;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 13;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var shadow = lblGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.6f, -0.6f);
+        }
+
+        private IEnumerator FadeInDialog(CanvasGroup cg)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.2f && cg != null)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Clamp01(elapsed / 0.2f);
+                yield return null;
+            }
+            if (cg != null) cg.alpha = 1f;
+        }
+
+        private void DismissSpeedUpDialog()
+        {
+            if (_speedUpDialog != null)
+            {
+                Destroy(_speedUpDialog);
+                _speedUpDialog = null;
+            }
+        }
+
+        private static string FormatTimeRemaining(int totalSeconds)
+        {
+            if (totalSeconds >= 3600)
+            {
+                int h = totalSeconds / 3600;
+                int m = (totalSeconds % 3600) / 60;
+                return m > 0 ? $"{h}h {m}m" : $"{h}h";
+            }
+            if (totalSeconds >= 60)
+            {
+                int m = totalSeconds / 60;
+                int s = totalSeconds % 60;
+                return s > 0 ? $"{m}m {s}s" : $"{m}m";
+            }
+            return $"{totalSeconds}s";
         }
 
         /// <summary>P&C: Hammer icon + progress bar + speed-up button overlay on building during upgrade.</summary>
@@ -1526,7 +1820,7 @@ namespace AshenThrone.Empire
                 // Estimate gem cost: 1 gem per 60 seconds remaining
                 int gemCost = Mathf.Max(1, Mathf.CeilToInt(capturedSecs / 60f));
                 if (capturedId != null)
-                    EventBus.Publish(new SpeedupRequestedEvent(capturedId, gemCost, capturedSecs));
+                    ShowSpeedUpDialog(capturedId, gemCost, capturedSecs);
             });
 
             var speedTextGO = new GameObject("Label");
@@ -2407,9 +2701,12 @@ namespace AshenThrone.Empire
             Handheld.Vibrate();
             #endif
 
-            // P&C: Category-specific bounce animation
+            // P&C: Category-specific bounce animation + tap sparkles
             if (tapped.VisualGO != null)
+            {
                 StartCoroutine(BounceBuilding(tapped.VisualGO.transform, GetCategoryBounceScale(tapped.BuildingId)));
+                SpawnTapSparkles(tapped.VisualGO);
+            }
 
             // P&C: Double-tap quick-upgrade detection
             if (tapped.InstanceId == _lastTappedInstanceId && (Time.time - _lastTapTime) < DoubleTapWindow)
@@ -2456,6 +2753,55 @@ namespace AshenThrone.Empire
             }
 
             building.localScale = original;
+        }
+
+        /// <summary>P&C: Small sparkle particles burst on building tap for tactile feedback.</summary>
+        private void SpawnTapSparkles(GameObject building)
+        {
+            var buildingRect = building.GetComponent<RectTransform>();
+            if (buildingRect == null) return;
+            var parent = buildingRect.parent as RectTransform;
+            if (parent == null) return;
+
+            Vector2 center = buildingRect.anchoredPosition + new Vector2(0, buildingRect.sizeDelta.y * 0.3f);
+            int count = 5;
+            for (int i = 0; i < count; i++)
+            {
+                var sparkle = new GameObject($"TapSparkle_{i}");
+                sparkle.transform.SetParent(parent, false);
+                var sRect = sparkle.AddComponent<RectTransform>();
+                sRect.sizeDelta = new Vector2(4f, 4f);
+                sRect.anchoredPosition = center;
+
+                var sImg = sparkle.AddComponent<Image>();
+                // Warm white/gold sparkle colors
+                float hue = Random.Range(0.08f, 0.15f);
+                sImg.color = Color.HSVToRGB(hue, Random.Range(0.2f, 0.6f), 1f);
+                sImg.raycastTarget = false;
+
+                float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                float speed = Random.Range(30f, 60f);
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                StartCoroutine(AnimateTapSparkle(sparkle, sRect, sImg, dir, speed));
+            }
+        }
+
+        private IEnumerator AnimateTapSparkle(GameObject go, RectTransform rect, Image img, Vector2 dir, float speed)
+        {
+            float duration = Random.Range(0.25f, 0.45f);
+            float elapsed = 0f;
+            Vector2 start = rect.anchoredPosition;
+
+            while (elapsed < duration && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                rect.anchoredPosition = start + dir * speed * t;
+                rect.sizeDelta = Vector2.Lerp(new Vector2(4f, 4f), new Vector2(1f, 1f), t);
+                img.color = new Color(img.color.r, img.color.g, img.color.b, 1f - t * t);
+                yield return null;
+            }
+            if (go != null) Destroy(go);
         }
 
         /// <summary>P&C: Drop/slam animation when building is placed — slight overshoot + squash + dust ring.</summary>

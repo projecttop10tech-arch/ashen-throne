@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.37.0] — 2026-03-11 (Ralph Loop Iteration 32: Upgrade Celebration, Tap Sparkles, Speed-Up Dialog)
+
+### ADDED
+- **Upgrade completion celebration** — white-gold flash overlay fades out over 0.4s, 8 golden burst particles fly outward with shrink+fade, followed by a big 15% celebratory bounce. Level badge refreshes to new tier immediately. Full P&C-style "level up" feel.
+- **Tap sparkle particles** — 5 warm gold/white sparkle particles burst from building center on every tap, with random angles, speeds, and lifetimes (0.25-0.45s). Adds tactile feedback matching P&C.
+- **Speed-up confirmation dialog** — tapping the speed-up button now shows a centered modal dialog with dark overlay, gold-bordered panel, gem cost display, time remaining, CONFIRM (green) and CANCEL (dark) buttons. Tap outside to dismiss. Prevents accidental gem spending.
+
+### CHANGED
+- `OnUpgradeCompletedSfx` now updates placement tier, refreshes level badge, and triggers celebration coroutine
+- Speed-up button click now calls `ShowSpeedUpDialog` instead of directly publishing `SpeedupRequestedEvent`
+- Added `RefreshLevelBadge`, `FormatTimeRemaining`, `AnimateBurstParticle`, `AnimateTapSparkle` helper methods
+
+---
+
 ## [0.36.0] — 2026-03-11 (Ralph Loop Iteration 31: Stronghold Glow, Category Colors, Bounce Scale)
 
 ### ADDED
