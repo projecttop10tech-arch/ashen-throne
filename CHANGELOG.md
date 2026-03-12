@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.84.0] — 2026-03-12 (Ralph Loop Iteration 79: Diamond Ground Plates, Name Labels, Visual Polish)
+
+### ADDED
+- **Diamond ground plates** — P&C-style raised isometric terrain platforms under each building. 45°-rotated squares in lighter green-brown create distinct building plots visible against the terrain. Each plate has subtle outline border and drop shadow for depth. Replaces flat blob shadow.
+- **Building name labels always visible** — name labels now show at medium+ zoom (0.7x) instead of close-only (1.0x). P&C-style — building names visible in normal city view.
+
+### CHANGED
+- **Name label position** — moved from inside building bounding box (13%-28%) to below it (-8% to 6%), sitting under the building sprite as a name plate like P&C.
+
+---
+
 ## [0.83.0] — 2026-03-12 (Ralph Loop Iteration 78: Grid View Overhaul, City Quests, Building Relocate)
 
 ### FIXED

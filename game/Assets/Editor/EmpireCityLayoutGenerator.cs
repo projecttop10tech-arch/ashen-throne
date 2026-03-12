@@ -945,11 +945,11 @@ namespace AshenThrone.Editor
                     words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1);
             displayName = string.Join(" ", words);
 
-            // Compact pill-shaped label at bottom of building
+            // Compact pill-shaped label BELOW building (P&C-style name plate)
             var labelGO = CreateChild(parent, "NameLabel");
             var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0.05f, 0.13f);
-            labelRect.anchorMax = new Vector2(0.95f, 0.28f);
+            labelRect.anchorMin = new Vector2(-0.05f, -0.08f);
+            labelRect.anchorMax = new Vector2(1.05f, 0.06f);
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
 

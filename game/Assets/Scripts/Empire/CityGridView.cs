@@ -723,9 +723,9 @@ namespace AshenThrone.Empire
                 var badge = t.Find("LevelBadge");
                 if (badge != null) badge.gameObject.SetActive(showClose);
 
-                // Name label — close zoom only
+                // Name label — P&C shows at medium+ zoom (always visible in city view)
                 var nameLabel = t.Find("NameLabel");
-                if (nameLabel != null) nameLabel.gameObject.SetActive(showClose);
+                if (nameLabel != null) nameLabel.gameObject.SetActive(showMedium);
 
                 // P&C: Category mini-icons visible at medium zoom (hides at close to avoid clutter)
                 var catIcon = t.Find("CategoryIcon");
@@ -1200,27 +1200,49 @@ namespace AshenThrone.Empire
         /// <summary>P&C: Subtle oval drop shadow behind each building for depth.</summary>
         private void CreateBuildingShadow(GameObject building, Vector2Int size)
         {
+            // P&C-style diamond ground plate — raised terrain base under each building
+            var plateGO = new GameObject("GroundPlate");
+            plateGO.transform.SetParent(building.transform, false);
+            plateGO.transform.SetAsFirstSibling(); // Behind building sprite
+
+            var plateRect = plateGO.AddComponent<RectTransform>();
+            // Diamond plate is wider than building (fills the grid footprint)
+            // and sits at the bottom portion of the building bounding box
+            plateRect.anchorMin = new Vector2(-0.15f, -0.20f);
+            plateRect.anchorMax = new Vector2(1.15f, 0.35f);
+            plateRect.offsetMin = Vector2.zero;
+            plateRect.offsetMax = Vector2.zero;
+            // Rotate 45° to make a diamond shape from a square Image
+            plateRect.localRotation = Quaternion.Euler(0, 0, 45f);
+
+            var plateImg = plateGO.AddComponent<Image>();
+            // Slightly lighter green-brown than surrounding terrain — raised platform look
+            plateImg.color = new Color(0.30f, 0.38f, 0.22f, 0.65f);
+            plateImg.raycastTarget = false;
+
+            // Subtle border on the plate
+            var plateOutline = plateGO.AddComponent<Outline>();
+            plateOutline.effectColor = new Color(0.20f, 0.28f, 0.15f, 0.50f);
+            plateOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Drop shadow underneath the plate for depth
             var shadowGO = new GameObject("Shadow");
             shadowGO.transform.SetParent(building.transform, false);
-            shadowGO.transform.SetAsFirstSibling(); // Behind building sprite
-
-            var rect = shadowGO.AddComponent<RectTransform>();
-            // Shadow is slightly wider and sits at the bottom of the building
-            rect.anchorMin = new Vector2(-0.05f, -0.08f);
-            rect.anchorMax = new Vector2(1.05f, 0.15f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            var img = shadowGO.AddComponent<Image>();
-            img.color = new Color(0.02f, 0.01f, 0.05f, 0.30f);
-            img.raycastTarget = false;
-
+            shadowGO.transform.SetAsFirstSibling(); // Behind plate
+            var shadowRect = shadowGO.AddComponent<RectTransform>();
+            shadowRect.anchorMin = new Vector2(-0.10f, -0.15f);
+            shadowRect.anchorMax = new Vector2(1.10f, 0.20f);
+            shadowRect.offsetMin = Vector2.zero;
+            shadowRect.offsetMax = Vector2.zero;
+            var shadowImg = shadowGO.AddComponent<Image>();
+            shadowImg.color = new Color(0.02f, 0.01f, 0.05f, 0.25f);
+            shadowImg.raycastTarget = false;
             var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             #if UNITY_EDITOR
             if (spr == null)
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
-            if (spr != null) img.sprite = spr;
+            if (spr != null) shadowImg.sprite = spr;
         }
 
         /// <summary>P&C: Subtle idle breathing animation — buildings gently scale-pulse for life.</summary>
