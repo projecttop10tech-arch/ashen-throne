@@ -15,7 +15,7 @@ namespace AshenThrone.Empire
     /// Grid overlay + placement highlight shown only during move mode.
     /// Coordinate conversion uses 2:1 isometric projection.
     /// </summary>
-    public class CityGridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+    public partial class CityGridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {
         public const int GridColumns = 48;
         public const int GridRows = 48;
@@ -511,6 +511,25 @@ namespace AshenThrone.Empire
                     gImg.color = new Color(gImg.color.r, gImg.color.g, gImg.color.b, pulse);
                 }
             }
+
+            // P&C: Day/night cycle updates (every 30s to avoid perf cost)
+            _dayNightTimer += Time.deltaTime;
+            if (_dayNightTimer >= 30f)
+            {
+                _dayNightTimer = 0f;
+                UpdateDayNightCycle();
+            }
+
+            // P&C: Resource overflow check
+            _overflowCheckTimer += Time.deltaTime;
+            if (_overflowCheckTimer >= OverflowCheckInterval)
+            {
+                _overflowCheckTimer = 0f;
+                CheckResourceOverflow();
+            }
+
+            // P&C: Tick troop training queues
+            TickTroopQueues();
 
             // Pinch-zoom (mobile multi-touch)
             _touchCount = Input.touchCount;
@@ -5155,6 +5174,36 @@ namespace AshenThrone.Empire
                     ShowGarrisonDeployPanel(capGarrInstId, capGarrBid, capGarrTier);
                 });
                 AddInfoPanelText(garrGO.transform, "Label", "\u26E8 Garrison", 10, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // P&C: Troop training button for barracks/training_ground
+            if (buildingId == "barracks" || buildingId == "training_ground")
+            {
+                var trainGO = new GameObject("TrainTroopsBtn");
+                trainGO.transform.SetParent(panel.transform, false);
+                var trainRect = trainGO.AddComponent<RectTransform>();
+                trainRect.anchorMin = new Vector2(0.52f, 0.28f);
+                trainRect.anchorMax = new Vector2(0.95f, 0.35f);
+                trainRect.offsetMin = Vector2.zero;
+                trainRect.offsetMax = Vector2.zero;
+                var trainBg = trainGO.AddComponent<Image>();
+                trainBg.color = new Color(0.20f, 0.40f, 0.55f, 0.90f);
+                trainBg.raycastTarget = true;
+                var trainOutline = trainGO.AddComponent<Outline>();
+                trainOutline.effectColor = new Color(0.40f, 0.70f, 0.90f, 0.6f);
+                trainOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var trainBtn = trainGO.AddComponent<Button>();
+                trainBtn.targetGraphic = trainBg;
+                string capTrainInstId = instanceId;
+                string capTrainBid = buildingId;
+                int capTrainTier = tier;
+                trainBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowTroopTrainingPanel(capTrainInstId, capTrainBid, capTrainTier);
+                });
+                AddInfoPanelText(trainGO.transform, "Label", "\u2694 Train Troops", 10, FontStyle.Bold, Color.white,
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
@@ -12337,6 +12386,7 @@ namespace AshenThrone.Empire
 
         private readonly List<GameObject> _marchingTroops = new();
         private float _troopMarchSpawnTimer;
+        private float _dayNightTimer;
         private const float TroopMarchSpawnInterval = 8f; // seconds between march waves
 
         /// <summary>P&C: Spawn a tiny troop figure that marches from a barracks to the nearest wall gate.</summary>
@@ -14347,6 +14397,350 @@ namespace AshenThrone.Empire
                 _holding = false;
                 OnLongPress?.Invoke();
             }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Day/Night Cycle — Enhanced ambient lighting with building lights
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private readonly List<GameObject> _nightLightGlows = new();
+        private GameObject _skyOverlay; // Stars/moon at night
+        private bool _nightLightsCreated;
+
+        /// <summary>P&C: Enhanced day/night — create window lights on buildings at night, darken terrain.</summary>
+        private void UpdateDayNightCycle()
+        {
+            int hour = System.DateTime.Now.Hour;
+            bool isNight = hour >= 20 || hour < 6;
+            bool isDusk = hour >= 18 && hour < 20;
+            bool isDawn = hour >= 5 && hour < 7;
+
+            // Night lights on buildings
+            if (isNight && !_nightLightsCreated)
+            {
+                CreateNightBuildingLights();
+                CreateNightSkyOverlay();
+                _nightLightsCreated = true;
+            }
+            else if (!isNight && _nightLightsCreated)
+            {
+                RemoveNightLights();
+                _nightLightsCreated = false;
+            }
+
+            // Tint all building sprites based on time of day
+            Color buildingTint;
+            if (isNight)
+                buildingTint = new Color(0.55f, 0.55f, 0.75f, 1f); // Cool blue moonlight
+            else if (isDusk)
+                buildingTint = new Color(0.90f, 0.70f, 0.65f, 1f); // Warm sunset
+            else if (isDawn)
+                buildingTint = new Color(0.92f, 0.82f, 0.70f, 1f); // Golden dawn
+            else
+                buildingTint = Color.white; // Full daylight
+
+            foreach (var placement in _placements)
+            {
+                if (placement.VisualGO == null) continue;
+                // Don't override skin tint completely — blend with it
+                var img = placement.VisualGO.GetComponent<Image>();
+                if (img != null && !_burningBuildings.Contains(placement.InstanceId))
+                {
+                    if (_buildingSkins.TryGetValue(placement.InstanceId, out int skinIdx) && skinIdx > 0)
+                    {
+                        var skinColor = BuildingSkinOptions[skinIdx].Tint;
+                        img.color = skinColor * buildingTint;
+                    }
+                    else
+                    {
+                        img.color = buildingTint;
+                    }
+                }
+            }
+        }
+
+        private void CreateNightBuildingLights()
+        {
+            foreach (var placement in _placements)
+            {
+                if (placement.VisualGO == null) continue;
+                // Only some buildings get window lights
+                bool getsLight = placement.BuildingId == "stronghold" || placement.BuildingId == "barracks" ||
+                    placement.BuildingId == "embassy" || placement.BuildingId == "guild_hall" ||
+                    placement.BuildingId == "academy" || placement.BuildingId == "library" ||
+                    placement.BuildingId == "forge" || placement.BuildingId == "watch_tower" ||
+                    placement.BuildingId == "marketplace";
+                if (!getsLight) continue;
+
+                var bRect = placement.VisualGO.GetComponent<RectTransform>();
+                if (bRect == null) continue;
+
+                // Warm glow point on building
+                var glow = new GameObject($"NightLight_{placement.InstanceId}");
+                glow.transform.SetParent(placement.VisualGO.transform, false);
+                var glowRect = glow.AddComponent<RectTransform>();
+                glowRect.anchorMin = new Vector2(0.3f, 0.4f);
+                glowRect.anchorMax = new Vector2(0.7f, 0.7f);
+                glowRect.offsetMin = Vector2.zero;
+                glowRect.offsetMax = Vector2.zero;
+                var glowImg = glow.AddComponent<Image>();
+                glowImg.color = new Color(1f, 0.85f, 0.40f, 0.45f);
+                glowImg.raycastTarget = false;
+
+                // Load radial gradient if available
+                var radialSprite = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+                if (radialSprite != null) glowImg.sprite = radialSprite;
+
+                _nightLightGlows.Add(glow);
+            }
+        }
+
+        private void CreateNightSkyOverlay()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _skyOverlay = new GameObject("NightSky");
+            _skyOverlay.transform.SetParent(canvas.transform, false);
+            _skyOverlay.transform.SetSiblingIndex(0); // Behind everything
+            var rect = _skyOverlay.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var img = _skyOverlay.AddComponent<Image>();
+            img.color = new Color(0.02f, 0.02f, 0.08f, 0.25f);
+            img.raycastTarget = false;
+
+            // Scatter some "stars" (small white dots)
+            for (int i = 0; i < 20; i++)
+            {
+                var star = new GameObject($"Star_{i}");
+                star.transform.SetParent(_skyOverlay.transform, false);
+                var sRect = star.AddComponent<RectTransform>();
+                sRect.anchorMin = new Vector2(Random.Range(0.05f, 0.95f), Random.Range(0.55f, 0.95f));
+                sRect.anchorMax = sRect.anchorMin;
+                sRect.sizeDelta = new Vector2(Random.Range(1.5f, 3f), Random.Range(1.5f, 3f));
+                var sImg = star.AddComponent<Image>();
+                float brightness = Random.Range(0.6f, 1f);
+                sImg.color = new Color(brightness, brightness, brightness * 0.95f, Random.Range(0.4f, 0.8f));
+                sImg.raycastTarget = false;
+            }
+        }
+
+        private void RemoveNightLights()
+        {
+            foreach (var glow in _nightLightGlows)
+            {
+                if (glow != null) Destroy(glow);
+            }
+            _nightLightGlows.Clear();
+            if (_skyOverlay != null)
+            {
+                Destroy(_skyOverlay);
+                _skyOverlay = null;
+            }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Resource Overflow / Vault Full Warnings
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private readonly Dictionary<ResourceType, GameObject> _overflowWarnings = new();
+        private float _overflowCheckTimer;
+        private const float OverflowCheckInterval = 5f;
+        private const float OverflowThreshold = 0.90f; // Warn at 90% full
+
+        /// <summary>P&C: Check all resources against vault caps and show/hide warning badges.</summary>
+        private void CheckResourceOverflow()
+        {
+            var rm = ServiceLocator.Get<ResourceManager>();
+            if (rm == null) return;
+
+            CheckSingleResourceOverflow(rm, ResourceType.Stone, rm.Stone, rm.MaxStone);
+            CheckSingleResourceOverflow(rm, ResourceType.Iron, rm.Iron, rm.MaxIron);
+            CheckSingleResourceOverflow(rm, ResourceType.Grain, rm.Grain, rm.MaxGrain);
+            CheckSingleResourceOverflow(rm, ResourceType.ArcaneEssence, rm.ArcaneEssence, rm.MaxArcaneEssence);
+        }
+
+        private void CheckSingleResourceOverflow(ResourceManager rm, ResourceType type, long current, long max)
+        {
+            if (max <= 0) return;
+            float ratio = (float)current / max;
+            bool isOverflowing = ratio >= OverflowThreshold;
+
+            if (isOverflowing && !_overflowWarnings.ContainsKey(type))
+            {
+                CreateOverflowWarning(type, ratio >= 1f);
+            }
+            else if (!isOverflowing && _overflowWarnings.TryGetValue(type, out var warning))
+            {
+                if (warning != null) Destroy(warning);
+                _overflowWarnings.Remove(type);
+            }
+            else if (isOverflowing && _overflowWarnings.TryGetValue(type, out var existingWarning))
+            {
+                // Update: switch from "nearly full" to "FULL" if ratio changed
+                if (existingWarning != null)
+                {
+                    var label = existingWarning.GetComponentInChildren<Text>();
+                    if (label != null)
+                    {
+                        bool isFull = ratio >= 1f;
+                        label.text = isFull ? $"{GetResourceName(type)} FULL!" : $"{GetResourceName(type)} {(int)(ratio * 100)}%";
+                        label.color = isFull ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 0.85f, 0.3f);
+                    }
+                }
+            }
+        }
+
+        private void CreateOverflowWarning(ResourceType type, bool isFull)
+        {
+            // Find the corresponding producer building to position the warning
+            string producerBuilding = type switch
+            {
+                ResourceType.Grain => "grain_farm",
+                ResourceType.Iron => "iron_mine",
+                ResourceType.Stone => "stone_quarry",
+                ResourceType.ArcaneEssence => "arcane_tower",
+                _ => null
+            };
+
+            // Position at top of screen as a banner-style warning
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            int warningIndex = _overflowWarnings.Count;
+            var warningGO = new GameObject($"OverflowWarning_{type}");
+            warningGO.transform.SetParent(canvas.transform, false);
+            var rect = warningGO.AddComponent<RectTransform>();
+            // Stack warnings below resource bar
+            float yBase = 0.88f - warningIndex * 0.035f;
+            rect.anchorMin = new Vector2(0.20f, yBase);
+            rect.anchorMax = new Vector2(0.80f, yBase + 0.03f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = warningGO.AddComponent<Image>();
+            bg.color = isFull ? new Color(0.60f, 0.10f, 0.10f, 0.88f) : new Color(0.55f, 0.40f, 0.05f, 0.85f);
+            bg.raycastTarget = true;
+            var outline = warningGO.AddComponent<Outline>();
+            outline.effectColor = isFull ? new Color(1f, 0.3f, 0.3f, 0.6f) : new Color(1f, 0.85f, 0.3f, 0.5f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Tap to dismiss
+            var btn = warningGO.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(() =>
+            {
+                if (warningGO != null) Destroy(warningGO);
+                _overflowWarnings.Remove(type);
+            });
+
+            // Warning icon + text
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(warningGO.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(8, 0);
+            labelRect.offsetMax = new Vector2(-8, 0);
+            var text = labelGO.AddComponent<Text>();
+            text.text = isFull ? $"\u26a0 {GetResourceName(type)} FULL! Tap to upgrade vault." : $"\u26a0 {GetResourceName(type)} {(int)(OverflowThreshold * 100)}%+ — vault nearly full!";
+            text.fontSize = 11;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = isFull ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 0.85f, 0.3f);
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+
+            // Pulse animation
+            StartCoroutine(PulseOverflowWarning(warningGO, isFull));
+
+            _overflowWarnings[type] = warningGO;
+        }
+
+        private IEnumerator PulseOverflowWarning(GameObject warning, bool isFull)
+        {
+            while (warning != null)
+            {
+                var img = warning.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * (isFull ? 4f : 2f));
+                    float a = isFull ? 0.88f : 0.85f;
+                    img.color = isFull
+                        ? new Color(0.60f * pulse, 0.10f, 0.10f, a)
+                        : new Color(0.55f * pulse, 0.40f * pulse, 0.05f, a);
+                }
+                yield return null;
+            }
+        }
+
+        private static string GetResourceName(ResourceType type) => type switch
+        {
+            ResourceType.Stone => "Stone",
+            ResourceType.Iron => "Iron",
+            ResourceType.Grain => "Grain",
+            ResourceType.ArcaneEssence => "Arcane Essence",
+            _ => type.ToString()
+        };
+    }
+
+    // ====================================================================
+    // P&C: Troop Training Queue — Barracks / Training Ground
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        // Training queue per building instance
+        private readonly Dictionary<string, List<TroopQueueEntry>> _troopQueues = new();
+        private const int MaxTroopQueueSize = 5;
+
+        private struct TroopQueueEntry
+        {
+            public string TroopName;
+            public int Count;
+            public float RemainingTime;
+        }
+
+        /// <summary>Tick all troop training queues each frame.</summary>
+        private void TickTroopQueues()
+        {
+            var completedKeys = new List<string>();
+            foreach (var kvp in _troopQueues)
+            {
+                var queue = kvp.Value;
+                if (queue.Count == 0) continue;
+
+                // Only the first entry ticks down
+                var entry = queue[0];
+                entry.RemainingTime -= Time.deltaTime;
+                queue[0] = entry;
+
+                if (entry.RemainingTime <= 0f)
+                {
+                    queue.RemoveAt(0);
+                    Debug.Log($"[TroopTraining] {entry.TroopName} training complete at {kvp.Key}!");
+                }
+
+                if (queue.Count == 0)
+                    completedKeys.Add(kvp.Key);
+            }
+            foreach (var key in completedKeys)
+                _troopQueues.Remove(key);
+        }
+
+        /// <summary>P&C: Get active training queue count for a building (for notification badges).</summary>
+        public int GetTrainingQueueCount(string instanceId)
+        {
+            return _troopQueues.TryGetValue(instanceId, out var q) ? q.Count : 0;
         }
     }
 }

@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.78.0] — 2026-03-12 (Ralph Loop Iteration 73: Day/Night Cycle, Vault Overflow, Troop Queue)
+
+### ADDED
+- **Enhanced day/night cycle** — buildings tint based on real time of day: cool blue moonlight at night, warm sunset at dusk, golden dawn, full daylight. Night mode adds warm window glow lights on key buildings (stronghold, barracks, embassy, etc.) using radial gradient sprites. Night sky overlay with 20 scattered stars. Lights and sky automatically created/removed as time changes. Building skin tints blend correctly with day/night tinting.
+- **`UpdateDayNightCycle()` / `CreateNightBuildingLights()` / `CreateNightSkyOverlay()` methods** — time-based building tints + night light system. Updates every 30 seconds for performance.
+- **Resource vault overflow warnings** — banner warnings appear when any resource reaches 90%+ of vault capacity. Yellow "nearly full" warnings at 90%, red "FULL!" warnings at 100%. Banners pulse with urgency animation, stack below resource bar, and are tap-to-dismiss. Auto-updates every 5 seconds checking Stone/Iron/Grain/ArcaneEssence against MaxStone/MaxIron/MaxGrain/MaxArcaneEssence.
+- **`CheckResourceOverflow()` / `CreateOverflowWarning()` methods** — vault monitoring with threshold-based warning system and pulse animations.
+- **Troop training queue system** — background queue that ticks down training timers per building instance. Max 5 entries per queue. First entry counts down each frame; completed troops auto-removed. "Train Troops" button added to barracks/training_ground info panels. `GetTrainingQueueCount()` public API for notification badges.
+- **`TickTroopQueues()` method** — per-frame queue processing in Update(). Training queue data persists across panel open/close.
+
+---
+
 ## [0.77.0] — 2026-03-12 (Ralph Loop Iteration 72: Swipe Collect, Event Banners, Power Breakdown)
 
 ### ADDED
