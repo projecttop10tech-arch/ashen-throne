@@ -1036,9 +1036,12 @@ namespace AshenThrone.Empire
         /// </summary>
         public static Vector2 FootprintScreenSize(Vector2Int size)
         {
-            // Buildings slightly wider than grid footprint for P&C-style overlap
-            float w = (size.x + size.y) * HalfW * 1.2f;
-            float h = w * 1.8f;
+            // Diamond footprint width: (sizeX + sizeY) * HalfW is the exact isometric diamond width.
+            // Scale to 0.55x — buildings significantly SMALLER than their footprint,
+            // so visible terrain/grid shows between buildings (P&C-style clear separation).
+            float w = (size.x + size.y) * HalfW * 0.55f;
+            // Square bounding box — sprites are roughly 1:1 with iso perspective baked in
+            float h = w;
             return new Vector2(w, h);
         }
 
@@ -1054,8 +1057,8 @@ namespace AshenThrone.Empire
             var img = gridOverlay.GetComponent<UnityEngine.UI.Image>();
             if (img != null)
                 img.color = visible
-                    ? new Color(0.35f, 0.55f, 0.30f, 0.20f)  // bright move-mode
-                    : new Color(0.35f, 0.55f, 0.30f, 0.06f);  // faint background texture
+                    ? new Color(0.35f, 0.55f, 0.30f, 0.30f)  // bright move-mode
+                    : new Color(0.35f, 0.55f, 0.30f, 0.18f);  // P&C-style visible grid lines
         }
 
         // ====================================================================
@@ -2060,7 +2063,10 @@ namespace AshenThrone.Empire
         {
             var center = GridToLocalCenter(placement.GridOrigin, placement.Size);
             var screenSize = FootprintScreenSize(placement.Size);
-            rect.anchoredPosition = center;
+            // Offset upward so the sprite's base sits on the diamond footprint
+            // and the building "rises up" above its grid position
+            float yOffset = screenSize.y * 0.15f;
+            rect.anchoredPosition = center + new Vector2(0, yOffset);
             rect.sizeDelta = screenSize;
         }
 
@@ -2089,12 +2095,15 @@ namespace AshenThrone.Empire
 
                 // Reverse-calculate grid origin from isometric screen position
                 Vector2 screenPos = rect.anchoredPosition;
-                // screenPos is the center of the footprint, so we need to find the origin
+                // Remove the y-offset that was added for building visual positioning
+                float currentFootprintH = rect.sizeDelta.y;
+                float estimatedYOffset = currentFootprintH * 0.15f;
+                Vector2 gridCenter = screenPos - new Vector2(0, estimatedYOffset);
                 // center = GridToLocalCenter(origin, size)
-                // We solve: origin = LocalToGrid(screenPos) adjusted for size offset
-                float adjustedY = screenPos.y + IsoCenterY;
-                float gcx = (screenPos.x / HalfW + adjustedY / HalfH) * 0.5f;
-                float gcy = (adjustedY / HalfH - screenPos.x / HalfW) * 0.5f;
+                // We solve: origin = LocalToGrid(gridCenter) adjusted for size offset
+                float adjustedY = gridCenter.y + IsoCenterY;
+                float gcx = (gridCenter.x / HalfW + adjustedY / HalfH) * 0.5f;
+                float gcy = (adjustedY / HalfH - gridCenter.x / HalfW) * 0.5f;
                 int gx = Mathf.RoundToInt(gcx - size.x * 0.5f);
                 int gy = Mathf.RoundToInt(gcy - size.y * 0.5f);
 
@@ -2117,6 +2126,9 @@ namespace AshenThrone.Empire
                     Size = size,
                     VisualGO = child.gameObject,
                 };
+
+                // Force correct sizing — override whatever the generator set
+                PositionBuildingRect(rect, placement);
 
                 // Only mark cells that aren't already occupied (handles overlapping layout)
                 bool hasOverlap = false;
@@ -10306,7 +10318,6 @@ namespace AshenThrone.Empire
             _dragGhost.transform.SetParent(buildingContainer, false);
             var ghostRect = _dragGhost.AddComponent<RectTransform>();
             var ghostSize = FootprintScreenSize(found.Size);
-            ghostSize.y = ghostSize.x * 1.5f;
             ghostRect.sizeDelta = ghostSize;
             var ghostImg = _dragGhost.AddComponent<Image>();
             var srcImg = found.VisualGO?.GetComponent<Image>();
@@ -16761,6 +16772,549 @@ namespace AshenThrone.Empire
             label.color = color;
             label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             label.raycastTarget = false;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // P&C PARTIAL: City Quests (Daily/Weekly city-related quests with rewards)
+    // ═══════════════════════════════════════════════════════════════════
+    public partial class CityGridView
+    {
+        private GameObject _questPanel;
+        private GameObject _questButton;
+
+        private static readonly CityQuest[] DailyQuests = new[]
+        {
+            new CityQuest("upgrade_1",    "Upgrade 1 Building",        "Upgrade any building once",            200, 200, 200, 50,  1),
+            new CityQuest("collect_5",    "Collect 5 Bubbles",         "Tap 5 resource bubbles",               100, 100, 100, 25,  5),
+            new CityQuest("train_troops", "Train Troops",              "Start a troop training session",       150, 150, 150, 30,  1),
+            new CityQuest("visit_market", "Visit the Marketplace",     "Open the marketplace building",        100, 100, 0,   50,  1),
+            new CityQuest("donate_ally",  "Donate to Alliance",        "Make any alliance donation",           0,   0,   300, 75,  1),
+        };
+
+        private static readonly CityQuest[] WeeklyQuests = new[]
+        {
+            new CityQuest("upgrade_5",     "Upgrade 5 Buildings",      "Complete 5 building upgrades",         800,  800,  800,  200, 5),
+            new CityQuest("reach_prosper", "Reach Next Prosperity",    "Increase your prosperity rank",        500,  500,  500,  300, 1),
+            new CityQuest("collect_all",   "Mass Collect",             "Use Collect All 3 times",              400,  400,  400,  100, 3),
+        };
+
+        private struct CityQuest
+        {
+            public string Id;
+            public string Title;
+            public string Description;
+            public long StoneReward;
+            public long IronReward;
+            public long GrainReward;
+            public long ArcaneReward;
+            public int RequiredCount;
+
+            public CityQuest(string id, string title, string desc, long stone, long iron, long grain, long arcane, int count)
+            {
+                Id = id; Title = title; Description = desc;
+                StoneReward = stone; IronReward = iron; GrainReward = grain; ArcaneReward = arcane;
+                RequiredCount = count;
+            }
+        }
+
+        private readonly Dictionary<string, int> _questProgress = new();
+        private readonly HashSet<string> _questClaimed = new();
+
+        /// <summary>P&C: Create the quest button icon on the left side of the city screen.</summary>
+        private void CreateQuestButton()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _questButton = new GameObject("QuestButton");
+            _questButton.transform.SetParent(canvas.transform, false);
+            var rect = _questButton.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.02f, 0.55f);
+            rect.anchorMax = new Vector2(0.12f, 0.61f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _questButton.AddComponent<Image>();
+            bg.color = new Color(0.55f, 0.35f, 0.15f, 0.92f);
+            bg.raycastTarget = true;
+
+            var outline = _questButton.AddComponent<Outline>();
+            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.9f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            var btn = _questButton.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(ShowQuestPanel);
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_questButton.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            var text = labelGO.AddComponent<Text>();
+            text.text = "\u2694 QUESTS";
+            text.fontSize = 11;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+            var shadow = labelGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Red notification dot for incomplete quests
+            var dotGO = new GameObject("NotifDot");
+            dotGO.transform.SetParent(_questButton.transform, false);
+            var dotRect = dotGO.AddComponent<RectTransform>();
+            dotRect.anchorMin = new Vector2(0.85f, 0.70f);
+            dotRect.anchorMax = new Vector2(1.05f, 1.05f);
+            dotRect.offsetMin = Vector2.zero;
+            dotRect.offsetMax = Vector2.zero;
+            var dot = dotGO.AddComponent<Image>();
+            dot.color = new Color(0.9f, 0.15f, 0.15f, 0.95f);
+        }
+
+        /// <summary>P&C: Show daily and weekly quest panel.</summary>
+        private void ShowQuestPanel()
+        {
+            if (_questPanel != null) { Destroy(_questPanel); _questPanel = null; return; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // Dim overlay
+            var overlay = new GameObject("QuestOverlay");
+            overlay.transform.SetParent(canvas.transform, false);
+            var overlayRect = overlay.AddComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+            var overlayImg = overlay.AddComponent<Image>();
+            overlayImg.color = new Color(0, 0, 0, 0.6f);
+            overlayImg.raycastTarget = true;
+            var overlayBtn = overlay.AddComponent<Button>();
+            overlayBtn.onClick.AddListener(() => { if (_questPanel != null) { Destroy(_questPanel); _questPanel = null; } });
+
+            _questPanel = new GameObject("QuestPanel");
+            _questPanel.transform.SetParent(overlay.transform, false);
+            var panelRect = _questPanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.12f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.88f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            var panelBg = _questPanel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            panelBg.raycastTarget = true;
+            var panelOutline = _questPanel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            // Title
+            AddInfoPanelText(_questPanel.transform, "Title", "\u2694 CITY QUESTS", 16, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f),
+                new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.UpperCenter);
+
+            // Daily section header
+            AddInfoPanelText(_questPanel.transform, "DailyHeader", "DAILY QUESTS", 12, FontStyle.Bold,
+                new Color(0.7f, 0.85f, 1f),
+                new Vector2(0.05f, 0.82f), new Vector2(0.50f, 0.88f), TextAnchor.MiddleLeft);
+
+            float y = 0.78f;
+            float rowH = 0.09f;
+            foreach (var quest in DailyQuests)
+            {
+                CreateQuestRow(_questPanel.transform, quest, y, y - rowH, true);
+                y -= rowH + 0.01f;
+            }
+
+            // Weekly section header
+            AddInfoPanelText(_questPanel.transform, "WeeklyHeader", "WEEKLY QUESTS", 12, FontStyle.Bold,
+                new Color(1f, 0.75f, 0.5f),
+                new Vector2(0.05f, y - 0.02f), new Vector2(0.50f, y + 0.04f), TextAnchor.MiddleLeft);
+
+            y -= 0.08f;
+            foreach (var quest in WeeklyQuests)
+            {
+                CreateQuestRow(_questPanel.transform, quest, y, y - rowH, false);
+                y -= rowH + 0.01f;
+            }
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(_questPanel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.92f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.99f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.6f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_questPanel != null) { Destroy(_questPanel); _questPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _questPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void CreateQuestRow(Transform parent, CityQuest quest, float top, float bottom, bool isDaily)
+        {
+            var row = new GameObject($"Quest_{quest.Id}");
+            row.transform.SetParent(parent, false);
+            var rowRect = row.AddComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0.03f, bottom);
+            rowRect.anchorMax = new Vector2(0.97f, top);
+            rowRect.offsetMin = Vector2.zero;
+            rowRect.offsetMax = Vector2.zero;
+
+            var rowBg = row.AddComponent<Image>();
+            bool claimed = _questClaimed.Contains(quest.Id);
+            int progress = _questProgress.TryGetValue(quest.Id, out var p) ? p : 0;
+            bool complete = progress >= quest.RequiredCount;
+            rowBg.color = claimed ? new Color(0.15f, 0.25f, 0.15f, 0.7f)
+                        : complete ? new Color(0.20f, 0.35f, 0.15f, 0.8f)
+                        : new Color(0.12f, 0.10f, 0.18f, 0.8f);
+
+            // Quest title and description
+            AddInfoPanelText(row.transform, "QTitle", quest.Title, 11, FontStyle.Bold,
+                Color.white,
+                new Vector2(0.02f, 0.50f), new Vector2(0.55f, 0.95f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(row.transform, "QDesc", quest.Description, 8, FontStyle.Normal,
+                new Color(0.7f, 0.7f, 0.7f),
+                new Vector2(0.02f, 0.05f), new Vector2(0.55f, 0.50f), TextAnchor.MiddleLeft);
+
+            // Progress
+            string progText = claimed ? "\u2714 CLAIMED" : $"{Mathf.Min(progress, quest.RequiredCount)}/{quest.RequiredCount}";
+            Color progColor = claimed ? new Color(0.5f, 0.8f, 0.5f) : complete ? new Color(0.4f, 0.9f, 0.3f) : new Color(0.8f, 0.8f, 0.8f);
+            AddInfoPanelText(row.transform, "Progress", progText, 10, FontStyle.Bold,
+                progColor,
+                new Vector2(0.55f, 0.05f), new Vector2(0.72f, 0.95f), TextAnchor.MiddleCenter);
+
+            // Reward summary
+            string reward = $"+{quest.StoneReward}\u25C6 +{quest.IronReward}\u25C6 +{quest.GrainReward}\u25C6";
+            if (quest.ArcaneReward > 0) reward += $" +{quest.ArcaneReward}\u2726";
+            AddInfoPanelText(row.transform, "Reward", reward, 7, FontStyle.Normal,
+                new Color(0.9f, 0.78f, 0.4f),
+                new Vector2(0.72f, 0.50f), new Vector2(0.98f, 0.95f), TextAnchor.MiddleRight);
+
+            // Claim button (if complete and not claimed)
+            if (complete && !claimed)
+            {
+                var claimGO = new GameObject("ClaimBtn");
+                claimGO.transform.SetParent(row.transform, false);
+                var claimRect = claimGO.AddComponent<RectTransform>();
+                claimRect.anchorMin = new Vector2(0.75f, 0.10f);
+                claimRect.anchorMax = new Vector2(0.97f, 0.48f);
+                claimRect.offsetMin = Vector2.zero;
+                claimRect.offsetMax = Vector2.zero;
+                var claimBg = claimGO.AddComponent<Image>();
+                claimBg.color = new Color(0.15f, 0.65f, 0.25f, 0.95f);
+                var claimBtn = claimGO.AddComponent<Button>();
+                claimBtn.targetGraphic = claimBg;
+                string qId = quest.Id;
+                long sR = quest.StoneReward, iR = quest.IronReward, gR = quest.GrainReward, aR = quest.ArcaneReward;
+                claimBtn.onClick.AddListener(() => ClaimQuest(qId, sR, iR, gR, aR));
+                AddInfoPanelText(claimGO.transform, "ClaimLabel", "CLAIM", 9, FontStyle.Bold,
+                    Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+        }
+
+        private void ClaimQuest(string questId, long stone, long iron, long grain, long arcane)
+        {
+            if (_questClaimed.Contains(questId)) return;
+            _questClaimed.Add(questId);
+
+            if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+            {
+                rm.AddResource(ResourceType.Stone, stone);
+                rm.AddResource(ResourceType.Iron, iron);
+                rm.AddResource(ResourceType.Grain, grain);
+                rm.AddResource(ResourceType.ArcaneEssence, arcane);
+            }
+
+            Debug.Log($"[CityQuests] Claimed quest '{questId}': +{stone}S +{iron}I +{grain}G +{arcane}A");
+
+            // Refresh panel
+            if (_questPanel != null)
+            {
+                var parent = _questPanel.transform.parent;
+                Destroy(_questPanel); _questPanel = null;
+                ShowQuestPanel();
+            }
+        }
+
+        /// <summary>P&C: Increment quest progress for a given quest ID.</summary>
+        public void IncrementQuestProgress(string questId, int amount = 1)
+        {
+            if (!_questProgress.ContainsKey(questId))
+                _questProgress[questId] = 0;
+            _questProgress[questId] += amount;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // P&C PARTIAL: Building Relocate (Quick-relocate via radial menu)
+    // ═══════════════════════════════════════════════════════════════════
+    public partial class CityGridView
+    {
+        private GameObject _relocateHighlight;
+        private CityBuildingPlacement _relocatingBuilding;
+        private bool _relocateMode;
+
+        /// <summary>P&C: Enter relocate mode for a specific building from radial menu.</summary>
+        private void EnterRelocateMode(CityBuildingPlacement placement)
+        {
+            if (placement.BuildingId == "stronghold") return; // Can't relocate stronghold
+
+            _relocatingBuilding = placement;
+            _relocateMode = true;
+
+            // Show instruction banner
+            ShowRelocateBanner();
+
+            // Highlight the building being relocated
+            if (placement.VisualGO != null)
+            {
+                var img = placement.VisualGO.GetComponent<Image>();
+                if (img != null) img.color = new Color(0.5f, 0.8f, 1f, 0.7f);
+            }
+
+            // Close any open panels
+            DismissBuildingInfoPanel();
+
+            Debug.Log($"[Relocate] Entered relocate mode for {placement.BuildingId} ({placement.InstanceId})");
+        }
+
+        private GameObject _relocateBanner;
+
+        private void ShowRelocateBanner()
+        {
+            if (_relocateBanner != null) Destroy(_relocateBanner);
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _relocateBanner = new GameObject("RelocateBanner");
+            _relocateBanner.transform.SetParent(canvas.transform, false);
+            var rect = _relocateBanner.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.10f, 0.88f);
+            rect.anchorMax = new Vector2(0.90f, 0.94f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _relocateBanner.AddComponent<Image>();
+            bg.color = new Color(0.12f, 0.35f, 0.55f, 0.92f);
+
+            var outline = _relocateBanner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.4f, 0.7f, 1f, 0.8f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Label
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_relocateBanner.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = new Vector2(0.75f, 1f);
+            labelRect.offsetMin = new Vector2(8, 0);
+            labelRect.offsetMax = Vector2.zero;
+            var text = labelGO.AddComponent<Text>();
+            string bName = BuildingDisplayNames.TryGetValue(_relocatingBuilding.BuildingId, out var n) ? n : _relocatingBuilding.BuildingId;
+            text.text = $"TAP A NEW LOCATION FOR: {bName}";
+            text.fontSize = 11;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.color = Color.white;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.raycastTarget = false;
+
+            // Cancel button
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(_relocateBanner.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.78f, 0.10f);
+            cancelRect.anchorMax = new Vector2(0.98f, 0.90f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelBg = cancelGO.AddComponent<Image>();
+            cancelBg.color = new Color(0.6f, 0.15f, 0.15f, 0.9f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelBg;
+            cancelBtn.onClick.AddListener(ExitRelocateMode);
+            AddInfoPanelText(cancelGO.transform, "CancelLabel", "CANCEL", 10, FontStyle.Bold,
+                Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>P&C: Attempt to relocate building to tapped grid position.</summary>
+        private void TryRelocateToPosition(Vector2Int targetOrigin)
+        {
+            if (_relocatingBuilding == null) { ExitRelocateMode(); return; }
+
+            // Check if target is valid (inside playable area and unoccupied)
+            var size = _relocatingBuilding.Size;
+            bool canPlace = true;
+            for (int dx = 0; dx < size.x && canPlace; dx++)
+            {
+                for (int dy = 0; dy < size.y && canPlace; dy++)
+                {
+                    var cell = targetOrigin + new Vector2Int(dx, dy);
+                    if (cell.x < 2 || cell.x > 44 || cell.y < 2 || cell.y > 44)
+                    {
+                        canPlace = false;
+                        break;
+                    }
+                    if (_occupancy.TryGetValue(cell, out var occupant) && occupant != _relocatingBuilding.InstanceId)
+                    {
+                        canPlace = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!canPlace)
+            {
+                ShowUpgradeBlockedToast("Cannot place here — blocked or outside city walls");
+                return;
+            }
+
+            // Clear old occupancy
+            var oldOrigin = _relocatingBuilding.GridOrigin;
+            for (int dx = 0; dx < size.x; dx++)
+                for (int dy = 0; dy < size.y; dy++)
+                    _occupancy.Remove(oldOrigin + new Vector2Int(dx, dy));
+
+            // Set new occupancy
+            for (int dx = 0; dx < size.x; dx++)
+                for (int dy = 0; dy < size.y; dy++)
+                    _occupancy[targetOrigin + new Vector2Int(dx, dy)] = _relocatingBuilding.InstanceId;
+
+            // Update placement data
+            _relocatingBuilding.GridOrigin = targetOrigin;
+
+            // Move visual
+            if (_relocatingBuilding.VisualGO != null)
+            {
+                var newPos = GridToLocalCenter(targetOrigin, size);
+                _relocatingBuilding.VisualGO.GetComponent<RectTransform>().anchoredPosition = newPos;
+
+                // Reset tint
+                var img = _relocatingBuilding.VisualGO.GetComponent<Image>();
+                if (img != null) img.color = Color.white;
+            }
+
+            Debug.Log($"[Relocate] Moved {_relocatingBuilding.BuildingId} to ({targetOrigin.x},{targetOrigin.y})");
+            SortBuildingsByDepth();
+            ExitRelocateMode();
+        }
+
+        private void ExitRelocateMode()
+        {
+            _relocateMode = false;
+
+            // Reset building tint
+            if (_relocatingBuilding?.VisualGO != null)
+            {
+                var img = _relocatingBuilding.VisualGO.GetComponent<Image>();
+                if (img != null) img.color = Color.white;
+            }
+
+            _relocatingBuilding = null;
+            if (_relocateBanner != null) { Destroy(_relocateBanner); _relocateBanner = null; }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // P&C PARTIAL: Resource Rush (Tap resource bar to rush-collect all producers)
+    // ═══════════════════════════════════════════════════════════════════
+    public partial class CityGridView
+    {
+        private float _resourceRushCooldown;
+        private const float ResourceRushCooldownTime = 30f; // Can rush-collect every 30 seconds
+
+        /// <summary>P&C: Rush-collect all resource producers. Triggered by tapping resource bar.</summary>
+        private void TriggerResourceRush()
+        {
+            if (_resourceRushCooldown > 0f)
+            {
+                ShowUpgradeBlockedToast($"Rush on cooldown ({(int)_resourceRushCooldown}s remaining)");
+                return;
+            }
+
+            // Collect all resource bubbles
+            var spawner = FindFirstObjectByType<ResourceBubbleSpawner>();
+            if (spawner != null)
+            {
+                int bubbles = spawner.GetTotalActiveBubbleCount();
+                if (bubbles > 0)
+                {
+                    spawner.CollectAll();
+                    Debug.Log($"[ResourceRush] Rush-collected {bubbles} bubbles");
+                }
+            }
+
+            // Also grant a small bonus from direct production (5 seconds worth)
+            if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+            {
+                long bonusStone = (long)(rm.StonePerSecond * 5f);
+                long bonusIron = (long)(rm.IronPerSecond * 5f);
+                long bonusGrain = (long)(rm.GrainPerSecond * 5f);
+                long bonusArcane = (long)(rm.ArcaneEssencePerSecond * 5f);
+
+                if (bonusStone > 0) rm.AddResource(ResourceType.Stone, bonusStone);
+                if (bonusIron > 0) rm.AddResource(ResourceType.Iron, bonusIron);
+                if (bonusGrain > 0) rm.AddResource(ResourceType.Grain, bonusGrain);
+                if (bonusArcane > 0) rm.AddResource(ResourceType.ArcaneEssence, bonusArcane);
+
+                Debug.Log($"[ResourceRush] Bonus: +{bonusStone}S +{bonusIron}I +{bonusGrain}G +{bonusArcane}A");
+            }
+
+            _resourceRushCooldown = ResourceRushCooldownTime;
+
+            // Visual feedback — flash resource bar green
+            StartCoroutine(FlashResourceRush());
+        }
+
+        private System.Collections.IEnumerator FlashResourceRush()
+        {
+            // Find the resource bar in the canvas
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) yield break;
+
+            var flashGO = new GameObject("RushFlash");
+            flashGO.transform.SetParent(canvas.transform, false);
+            var rect = flashGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0.92f);
+            rect.anchorMax = new Vector2(1f, 0.97f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var img = flashGO.AddComponent<Image>();
+            img.color = new Color(0.2f, 0.8f, 0.3f, 0.5f);
+            img.raycastTarget = false;
+
+            float t = 0f;
+            while (t < 0.5f)
+            {
+                t += Time.deltaTime;
+                float alpha = 0.5f * (1f - t / 0.5f);
+                img.color = new Color(0.2f, 0.8f, 0.3f, alpha);
+                yield return null;
+            }
+            Destroy(flashGO);
+        }
+
+        /// <summary>P&C: Tick the resource rush cooldown timer.</summary>
+        private void TickResourceRushCooldown()
+        {
+            if (_resourceRushCooldown > 0f)
+                _resourceRushCooldown -= Time.deltaTime;
         }
     }
 }

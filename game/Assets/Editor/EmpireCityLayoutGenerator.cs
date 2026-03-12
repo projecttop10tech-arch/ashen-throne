@@ -194,9 +194,9 @@ namespace AshenThrone.Editor
 
         static Vector2 FootprintSize(Vector2Int size)
         {
-            // Buildings slightly wider than grid footprint for P&C-style overlap
-            float w = (size.x + size.y) * HalfW * 1.2f;
-            float h = w * 1.8f;
+            // P&C-style: buildings significantly smaller than footprint so terrain shows between them
+            float w = (size.x + size.y) * HalfW * 0.55f;
+            float h = w; // Square bounding box — sprites are ~1:1 with iso perspective baked in
             return new Vector2(w, h);
         }
 
@@ -306,12 +306,13 @@ namespace AshenThrone.Editor
                 EnsureSpriteImportSettings("Assets/Art/Environments/empire_terrain_bg.png");
                 terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
                 outerImg.sprite = terrainSprite;
-                // Neutral dark tint — terrain barely visible, just enough for texture variation
-                outerImg.color = new Color(0.06f, 0.05f, 0.06f, 1f);
+                // P&C-style visible terrain — dark green/brown, clearly visible ground
+                outerImg.color = new Color(0.25f, 0.30f, 0.20f, 1f);
             }
             else
             {
-                outerImg.color = new Color(0.08f, 0.06f, 0.12f, 1f);
+                // Fallback: dark green-brown terrain color
+                outerImg.color = new Color(0.20f, 0.25f, 0.15f, 1f);
             }
             outerImg.raycastTarget = true;
 
@@ -361,8 +362,8 @@ namespace AshenThrone.Editor
                 goImg.color = new Color(0.4f, 0.8f, 0.3f, 0.15f);
             }
             goImg.raycastTarget = false;
-            // Faint grid visible by default for ground texture (P&C-style diamond lines)
-            goImg.color = new Color(0.35f, 0.55f, 0.30f, 0.06f);
+            // P&C-style: subtle but visible diamond grid lines on terrain
+            goImg.color = new Color(0.35f, 0.55f, 0.30f, 0.18f);
             gridOverlayGO.SetActive(true);
 
             // ================================================================
@@ -453,10 +454,12 @@ namespace AshenThrone.Editor
 
                 Vector2 isoPos = GridToIsoCenter(gx, gy, size);
                 Vector2 footprint = FootprintSize(size);
-                // Stronghold gets extra 50% size boost for dramatic dominance (P&C-style)
+                // Stronghold gets size boost for dramatic dominance (P&C-style)
                 if (id == "stronghold")
-                    footprint *= 1.8f;
-                bldgRect.anchoredPosition = isoPos;
+                    footprint *= 1.5f;
+                // Offset upward so building base sits on diamond footprint
+                float yOffset = footprint.y * 0.15f;
+                bldgRect.anchoredPosition = isoPos + Vector2.up * yOffset;
                 bldgRect.sizeDelta = footprint;
 
                 var bldgImg = bldgGO.AddComponent<Image>();

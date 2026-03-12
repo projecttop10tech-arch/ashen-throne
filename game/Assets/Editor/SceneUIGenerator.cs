@@ -385,28 +385,28 @@ namespace AshenThrone.Editor
             var scene = OpenScene("Lobby");
             var canvasGo = FindOrCreateCanvas(scene);
 
-            // Background — dark fantasy cityscape with atmospheric overlays
-            var bg = AddPanel(canvasGo, "Background", new Color(0.03f, 0.02f, 0.06f, 1f));
+            // Background — P&C-style: visible terrain with dark sky, NOT near-black
+            var bg = AddPanel(canvasGo, "Background", new Color(0.12f, 0.14f, 0.10f, 1f));
             StretchToParent(bg);
             // City art background
             var bgArt = AddPanel(bg, "CityArt", Color.white);
             StretchToParent(bgArt);
             var bgSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_bg.png");
-            if (bgSpr != null) { bgArt.GetComponent<Image>().sprite = bgSpr; bgArt.GetComponent<Image>().preserveAspect = false; bgArt.GetComponent<Image>().color = new Color(1.2f, 1.1f, 1.05f, 1f); }
-            // Subtle purple tint overlay
-            var bgDarken = AddPanel(bg, "DarkenOverlay", new Color(0.06f, 0.03f, 0.12f, 0.15f));
+            if (bgSpr != null) { bgArt.GetComponent<Image>().sprite = bgSpr; bgArt.GetComponent<Image>().preserveAspect = false; bgArt.GetComponent<Image>().color = new Color(0.7f, 0.75f, 0.65f, 1f); }
+            // Very subtle darkening overlay — keep terrain visible
+            var bgDarken = AddPanel(bg, "DarkenOverlay", new Color(0.04f, 0.03f, 0.08f, 0.10f));
             StretchToParent(bgDarken);
-            // Sky gradient — purple/blue atmospheric
-            var skyGrad = AddPanel(bg, "SkyGradient", new Color(0.06f, 0.03f, 0.14f, 0.40f));
-            SetAnchors(skyGrad, 0f, 0.70f, 1f, 1f);
-            // Ground gradient — darken bottom for nav bar contrast
-            var groundGrad = AddPanel(bg, "GroundGradient", new Color(0.02f, 0.01f, 0.03f, 0.70f));
-            SetAnchors(groundGrad, 0f, 0f, 1f, 0.25f);
-            // Side vignettes — wider and stronger
-            var vigLeft = AddPanel(bg, "VignetteL", new Color(0.01f, 0.01f, 0.02f, 0.50f));
-            SetAnchors(vigLeft, 0f, 0f, 0.10f, 1f);
-            var vigRight = AddPanel(bg, "VignetteR", new Color(0.01f, 0.01f, 0.02f, 0.50f));
-            SetAnchors(vigRight, 0.90f, 0f, 1f, 1f);
+            // Sky gradient — subtle darkening at top for UI contrast
+            var skyGrad = AddPanel(bg, "SkyGradient", new Color(0.05f, 0.04f, 0.10f, 0.25f));
+            SetAnchors(skyGrad, 0f, 0.80f, 1f, 1f);
+            // Ground gradient — mild darkening at very bottom for nav bar
+            var groundGrad = AddPanel(bg, "GroundGradient", new Color(0.03f, 0.02f, 0.05f, 0.30f));
+            SetAnchors(groundGrad, 0f, 0f, 1f, 0.12f);
+            // Side vignettes — very subtle
+            var vigLeft = AddPanel(bg, "VignetteL", new Color(0.02f, 0.02f, 0.04f, 0.20f));
+            SetAnchors(vigLeft, 0f, 0f, 0.05f, 1f);
+            var vigRight = AddPanel(bg, "VignetteR", new Color(0.02f, 0.02f, 0.04f, 0.20f));
+            SetAnchors(vigRight, 0.95f, 0f, 1f, 1f);
 
             // Notch/Dynamic Island fill
             var notchFill = AddPanel(canvasGo, "NotchFill", new Color(0.03f, 0.02f, 0.06f, 1f));

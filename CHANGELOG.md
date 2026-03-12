@@ -4,6 +4,23 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.83.0] — 2026-03-12 (Ralph Loop Iteration 78: Grid View Overhaul, City Quests, Building Relocate)
+
+### FIXED
+- **Grid view overhaul — buildings no longer overlap** — Major visual fix matching P&C reference. Building visual size reduced from 1.2x to 0.55x footprint width, height changed from 1.8x width to 1:1 square (sprites have iso perspective baked in). Buildings now have clear terrain gaps between them instead of overlapping. Runtime `PositionBuildingRect()` forces correct sizing on all scene buildings.
+- **Terrain visibility** — Background tint changed from near-black `(0.06, 0.05, 0.06)` to visible green-brown `(0.25, 0.30, 0.20)`. Empire scene background lightened from `(0.03, 0.02, 0.06)` to `(0.12, 0.14, 0.10)` with reduced overlay opacity. Terrain is now clearly visible between buildings like P&C.
+- **Grid lines visible by default** — Grid overlay opacity increased from 0.06 to 0.18 (0.30 in move mode). Subtle but clear diamond grid lines always visible on terrain.
+- **Stronghold proportional sizing** — Stronghold boost reduced from 1.8x to 1.5x. Still prominent center piece but no longer dominates the entire screen.
+- **Building y-offset positioning** — Buildings now offset upward by 15% of height so sprite base sits on the diamond footprint, matching P&C's visual grounding.
+- **Generator + runtime sync** — Both `EmpireCityLayoutGenerator.FootprintSize()` and `CityGridView.FootprintScreenSize()` now use identical 0.55x sizing. `RegisterSceneBuildings()` forces correct sizing via `PositionBuildingRect()` at runtime.
+
+### ADDED
+- **City quests panel** — daily (5 quests) and weekly (3 quests) quest system with rewards. Quest button on left side with notification dot. Quests like "Upgrade 1 Building", "Collect 5 Bubbles", "Train Troops". Each quest shows title, description, progress, rewards, and claim button. Claimed quests grant Stone/Iron/Grain/Arcane via ResourceManager.
+- **Building relocate mode** — tap-to-relocate from context menu. Shows instruction banner with building name and cancel button. Validates target position (inside walls, unoccupied). Updates occupancy grid, repositions visual, re-sorts depth.
+- **Resource rush** — tap resource bar to rush-collect all producers. Collects all active bubbles + grants 5 seconds of bonus production. 30-second cooldown with green flash feedback.
+
+---
+
 ## [0.82.0] — 2026-03-12 (Ralph Loop Iteration 77: Daily Chest, Traveling Merchant, City Prosperity)
 
 ### ADDED
