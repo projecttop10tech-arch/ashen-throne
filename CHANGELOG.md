@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.57.0] — 2026-03-12 (Ralph Loop Iteration 52: Production Forecast, Radial Demolish, SH Upgrade Fix)
+
+### ADDED
+- **Daily production forecast in info panel** — resource buildings now show daily output (hourly × 24) with "☉ Daily: +6K" label, plus vault fill time estimate ("Vault full in 3h 20m"). Uses ResourceManager vault caps for accurate fill projections.
+- **Demolish button in radial menu** — non-stronghold buildings now show a red "☠ Remove" button in the radial semicircle popup. Tapping it opens the existing demolish confirmation dialog with warning text and Cancel/Confirm buttons.
+
+### CHANGED
+- Stronghold upgrade banner now routes through `ShowUpgradeConfirmDialog()` instead of directly calling `BuildingManager.StartUpgrade()`. Shows resource costs, block reasons, and requires explicit confirmation — matching P&C's upgrade flow consistency.
+- Radial menu now shows 4 buttons for non-stronghold buildings (Upgrade/Timer, Info, Move, Remove) arranged in wider arc.
+
+---
+
 ## [0.56.0] — 2026-03-12 (Ralph Loop Iteration 51: Ambient Tint, Mini-Map, VIP Boost)
 
 ### ADDED

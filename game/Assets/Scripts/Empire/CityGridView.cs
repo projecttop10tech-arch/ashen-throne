@@ -3234,6 +3234,17 @@ namespace AshenThrone.Empire
                 EnterMoveModeForBuilding(evt.InstanceId);
             }));
 
+            // P&C: Demolish option (not for stronghold)
+            if (evt.BuildingId != "stronghold")
+            {
+                string demInstanceId = evt.InstanceId;
+                string demBuildingId = evt.BuildingId;
+                radialButtons.Add(("\u2620", "Remove", new Color(0.65f, 0.18f, 0.15f, 0.9f), () => {
+                    DismissInfoPopup();
+                    ShowDemolishConfirmDialog(demInstanceId, demBuildingId);
+                }));
+            }
+
             // P&C: Arrange buttons in semicircle arc above the name plate
             float radius = 55f; // pixels from center
             float startAngle = 150f; // degrees — leftmost position
@@ -3679,13 +3690,39 @@ namespace AshenThrone.Empire
                 new Color(0.70f, 0.85f, 1f),
                 new Vector2(0.05f, statsY - 0.02f), new Vector2(0.50f, statsY + 0.04f), TextAnchor.MiddleLeft);
 
-            // Resource production info (if applicable)
+            // Resource production info (if applicable) — P&C-style hourly + daily forecast
             if (ResourceBuildingTypes.TryGetValue(buildingId, out var resInfo))
             {
                 int rate = (tier + 1) * 250;
                 string rateText = rate >= 1000 ? $"{rate / 1000f:F1}K" : $"{rate}";
                 AddInfoPanelText(panel.transform, "ProdRate",
                     $"Production: +{rateText}/hr ({resInfo.Name})", 11, FontStyle.Normal, resInfo.Tint,
+                    new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
+                statsY -= 0.07f;
+
+                // P&C: Daily forecast + vault fill estimate
+                int dailyRate = rate * 24;
+                string dailyText = dailyRate >= 1_000_000 ? $"{dailyRate / 1_000_000f:F1}M"
+                    : dailyRate >= 1000 ? $"{dailyRate / 1000f:F1}K" : $"{dailyRate}";
+                // Vault fill time estimate
+                long vaultCap = 0;
+                if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+                {
+                    vaultCap = resInfo.Name switch
+                    {
+                        "Stone" => rm.MaxStone,
+                        "Iron" => rm.MaxIron,
+                        "Grain" => rm.MaxGrain,
+                        "Arcane" => rm.MaxArcaneEssence,
+                        _ => 0
+                    };
+                }
+                string fillStr = vaultCap > 0 && rate > 0
+                    ? $" | Vault full in {FormatTimeRemaining((int)((vaultCap - 0) / (rate / 3600f)))}"
+                    : "";
+                AddInfoPanelText(panel.transform, "DailyForecast",
+                    $"\u2609 Daily: +{dailyText}{fillStr}", 10, FontStyle.Normal,
+                    new Color(resInfo.Tint.r * 0.8f, resInfo.Tint.g * 0.8f, resInfo.Tint.b * 0.8f),
                     new Vector2(0.05f, statsY - 0.10f), new Vector2(0.95f, statsY - 0.03f), TextAnchor.MiddleLeft);
                 statsY -= 0.07f;
             }
@@ -5188,10 +5225,12 @@ namespace AshenThrone.Empire
             var btn = banner.AddComponent<Button>();
             btn.targetGraphic = bg;
             string capturedInstanceId = stronghold.InstanceId;
+            int capturedTier = stronghold.Tier;
             btn.onClick.AddListener(() =>
             {
-                if (ServiceLocator.TryGet<BuildingManager>(out var mgr))
-                    mgr.StartUpgrade(capturedInstanceId);
+                string warning = GetUpgradeBlockReason(capturedInstanceId, capturedTier);
+                if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
+                ShowUpgradeConfirmDialog(capturedInstanceId, "stronghold", capturedTier);
             });
 
             // Arrow icon + text
