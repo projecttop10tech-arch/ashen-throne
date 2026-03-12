@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.39.0] — 2026-03-11 (Ralph Loop Iteration 34: Sprite Swap, Arrow Upgrade, Requirement Warnings, Idle Breath)
+
+### ADDED
+- **Building sprite swap on upgrade** — when upgrade completes, building Image sprite is reloaded for the new tier (e.g., `forge_t1` → `forge_t2`). Production rate label also refreshes to show new output.
+- **Quick-upgrade from arrow tap** — orange ▲ upgrade arrows are now tappable buttons with dark background. Tapping directly publishes `BuildingDoubleTappedEvent` to trigger upgrade, matching P&C one-tap upgrade flow.
+- **Upgrade requirement warnings** — Upgrade button now checks affordability before proceeding. If blocked, shows a red toast at bottom with specific reason: "Not enough: Stone (2.5K), Iron (1.2K)" or "Build queue full (2/2)". Toast auto-fades after 2.5s. MAX LEVEL buildings show grayed-out "MAX" button.
+- **Building idle breathing animation** — all buildings gently scale-pulse (±0.8%, stronghold ±1.5%) at randomized speeds and phases so no two buildings breathe in sync. Gives the city screen a living, organic feel matching P&C.
+
+### CHANGED
+- `OnUpgradeCompletedSfx` now calls `RefreshBuildingSprite` and `RefreshProductionLabel` alongside badge refresh
+- `CreateUpgradeArrow` now accepts instanceId/buildingId/tier params and creates a tappable Button
+- Upgrade popup button checks `GetUpgradeBlockReason` before publishing upgrade event
+- Arrow animation reads text from child `ArrowText` GameObject instead of root
+
+---
+
 ## [0.38.0] — 2026-03-11 (Ralph Loop Iteration 33: Free Speed-Up, Completion Banner, Info Panel)
 
 ### ADDED

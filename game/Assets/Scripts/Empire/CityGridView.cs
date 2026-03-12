@@ -818,6 +818,9 @@ namespace AshenThrone.Empire
             if (placement.BuildingId == "stronghold")
                 CreateStrongholdGlow(go);
 
+            // P&C: Subtle idle breathing animation for life
+            StartCoroutine(IdleBreathAnimation(go, placement.BuildingId));
+
             placement.VisualGO = go;
         }
 
@@ -845,6 +848,30 @@ namespace AshenThrone.Empire
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
             if (spr != null) img.sprite = spr;
+        }
+
+        /// <summary>P&C: Subtle idle breathing animation — buildings gently scale-pulse for life.</summary>
+        private IEnumerator IdleBreathAnimation(GameObject building, string buildingId)
+        {
+            if (building == null) yield break;
+
+            // Vary intensity by building type — stronghold breathes more
+            float intensity = buildingId == "stronghold" ? 0.015f : 0.008f;
+            // Random phase offset so buildings don't pulse in sync
+            float phase = Random.Range(0f, Mathf.PI * 2f);
+            // Slower speed for subtle feel
+            float speed = Random.Range(1.2f, 1.8f);
+
+            var rect = building.GetComponent<RectTransform>();
+            if (rect == null) yield break;
+
+            Vector3 baseScale = rect.localScale;
+            while (building != null)
+            {
+                float breath = 1f + intensity * Mathf.Sin(Time.time * speed + phase);
+                rect.localScale = baseScale * breath;
+                yield return null;
+            }
         }
 
         /// <summary>P&C: Stronghold gets a special multi-layer golden glow aura that pulses.</summary>
@@ -1430,8 +1457,14 @@ namespace AshenThrone.Empire
                     // P&C: Update tier on placement data
                     p.Tier = evt.NewTier;
 
+                    // P&C: Swap building sprite to new tier
+                    RefreshBuildingSprite(p.VisualGO, p.BuildingId, evt.NewTier);
+
                     // P&C: Refresh the level badge to show new tier
                     RefreshLevelBadge(p.VisualGO, evt.NewTier);
+
+                    // P&C: Refresh production label if resource building
+                    RefreshProductionLabel(p.VisualGO, p.BuildingId, evt.NewTier);
 
                     // P&C: Upgrade completion celebration — flash + burst + bounce
                     StartCoroutine(UpgradeCompletionCelebration(p.VisualGO));
@@ -1630,6 +1663,28 @@ namespace AshenThrone.Empire
             var existing = building.transform.Find("LevelBadge");
             if (existing != null) Destroy(existing.gameObject);
             CreateLevelBadge(building, newTier);
+        }
+
+        /// <summary>P&C: Swap the building Image sprite to the new tier artwork.</summary>
+        private void RefreshBuildingSprite(GameObject building, string buildingId, int newTier)
+        {
+            var img = building.GetComponent<Image>();
+            if (img == null) return;
+            string spriteName = $"{buildingId}_t{newTier}";
+            var sprite = Resources.Load<Sprite>($"Buildings/{spriteName}");
+            if (sprite != null)
+            {
+                img.sprite = sprite;
+                img.preserveAspect = true;
+            }
+        }
+
+        /// <summary>P&C: Refresh production rate label after tier change.</summary>
+        private void RefreshProductionLabel(GameObject building, string buildingId, int newTier)
+        {
+            var existing = building.transform.Find("ProductionRate");
+            if (existing != null) Destroy(existing.gameObject);
+            CreateProductionLabel(building, buildingId, newTier);
         }
 
         // ====================================================================
@@ -2303,9 +2358,23 @@ namespace AshenThrone.Empire
 
             // Action buttons row
             float btnY0 = 0.06f, btnY1 = 0.50f;
-            CreatePopupButton(popup.transform, "Upgrade", "\u2B06", new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1),
-                new Color(0.15f, 0.55f, 0.15f, 0.9f), () => {
-                    EventBus.Publish(new BuildingDoubleTappedEvent(evt.InstanceId, evt.BuildingId, evt.Tier));
+            string upgInstanceId = evt.InstanceId;
+            string upgBuildingId = evt.BuildingId;
+            int upgTier = evt.Tier;
+            bool isMaxLevel = costStr == "MAX LEVEL";
+            Color upgBtnColor = isMaxLevel
+                ? new Color(0.30f, 0.30f, 0.30f, 0.7f)
+                : new Color(0.15f, 0.55f, 0.15f, 0.9f);
+            CreatePopupButton(popup.transform, isMaxLevel ? "MAX" : "Upgrade", "\u2B06",
+                new Vector2(0.02f, btnY0), new Vector2(0.34f, btnY1), upgBtnColor, () => {
+                    if (isMaxLevel) return;
+                    string warning = GetUpgradeBlockReason(upgInstanceId, upgTier);
+                    if (warning != null)
+                    {
+                        ShowUpgradeBlockedToast(warning);
+                        return;
+                    }
+                    EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingId, upgTier));
                     DismissInfoPopup();
                 });
 
@@ -2613,6 +2682,91 @@ namespace AshenThrone.Empire
             return amount.ToString();
         }
 
+        /// <summary>P&C: Check why an upgrade is blocked. Returns null if upgrade is allowed.</summary>
+        private static string GetUpgradeBlockReason(string instanceId, int currentTier)
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return "Building system unavailable";
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return "Resource system unavailable";
+            if (!bm.PlacedBuildings.TryGetValue(instanceId, out var placed) || placed.Data == null) return null;
+
+            var nextTier = placed.Data.GetTier(currentTier);
+            if (nextTier == null) return "Already at max level";
+
+            // Check builder queue capacity
+            if (bm.BuildQueue.Count >= 2)
+                return "Build queue full (2/2)";
+
+            // Check resource affordability — report each missing resource
+            var missing = new List<string>();
+            if (nextTier.stoneCost > 0 && rm.Stone < nextTier.stoneCost)
+                missing.Add($"Stone ({FormatCost(nextTier.stoneCost)})");
+            if (nextTier.ironCost > 0 && rm.Iron < nextTier.ironCost)
+                missing.Add($"Iron ({FormatCost(nextTier.ironCost)})");
+            if (nextTier.grainCost > 0 && rm.Grain < nextTier.grainCost)
+                missing.Add($"Grain ({FormatCost(nextTier.grainCost)})");
+            if (nextTier.arcaneEssenceCost > 0 && rm.ArcaneEssence < nextTier.arcaneEssenceCost)
+                missing.Add($"Arcane ({FormatCost(nextTier.arcaneEssenceCost)})");
+
+            if (missing.Count > 0)
+                return $"Not enough: {string.Join(", ", missing)}";
+
+            return null; // Can upgrade
+        }
+
+        /// <summary>P&C: Red toast at bottom of screen showing why upgrade is blocked.</summary>
+        private void ShowUpgradeBlockedToast(string message)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            var toast = new GameObject("UpgradeBlockedToast");
+            toast.transform.SetParent(canvas.transform, false);
+            var rect = toast.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.10f, 0.20f);
+            rect.anchorMax = new Vector2(0.90f, 0.26f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = toast.AddComponent<Image>();
+            bg.color = new Color(0.55f, 0.10f, 0.10f, 0.92f);
+            bg.raycastTarget = false;
+            var outline = toast.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.3f, 0.3f, 0.6f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(toast.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(6, 0);
+            textRect.offsetMax = new Vector2(-6, 0);
+            var text = textGO.AddComponent<Text>();
+            text.text = message;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 12;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            StartCoroutine(FadeOutAndDestroyToast(toast));
+        }
+
+        private IEnumerator FadeOutAndDestroyToast(GameObject toast)
+        {
+            yield return new WaitForSeconds(2f);
+            var cg = toast.AddComponent<CanvasGroup>();
+            float elapsed = 0f;
+            while (elapsed < 0.5f && toast != null)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = 1f - (elapsed / 0.5f);
+                yield return null;
+            }
+            if (toast != null) Destroy(toast);
+        }
+
         // ====================================================================
         // P&C: Upgrade-available arrow indicators
         // ====================================================================
@@ -2655,7 +2809,7 @@ namespace AshenThrone.Empire
 
                 if (canUpgrade && existingArrow == null)
                 {
-                    CreateUpgradeArrow(p.VisualGO);
+                    CreateUpgradeArrow(p.VisualGO, p.InstanceId, p.BuildingId, p.Tier);
                 }
                 else if (!canUpgrade && existingArrow != null)
                 {
@@ -2664,18 +2818,41 @@ namespace AshenThrone.Empire
             }
         }
 
-        private void CreateUpgradeArrow(GameObject building)
+        private void CreateUpgradeArrow(GameObject building, string instanceId, string buildingId, int tier)
         {
             var arrow = new GameObject("UpgradeArrow");
             arrow.transform.SetParent(building.transform, false);
 
             var rect = arrow.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.35f, 1.0f);
-            rect.anchorMax = new Vector2(0.65f, 1.0f);
-            rect.sizeDelta = new Vector2(20, 22);
+            rect.anchorMin = new Vector2(0.25f, 1.0f);
+            rect.anchorMax = new Vector2(0.75f, 1.0f);
+            rect.sizeDelta = new Vector2(28, 26);
             rect.anchoredPosition = new Vector2(0, 8);
 
-            var text = arrow.AddComponent<Text>();
+            // Tappable background for the arrow
+            var bgImg = arrow.AddComponent<Image>();
+            bgImg.color = new Color(0.15f, 0.08f, 0.02f, 0.65f);
+            bgImg.raycastTarget = true;
+
+            // P&C: Tapping the arrow triggers upgrade directly
+            var btn = arrow.AddComponent<Button>();
+            btn.targetGraphic = bgImg;
+            string capId = instanceId;
+            string capBid = buildingId;
+            int capTier = tier;
+            btn.onClick.AddListener(() => {
+                EventBus.Publish(new BuildingDoubleTappedEvent(capId, capBid, capTier));
+            });
+
+            // Arrow text child (so it renders above bg)
+            var textGO = new GameObject("ArrowText");
+            textGO.transform.SetParent(arrow.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
             text.text = "\u25B2"; // ▲ upward triangle
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = 16;
@@ -2684,7 +2861,7 @@ namespace AshenThrone.Empire
             text.color = new Color(1f, 0.65f, 0.10f); // Orange arrow
             text.raycastTarget = false;
 
-            var outline = arrow.AddComponent<Outline>();
+            var outline = textGO.AddComponent<Outline>();
             outline.effectColor = new Color(0.5f, 0.25f, 0f, 0.8f);
             outline.effectDistance = new Vector2(1f, -1f);
 
@@ -2696,7 +2873,8 @@ namespace AshenThrone.Empire
         {
             float phase = 0f;
             Vector2 basePos = rect.anchoredPosition;
-            var text = arrow.GetComponent<Text>();
+            var arrowTextT = arrow.transform.Find("ArrowText");
+            var text = arrowTextT != null ? arrowTextT.GetComponent<Text>() : null;
             while (arrow != null)
             {
                 phase += Time.deltaTime * 3f;
