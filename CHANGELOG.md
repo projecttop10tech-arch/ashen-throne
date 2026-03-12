@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.74.0] — 2026-03-12 (Ralph Loop Iteration 69: Second Builder, Troop March, Defense Stats)
+
+### ADDED
+- **Second builder system** — P&C-style premium second builder. Build queue panel shows "Get 2nd Builder" promo button with pulsing purple animation. Tapping opens full purchase panel with gem cost (500), benefit list, and VIP Level 5 mention. Purchasing increases builder slots from 2 to 3. Builder count HUD dynamically reflects second builder state.
+- **`ShowSecondBuilderPanel()` method** — full purchase dialog with benefits, gem button, and close. `PulseSecondBuilderPromo()` coroutine for attention-drawing animation.
+- **Troop march animation** — tiny troop figures spawn every 8s, marching from barracks/training grounds to the nearest wall gate (or stronghold). 2-4 figures per wave with quadratic bezier curved path, walking bob animation, and fade-out at destination. Infantry (bronze) from barracks, specialists (blue) from training grounds.
+- **`SpawnTroopMarch()` / `AnimateTroopMarch()` methods** — troop spawn logic + bezier path coroutine with cleanup.
+- **Building HP/DEF/Garrison stats** — defensive buildings (stronghold, wall, watch tower, barracks, training ground, armory, guild hall, embassy) now show HP, DEF, and Garrison capacity rows in the info panel overview tab. Stats scale by tier with green next-tier deltas. Color-coded icon rows (red heart for HP, blue shield for DEF, gold pawn for garrison).
+- **`DefenseStats` dictionary** — static base stats per building type. `GetBuildingHP()`, `GetBuildingDEF()`, `AddDefenseStatsToInfoPanel()` methods.
+
+---
+
 ## [0.73.0] — 2026-03-12 (Ralph Loop Iteration 68: Requirements Checklist, Queue Reorder, Warehouse)
 
 ### ADDED

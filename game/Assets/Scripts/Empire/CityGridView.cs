@@ -475,6 +475,15 @@ namespace AshenThrone.Empire
                 RefreshAllNotificationBadges();
             }
 
+            // P&C: Troop march spawning
+            _troopMarchSpawnTimer += Time.deltaTime;
+            if (_troopMarchSpawnTimer >= TroopMarchSpawnInterval)
+            {
+                _troopMarchSpawnTimer = 0f;
+                SpawnTroopMarch();
+                CleanupMarchingTroops();
+            }
+
             // P&C: Pulse selection ring glow (preserves category hue)
             if (_selectionRing != null)
             {
@@ -4908,6 +4917,13 @@ namespace AshenThrone.Empire
                     new Vector2(0.55f, statsY - 0.02f), new Vector2(0.95f, statsY + 0.04f), TextAnchor.MiddleRight);
             }
 
+            // P&C: HP/DEF/Garrison stats for defensive buildings
+            if (DefenseStats.ContainsKey(buildingId))
+            {
+                statsY -= 0.01f;
+                AddDefenseStatsToInfoPanel(panel.transform, buildingId, tier, ref statsY);
+            }
+
             // P&C: Visual stat comparison bars (current tier vs next tier)
             if (tier < 3)
             {
@@ -7765,7 +7781,7 @@ namespace AshenThrone.Empire
             if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
 
             int used = bm.BuildQueue.Count;
-            int total = 2; // Free queue slots (from EmpireConfig)
+            int total = _hasSecondBuilder ? 3 : 2; // 2 free + 1 premium builder
             _builderCountText.text = $"\u2692 Builder {used}/{total}";
             _builderCountText.color = used >= total
                 ? new Color(1f, 0.45f, 0.35f) // Red when full
@@ -8174,8 +8190,54 @@ namespace AshenThrone.Empire
                 }
             }
 
+            // P&C: Second builder promo button (if not purchased)
+            if (!_hasSecondBuilder)
+            {
+                var promoGO = new GameObject("2ndBuilderPromo");
+                promoGO.transform.SetParent(_buildQueuePanel.transform, false);
+                var promoRect = promoGO.AddComponent<RectTransform>();
+                promoRect.anchorMin = new Vector2(0.03f, -0.12f);
+                promoRect.anchorMax = new Vector2(0.97f, -0.03f);
+                promoRect.offsetMin = Vector2.zero;
+                promoRect.offsetMax = Vector2.zero;
+                var promoBg = promoGO.AddComponent<Image>();
+                promoBg.color = new Color(0.45f, 0.20f, 0.60f, 0.90f);
+                promoBg.raycastTarget = true;
+                var promoOutline = promoGO.AddComponent<Outline>();
+                promoOutline.effectColor = new Color(0.70f, 0.50f, 0.90f, 0.6f);
+                promoOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var promoBtn = promoGO.AddComponent<Button>();
+                promoBtn.targetGraphic = promoBg;
+                promoBtn.onClick.AddListener(() =>
+                {
+                    Destroy(_buildQueuePanel);
+                    _buildQueuePanel = null;
+                    ShowSecondBuilderPanel();
+                });
+                AddInfoPanelText(promoGO.transform, "Text",
+                    "\u2692\u2692 Get 2nd Builder — Build Faster!", 9,
+                    FontStyle.Bold, new Color(0.95f, 0.85f, 0.50f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+                // Pulse the promo
+                StartCoroutine(PulseSecondBuilderPromo(promoGO));
+            }
+
             // Auto-dismiss after 8 seconds (longer for richer panel)
             StartCoroutine(AutoDismissQueuePanel());
+        }
+
+        private IEnumerator PulseSecondBuilderPromo(GameObject promo)
+        {
+            while (promo != null)
+            {
+                var img = promo.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 2.5f);
+                    img.color = new Color(0.45f * pulse, 0.20f, 0.60f * pulse, 0.90f);
+                }
+                yield return null;
+            }
         }
 
         private struct UpgradeAdvisorSuggestion
@@ -12057,6 +12119,398 @@ namespace AshenThrone.Empire
             var cg = _garrisonPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             StartCoroutine(FadeInDialog(cg));
+        }
+
+        // ====================================================================
+        // P&C: Second Builder / VIP Builder System
+        // ====================================================================
+
+        private bool _hasSecondBuilder;
+        private GameObject _secondBuilderPanel;
+
+        /// <summary>P&C: Show the second builder purchase panel when builder HUD is tapped and queue is full.</summary>
+        private void ShowSecondBuilderPanel()
+        {
+            if (_secondBuilderPanel != null) { Destroy(_secondBuilderPanel); _secondBuilderPanel = null; }
+            if (_hasSecondBuilder) return; // Already purchased
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _secondBuilderPanel = new GameObject("SecondBuilderPanel");
+            _secondBuilderPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _secondBuilderPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _secondBuilderPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _secondBuilderPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_secondBuilderPanel != null) { Destroy(_secondBuilderPanel); _secondBuilderPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_secondBuilderPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.10f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.90f, 0.70f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", "\u2692 Unlock Second Builder", 16, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            // Description
+            AddInfoPanelText(panel.transform, "Desc",
+                "Build two buildings at the same time!\nA second builder lets you progress twice as fast.\nUpgrade your VIP level or use gems to unlock.",
+                11, FontStyle.Normal, new Color(0.78f, 0.75f, 0.72f),
+                new Vector2(0.08f, 0.55f), new Vector2(0.92f, 0.80f), TextAnchor.UpperCenter);
+
+            // Builder icon (large hammer)
+            AddInfoPanelText(panel.transform, "Icon", "\u2692\u2692", 32, FontStyle.Bold,
+                new Color(0.95f, 0.75f, 0.25f),
+                new Vector2(0.35f, 0.32f), new Vector2(0.65f, 0.55f), TextAnchor.MiddleCenter);
+
+            // Benefit list
+            AddInfoPanelText(panel.transform, "Ben1", "\u2713 Build 2 buildings simultaneously", 10, FontStyle.Normal,
+                new Color(0.50f, 0.90f, 0.50f),
+                new Vector2(0.10f, 0.26f), new Vector2(0.90f, 0.33f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(panel.transform, "Ben2", "\u2713 Permanent unlock — never expires", 10, FontStyle.Normal,
+                new Color(0.50f, 0.90f, 0.50f),
+                new Vector2(0.10f, 0.19f), new Vector2(0.90f, 0.26f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(panel.transform, "Ben3", "\u2713 Also available at VIP Level 5", 10, FontStyle.Normal,
+                new Color(0.50f, 0.90f, 0.50f),
+                new Vector2(0.10f, 0.12f), new Vector2(0.90f, 0.19f), TextAnchor.MiddleLeft);
+
+            // Gem cost button
+            var gemGO = new GameObject("GemBtn");
+            gemGO.transform.SetParent(panel.transform, false);
+            var gemRect = gemGO.AddComponent<RectTransform>();
+            gemRect.anchorMin = new Vector2(0.15f, 0.02f);
+            gemRect.anchorMax = new Vector2(0.55f, 0.12f);
+            gemRect.offsetMin = Vector2.zero;
+            gemRect.offsetMax = Vector2.zero;
+            var gemBg = gemGO.AddComponent<Image>();
+            gemBg.color = new Color(0.55f, 0.25f, 0.70f, 0.92f);
+            gemBg.raycastTarget = true;
+            var gemOutline = gemGO.AddComponent<Outline>();
+            gemOutline.effectColor = new Color(0.75f, 0.50f, 0.90f, 0.6f);
+            gemOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var gemBtn = gemGO.AddComponent<Button>();
+            gemBtn.targetGraphic = gemBg;
+            gemBtn.onClick.AddListener(() =>
+            {
+                _hasSecondBuilder = true;
+                UpdateBuilderCountHUD();
+                if (_secondBuilderPanel != null) { Destroy(_secondBuilderPanel); _secondBuilderPanel = null; }
+                ShowUpgradeBlockedToast("\u2692 Second Builder unlocked!");
+            });
+            AddInfoPanelText(gemGO.transform, "Label", "\u2B25 500 Gems", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.60f, 0.02f);
+            closeRect.anchorMax = new Vector2(0.85f, 0.12f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.40f, 0.35f, 0.35f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_secondBuilderPanel != null) { Destroy(_secondBuilderPanel); _secondBuilderPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "Label", "Not Now", 10, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var fadeCg = _secondBuilderPanel.AddComponent<CanvasGroup>();
+            fadeCg.alpha = 0f;
+            StartCoroutine(FadeInDialog(fadeCg));
+        }
+
+        // ====================================================================
+        // P&C: Troop March Animation — tiny figures marching from barracks to gate
+        // ====================================================================
+
+        private readonly List<GameObject> _marchingTroops = new();
+        private float _troopMarchSpawnTimer;
+        private const float TroopMarchSpawnInterval = 8f; // seconds between march waves
+
+        /// <summary>P&C: Spawn a tiny troop figure that marches from a barracks to the nearest wall gate.</summary>
+        private void SpawnTroopMarch()
+        {
+            if (buildingContainer == null) return;
+
+            // Find a barracks or training ground
+            CityBuildingPlacement source = null;
+            CityBuildingPlacement wallGate = null;
+            foreach (var p in _placements)
+            {
+                if ((p.BuildingId == "barracks" || p.BuildingId == "training_ground") && p.VisualGO != null)
+                {
+                    if (source == null || Random.value > 0.5f) source = p;
+                }
+                if (p.BuildingId == "wall" && p.VisualGO != null)
+                {
+                    if (wallGate == null || Random.value > 0.5f) wallGate = p;
+                }
+            }
+
+            if (source == null) return;
+
+            // Default destination: stronghold if no wall
+            CityBuildingPlacement dest = wallGate;
+            if (dest == null)
+            {
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId == "stronghold" && p.VisualGO != null) { dest = p; break; }
+                }
+            }
+            if (dest == null) return;
+
+            var container = buildingContainer ?? contentContainer;
+            if (container == null) return;
+
+            Vector2 startPos = GridToLocalCenter(source.GridOrigin, source.Size);
+            Vector2 endPos = GridToLocalCenter(dest.GridOrigin, dest.Size);
+
+            // Spawn 2-4 tiny figures in a line
+            int count = Random.Range(2, 5);
+            for (int i = 0; i < count; i++)
+            {
+                var troopGO = new GameObject($"MarchingTroop_{i}");
+                troopGO.transform.SetParent(container, false);
+                var rect = troopGO.AddComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(6, 8);
+                rect.anchoredPosition = startPos + new Vector2(i * 4f, 0);
+
+                var img = troopGO.AddComponent<Image>();
+                bool isArcher = source.BuildingId == "training_ground";
+                img.color = isArcher
+                    ? new Color(0.30f, 0.60f, 0.90f, 0.85f)  // Blue for specialists
+                    : new Color(0.80f, 0.55f, 0.20f, 0.85f);  // Bronze for infantry
+                img.raycastTarget = false;
+
+                // Tiny shield/weapon icon
+                var iconGO = new GameObject("Icon");
+                iconGO.transform.SetParent(troopGO.transform, false);
+                var iconRect = iconGO.AddComponent<RectTransform>();
+                iconRect.anchorMin = Vector2.zero;
+                iconRect.anchorMax = Vector2.one;
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconText = iconGO.AddComponent<Text>();
+                iconText.text = isArcher ? "\u2694" : "\u26E8";
+                iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                iconText.fontSize = 5;
+                iconText.alignment = TextAnchor.MiddleCenter;
+                iconText.color = Color.white;
+                iconText.raycastTarget = false;
+
+                _marchingTroops.Add(troopGO);
+                float delay = i * 0.3f;
+                float duration = 4f + Random.Range(0f, 1.5f);
+                StartCoroutine(AnimateTroopMarch(troopGO, startPos + new Vector2(i * 4f, 0), endPos, delay, duration));
+            }
+        }
+
+        private IEnumerator AnimateTroopMarch(GameObject troop, Vector2 start, Vector2 end, float delay, float duration)
+        {
+            if (delay > 0) yield return new WaitForSeconds(delay);
+
+            var rect = troop != null ? troop.GetComponent<RectTransform>() : null;
+            if (rect == null) yield break;
+
+            float elapsed = 0f;
+            // Add slight arc to path (troops don't walk perfectly straight)
+            Vector2 mid = (start + end) * 0.5f + new Vector2(Random.Range(-15f, 15f), Random.Range(5f, 20f));
+
+            while (elapsed < duration && troop != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // Quadratic bezier for curved path
+                Vector2 pos = (1 - t) * (1 - t) * start + 2 * (1 - t) * t * mid + t * t * end;
+                rect.anchoredPosition = pos;
+
+                // Tiny bobbing animation (walking)
+                float bob = Mathf.Sin(elapsed * 12f) * 1.5f;
+                rect.anchoredPosition += new Vector2(0, bob);
+
+                yield return null;
+            }
+
+            // Fade out at destination
+            if (troop != null)
+            {
+                var img = troop.GetComponent<Image>();
+                if (img != null)
+                {
+                    float fade = 0.3f;
+                    float fadeElapsed = 0f;
+                    while (fadeElapsed < fade && troop != null)
+                    {
+                        fadeElapsed += Time.deltaTime;
+                        float a = Mathf.Lerp(0.85f, 0f, fadeElapsed / fade);
+                        img.color = new Color(img.color.r, img.color.g, img.color.b, a);
+                        yield return null;
+                    }
+                }
+                _marchingTroops.Remove(troop);
+                Destroy(troop);
+            }
+        }
+
+        /// <summary>Cleanup destroyed marching troop references.</summary>
+        private void CleanupMarchingTroops()
+        {
+            _marchingTroops.RemoveAll(t => t == null);
+        }
+
+        // ====================================================================
+        // P&C: Building HP / Defense Stats — shown in info panel for defensive buildings
+        // ====================================================================
+
+        /// <summary>P&C: Static defense stats per building type and tier. (HP, DEF, Garrison Capacity)</summary>
+        private static readonly Dictionary<string, (int BaseHP, int BaseDEF, int BaseGarrison)> DefenseStats = new()
+        {
+            { "stronghold",   (5000, 200, 500) },
+            { "wall",         (2000, 300, 200) },
+            { "watch_tower",  (1500, 150, 100) },
+            { "barracks",     (800,  50,  0) },
+            { "training_ground", (600, 40, 0) },
+            { "armory",       (700, 60, 0) },
+            { "guild_hall",   (1200, 80, 0) },
+            { "embassy",      (900, 70, 0) },
+        };
+
+        /// <summary>Get scaled HP for a building at given tier.</summary>
+        private int GetBuildingHP(string buildingId, int tier)
+        {
+            if (!DefenseStats.TryGetValue(buildingId, out var stats)) return 0;
+            return stats.BaseHP * tier;
+        }
+
+        /// <summary>Get scaled DEF for a building at given tier.</summary>
+        private int GetBuildingDEF(string buildingId, int tier)
+        {
+            if (!DefenseStats.TryGetValue(buildingId, out var stats)) return 0;
+            return stats.BaseDEF * tier;
+        }
+
+        /// <summary>
+        /// P&C: Add HP/DEF/Garrison stat rows to building info panel for defensive buildings.
+        /// Called from BuildInfoPanelOverviewTab after STATS header.
+        /// </summary>
+        private void AddDefenseStatsToInfoPanel(Transform panelTransform, string buildingId, int tier, ref float statsY)
+        {
+            if (!DefenseStats.TryGetValue(buildingId, out var stats)) return;
+
+            int hp = stats.BaseHP * tier;
+            int def = stats.BaseDEF * tier;
+            int garrison = stats.BaseGarrison * tier;
+
+            // HP row
+            string hpStr = hp >= 1000 ? $"{hp / 1000f:F1}K" : $"{hp}";
+            int nextHP = stats.BaseHP * Mathf.Min(tier + 1, 3);
+            string hpDelta = tier < 3 ? $"  \u2192 {(nextHP >= 1000 ? $"{nextHP / 1000f:F1}K" : $"{nextHP}")}" : "";
+            Color hpDeltaColor = tier < 3 ? new Color(0.50f, 0.90f, 0.50f) : new Color(0.60f, 0.60f, 0.60f);
+
+            var hpRowGO = new GameObject("HPRow");
+            hpRowGO.transform.SetParent(panelTransform, false);
+            var hpRowRect = hpRowGO.AddComponent<RectTransform>();
+            hpRowRect.anchorMin = new Vector2(0.05f, statsY - 0.045f);
+            hpRowRect.anchorMax = new Vector2(0.95f, statsY);
+            hpRowRect.offsetMin = Vector2.zero;
+            hpRowRect.offsetMax = Vector2.zero;
+            var hpBg = hpRowGO.AddComponent<Image>();
+            hpBg.color = new Color(0.85f, 0.25f, 0.20f, 0.08f);
+            hpBg.raycastTarget = false;
+
+            AddInfoPanelText(hpRowGO.transform, "Icon", "\u2764", 10, FontStyle.Normal,
+                new Color(0.90f, 0.30f, 0.25f), new Vector2(0.02f, 0f), new Vector2(0.12f, 1f), TextAnchor.MiddleCenter);
+            AddInfoPanelText(hpRowGO.transform, "Label", "HP", 9, FontStyle.Bold,
+                new Color(0.80f, 0.78f, 0.75f), new Vector2(0.13f, 0f), new Vector2(0.28f, 1f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(hpRowGO.transform, "Value", hpStr, 10, FontStyle.Bold,
+                Color.white, new Vector2(0.30f, 0f), new Vector2(0.55f, 1f), TextAnchor.MiddleLeft);
+            if (tier < 3)
+                AddInfoPanelText(hpRowGO.transform, "Delta", hpDelta, 9, FontStyle.Normal,
+                    hpDeltaColor, new Vector2(0.55f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleLeft);
+            statsY -= 0.05f;
+
+            // DEF row
+            string defStr = def >= 1000 ? $"{def / 1000f:F1}K" : $"{def}";
+            int nextDEF = stats.BaseDEF * Mathf.Min(tier + 1, 3);
+            string defDelta = tier < 3 ? $"  \u2192 {(nextDEF >= 1000 ? $"{nextDEF / 1000f:F1}K" : $"{nextDEF}")}" : "";
+
+            var defRowGO = new GameObject("DEFRow");
+            defRowGO.transform.SetParent(panelTransform, false);
+            var defRowRect = defRowGO.AddComponent<RectTransform>();
+            defRowRect.anchorMin = new Vector2(0.05f, statsY - 0.045f);
+            defRowRect.anchorMax = new Vector2(0.95f, statsY);
+            defRowRect.offsetMin = Vector2.zero;
+            defRowRect.offsetMax = Vector2.zero;
+            var defBg = defRowGO.AddComponent<Image>();
+            defBg.color = new Color(0.25f, 0.50f, 0.85f, 0.08f);
+            defBg.raycastTarget = false;
+
+            AddInfoPanelText(defRowGO.transform, "Icon", "\u26E8", 10, FontStyle.Normal,
+                new Color(0.35f, 0.60f, 0.90f), new Vector2(0.02f, 0f), new Vector2(0.12f, 1f), TextAnchor.MiddleCenter);
+            AddInfoPanelText(defRowGO.transform, "Label", "DEF", 9, FontStyle.Bold,
+                new Color(0.80f, 0.78f, 0.75f), new Vector2(0.13f, 0f), new Vector2(0.28f, 1f), TextAnchor.MiddleLeft);
+            AddInfoPanelText(defRowGO.transform, "Value", defStr, 10, FontStyle.Bold,
+                Color.white, new Vector2(0.30f, 0f), new Vector2(0.55f, 1f), TextAnchor.MiddleLeft);
+            if (tier < 3)
+                AddInfoPanelText(defRowGO.transform, "Delta", defDelta, 9, FontStyle.Normal,
+                    new Color(0.50f, 0.90f, 0.50f), new Vector2(0.55f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleLeft);
+            statsY -= 0.05f;
+
+            // Garrison row (only for buildings with garrison)
+            if (stats.BaseGarrison > 0)
+            {
+                int garr = stats.BaseGarrison * tier;
+                string garrStr = garr >= 1000 ? $"{garr / 1000f:F1}K" : $"{garr}";
+                int nextGarr = stats.BaseGarrison * Mathf.Min(tier + 1, 3);
+                string garrDelta = tier < 3 ? $"  \u2192 {(nextGarr >= 1000 ? $"{nextGarr / 1000f:F1}K" : $"{nextGarr}")}" : "";
+
+                var garrRowGO = new GameObject("GarrRow");
+                garrRowGO.transform.SetParent(panelTransform, false);
+                var garrRowRect = garrRowGO.AddComponent<RectTransform>();
+                garrRowRect.anchorMin = new Vector2(0.05f, statsY - 0.045f);
+                garrRowRect.anchorMax = new Vector2(0.95f, statsY);
+                garrRowRect.offsetMin = Vector2.zero;
+                garrRowRect.offsetMax = Vector2.zero;
+                var garrBg = garrRowGO.AddComponent<Image>();
+                garrBg.color = new Color(0.70f, 0.55f, 0.15f, 0.08f);
+                garrBg.raycastTarget = false;
+
+                AddInfoPanelText(garrRowGO.transform, "Icon", "\u265F", 10, FontStyle.Normal,
+                    new Color(0.85f, 0.70f, 0.30f), new Vector2(0.02f, 0f), new Vector2(0.12f, 1f), TextAnchor.MiddleCenter);
+                AddInfoPanelText(garrRowGO.transform, "Label", "Garrison", 9, FontStyle.Bold,
+                    new Color(0.80f, 0.78f, 0.75f), new Vector2(0.13f, 0f), new Vector2(0.35f, 1f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(garrRowGO.transform, "Value", garrStr, 10, FontStyle.Bold,
+                    Color.white, new Vector2(0.36f, 0f), new Vector2(0.55f, 1f), TextAnchor.MiddleLeft);
+                if (tier < 3)
+                    AddInfoPanelText(garrRowGO.transform, "Delta", garrDelta, 9, FontStyle.Normal,
+                        new Color(0.50f, 0.90f, 0.50f), new Vector2(0.55f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleLeft);
+                statsY -= 0.05f;
+            }
         }
     }
 
