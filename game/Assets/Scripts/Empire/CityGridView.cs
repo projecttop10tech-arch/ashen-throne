@@ -164,7 +164,7 @@ namespace AshenThrone.Empire
         private AudioClip _sfxLevelUp;
         private EventSubscription _collectSub;
         private EventSubscription _buildCompleteSfxSub;
-        private EventSubscription _upgradeStartedSfxSub;
+        private EventSubscription _upgradeStartedSub;
 
         private void OnEnable()
         {
@@ -172,8 +172,8 @@ namespace AshenThrone.Empire
             _demolishedSub = EventBus.Subscribe<BuildingDemolishedEvent>(OnBuildingDemolished);
             _doubleTapZoomSub = EventBus.Subscribe<BuildingDoubleTappedEvent>(OnDoubleTapZoom);
             _collectSub = EventBus.Subscribe<ResourceCollectedEvent>(_ => PlaySfx(_sfxCollect));
-            _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(_ => PlaySfx(_sfxBuildComplete));
-            _upgradeStartedSfxSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(_ => PlaySfx(_sfxLevelUp));
+            _buildCompleteSfxSub = EventBus.Subscribe<BuildingUpgradeCompletedEvent>(OnUpgradeCompletedSfx);
+            _upgradeStartedSub = EventBus.Subscribe<BuildingUpgradeStartedEvent>(OnUpgradeStarted);
         }
 
         private void OnDisable()
@@ -183,7 +183,7 @@ namespace AshenThrone.Empire
             _doubleTapZoomSub?.Dispose();
             _collectSub?.Dispose();
             _buildCompleteSfxSub?.Dispose();
-            _upgradeStartedSfxSub?.Dispose();
+            _upgradeStartedSub?.Dispose();
         }
 
         private void Start()
@@ -203,6 +203,8 @@ namespace AshenThrone.Empire
             }
             // P&C: Sort buildings by isometric depth (higher grid Y = closer to camera = higher sibling index)
             SortBuildingsByDepth();
+            RefreshInstanceCountBadges();
+            RefreshUpgradeIndicators();
             // Center on stronghold after layout rebuild
             StartCoroutine(DelayedCenterOnStronghold());
         }
@@ -787,6 +789,74 @@ namespace AshenThrone.Empire
             if (spr != null) img.sprite = spr;
         }
 
+        /// <summary>P&C: Show "x3" count badge on buildings with multiple instances of the same type.</summary>
+        private void RefreshInstanceCountBadges()
+        {
+            // Count instances per building type
+            var counts = new Dictionary<string, int>();
+            foreach (var p in _placements)
+            {
+                if (!counts.ContainsKey(p.BuildingId)) counts[p.BuildingId] = 0;
+                counts[p.BuildingId]++;
+            }
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var existing = p.VisualGO.transform.Find("CountBadge");
+
+                if (counts.TryGetValue(p.BuildingId, out int count) && count > 1)
+                {
+                    if (existing == null)
+                        CreateCountBadge(p.VisualGO, count);
+                    else
+                    {
+                        var txt = existing.GetComponentInChildren<Text>();
+                        if (txt != null) txt.text = $"x{count}";
+                    }
+                }
+                else if (existing != null)
+                {
+                    Destroy(existing.gameObject);
+                }
+            }
+        }
+
+        private void CreateCountBadge(GameObject building, int count)
+        {
+            var badgeGO = new GameObject("CountBadge");
+            badgeGO.transform.SetParent(building.transform, false);
+
+            var rect = badgeGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.70f, 0.82f);
+            rect.anchorMax = new Vector2(0.98f, 1.0f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badgeGO.AddComponent<Image>();
+            bg.color = new Color(0.15f, 0.10f, 0.25f, 0.85f);
+            bg.raycastTarget = false;
+            var outline = badgeGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.70f, 0.60f, 0.40f, 0.7f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var textGO = new GameObject("CountText");
+            textGO.transform.SetParent(badgeGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = $"x{count}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.90f, 0.80f, 0.55f, 1f);
+            text.raycastTarget = false;
+        }
+
         private static readonly Dictionary<string, (string Name, Color Tint)> ResourceBuildingTypes = new()
         {
             { "grain_farm", ("Grain", new Color(0.95f, 0.85f, 0.30f, 1f)) },   // yellow
@@ -1022,8 +1092,8 @@ namespace AshenThrone.Empire
                     #endif
                     if (sprite != null)
                     {
-                        img.sprite = sprite;
-                        img.preserveAspect = true;
+                        // P&C: Smooth crossfade to new tier sprite
+                        StartCoroutine(CrossfadeSprite(img, sprite));
                     }
                 }
 
@@ -1038,6 +1108,37 @@ namespace AshenThrone.Empire
                 // P&C: Celebration burst particle effect
                 StartCoroutine(UpgradeCelebrationBurst(placement.VisualGO));
             }
+        }
+
+        /// <summary>P&C: Smooth crossfade from old sprite to new tier sprite.</summary>
+        private IEnumerator CrossfadeSprite(Image img, Sprite newSprite)
+        {
+            // Flash white briefly then swap
+            var originalColor = img.color;
+            float flashDur = 0.15f;
+            float elapsed = 0f;
+            while (elapsed < flashDur)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / flashDur;
+                img.color = Color.Lerp(originalColor, Color.white * 1.5f, t);
+                yield return null;
+            }
+
+            img.sprite = newSprite;
+            img.preserveAspect = true;
+
+            // Fade back from white
+            elapsed = 0f;
+            float fadeDur = 0.2f;
+            while (elapsed < fadeDur)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / fadeDur;
+                img.color = Color.Lerp(Color.white * 1.5f, Color.white, t);
+                yield return null;
+            }
+            img.color = Color.white;
         }
 
         /// <summary>
@@ -1147,6 +1248,182 @@ namespace AshenThrone.Empire
                 if (rect != null) Destroy(rect.gameObject);
             foreach (var (rect, cg, dir) in sparkles)
                 if (rect != null) Destroy(rect.gameObject);
+        }
+
+        // ====================================================================
+        // P&C: Upgrade started/completed SFX + queue indicator
+        // ====================================================================
+
+        /// <summary>P&C: Play SFX and show builder indicator when upgrade begins.</summary>
+        private void OnUpgradeStarted(BuildingUpgradeStartedEvent evt)
+        {
+            PlaySfx(_sfxLevelUp);
+
+            // Find the placement and add a builder/hammer indicator
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
+                {
+                    CreateUpgradeIndicator(p.VisualGO, evt.BuildTimeSeconds);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>P&C: Play SFX and remove builder indicator when upgrade completes.</summary>
+        private void OnUpgradeCompletedSfx(BuildingUpgradeCompletedEvent evt)
+        {
+            PlaySfx(_sfxBuildComplete);
+
+            // Remove the builder indicator
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == evt.PlacedId && p.VisualGO != null)
+                {
+                    RemoveUpgradeIndicator(p.VisualGO);
+                    // Refresh instance count badges (tier may change display)
+                    RefreshInstanceCountBadges();
+                    break;
+                }
+            }
+        }
+
+        /// <summary>P&C: Hammer icon + progress bar overlay on building during upgrade.</summary>
+        private void CreateUpgradeIndicator(GameObject building, int buildTimeSeconds)
+        {
+            // Remove any existing indicator first
+            RemoveUpgradeIndicator(building);
+
+            var indicator = new GameObject("UpgradeIndicator");
+            indicator.transform.SetParent(building.transform, false);
+
+            var rect = indicator.AddComponent<RectTransform>();
+            // Position at top-center of building
+            rect.anchorMin = new Vector2(0.1f, 0.72f);
+            rect.anchorMax = new Vector2(0.9f, 0.98f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark semi-transparent background pill
+            var bg = indicator.AddComponent<Image>();
+            bg.color = new Color(0.05f, 0.03f, 0.1f, 0.88f);
+            bg.raycastTarget = false;
+
+            // Gold outline for visibility
+            var outline = indicator.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // --- Progress bar background (bottom strip of indicator) ---
+            var barBgGO = new GameObject("BarBg");
+            barBgGO.transform.SetParent(indicator.transform, false);
+            var barBgRect = barBgGO.AddComponent<RectTransform>();
+            barBgRect.anchorMin = new Vector2(0.05f, 0.05f);
+            barBgRect.anchorMax = new Vector2(0.95f, 0.30f);
+            barBgRect.offsetMin = Vector2.zero;
+            barBgRect.offsetMax = Vector2.zero;
+            var barBgImg = barBgGO.AddComponent<Image>();
+            barBgImg.color = new Color(0.15f, 0.12f, 0.20f, 0.9f);
+            barBgImg.raycastTarget = false;
+
+            // --- Progress bar fill ---
+            var barFillGO = new GameObject("BarFill");
+            barFillGO.transform.SetParent(barBgGO.transform, false);
+            var barFillRect = barFillGO.AddComponent<RectTransform>();
+            barFillRect.anchorMin = Vector2.zero;
+            barFillRect.anchorMax = new Vector2(0f, 1f); // starts empty, filled by coroutine
+            barFillRect.offsetMin = Vector2.zero;
+            barFillRect.offsetMax = Vector2.zero;
+            var barFillImg = barFillGO.AddComponent<Image>();
+            barFillImg.color = new Color(0.95f, 0.75f, 0.15f, 0.95f); // Gold fill
+            barFillImg.raycastTarget = false;
+
+            // --- Hammer symbol + time text (upper portion) ---
+            var textGO = new GameObject("TimerText");
+            textGO.transform.SetParent(indicator.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0.28f);
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(2, 0);
+            textRect.offsetMax = new Vector2(-2, 0);
+
+            var text = textGO.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(1f, 0.88f, 0.35f);
+            text.raycastTarget = false;
+
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            textOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Start live countdown + progress fill coroutine
+            StartCoroutine(AnimateUpgradeIndicator(indicator, barFillRect, text, buildTimeSeconds));
+        }
+
+        /// <summary>P&C: Live countdown timer + progress bar fill on upgrade indicator.</summary>
+        private IEnumerator AnimateUpgradeIndicator(GameObject indicator, RectTransform barFill, Text timerText, int totalSeconds)
+        {
+            if (indicator == null) yield break;
+            var cg = indicator.AddComponent<CanvasGroup>();
+            float remaining = totalSeconds;
+            float pulsePhase = 0f;
+
+            while (indicator != null && remaining > 0f)
+            {
+                remaining -= Time.deltaTime;
+                if (remaining < 0f) remaining = 0f;
+
+                // Update progress bar fill (right anchor X = progress ratio)
+                float progress = 1f - (remaining / totalSeconds);
+                barFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+
+                // Update timer text
+                int secs = Mathf.CeilToInt(remaining);
+                string timeStr;
+                if (secs >= 3600)
+                    timeStr = $"{secs / 3600}h{(secs % 3600) / 60:D2}m";
+                else if (secs >= 60)
+                    timeStr = $"{secs / 60}m{secs % 60:D2}s";
+                else
+                    timeStr = $"{secs}s";
+                timerText.text = $"\u2692 {timeStr}"; // ⚒
+
+                // Gentle pulse
+                pulsePhase += Time.deltaTime * 2.5f;
+                cg.alpha = 0.75f + 0.25f * Mathf.Sin(pulsePhase);
+
+                yield return null;
+            }
+
+            // Timer expired — indicator will be cleaned up by OnUpgradeCompletedSfx event
+        }
+
+        /// <summary>Detect in-progress upgrades on Start and show indicators.</summary>
+        private void RefreshUpgradeIndicators()
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+            foreach (var entry in bm.BuildQueue)
+            {
+                foreach (var p in _placements)
+                {
+                    if (p.InstanceId == entry.PlacedId && p.VisualGO != null)
+                    {
+                        CreateUpgradeIndicator(p.VisualGO, Mathf.CeilToInt(entry.RemainingSeconds));
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void RemoveUpgradeIndicator(GameObject building)
+        {
+            if (building == null) return;
+            var existing = building.transform.Find("UpgradeIndicator");
+            if (existing != null)
+                Destroy(existing.gameObject);
         }
 
         /// <summary>P&C: Remove a building visual from the grid when demolished.</summary>

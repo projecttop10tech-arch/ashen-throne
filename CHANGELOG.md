@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.31.0] — 2026-03-11 (Ralph Loop Iteration 26: Upgrade Indicators, Count Badges, Crossfade)
+
+### ADDED
+- **Instance count badges** — multi-copy buildings (e.g. 5 grain farms) now display a small "x3" badge at top-right corner, auto-refreshed on upgrade complete
+- **Smooth sprite crossfade on tier upgrade** — upgrade completion flashes white (0.15s) then fades back (0.2s) instead of instant sprite swap
+- **Upgrade queue indicator** — buildings currently upgrading show a dark pill overlay with hammer icon, live countdown timer, and gold progress bar that fills in real time
+- **Upgrade indicator pulsing** — indicator gently pulses alpha (0.75–1.0) at 2.5Hz for a living feel
+- **In-progress upgrade detection on Start** — buildings already upgrading when the scene loads get their upgrade indicator restored from BuildingManager.BuildQueue
+- **Upgrade SFX hooks** — level-up SFX on upgrade start, build-complete SFX on upgrade finish, wired via dedicated event handlers
+
+### CHANGED
+- OnBuildingUpgradeCompleted now triggers crossfade animation instead of instant sprite swap
+- Event subscriptions use named method references (OnUpgradeStarted, OnUpgradeCompletedSfx) instead of inline lambdas
+
+---
+
 ## [0.30.0] — 2026-03-11 (Ralph Loop Iteration 25: Cascade Collect, Selection Outline, Move Dim)
 
 ### ADDED
