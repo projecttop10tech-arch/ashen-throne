@@ -268,6 +268,8 @@ namespace AshenThrone.Empire
             CreatePeaceShield();
             // P&C: Event timer banners on left side
             CreateEventTimerBanners();
+            // P&C: Auto-collect toggle button
+            CreateAutoCollectToggle();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -530,6 +532,9 @@ namespace AshenThrone.Empire
 
             // P&C: Tick troop training queues
             TickTroopQueues();
+
+            // P&C: Auto-collect resource bubbles
+            TickAutoCollect();
 
             // Pinch-zoom (mobile multi-touch)
             _touchCount = Input.touchCount;
@@ -4406,6 +4411,18 @@ namespace AshenThrone.Empire
                 radialButtons.Add(("\u2728", "Skin", new Color(0.50f, 0.35f, 0.65f, 0.9f), () => {
                     DismissInfoPopup();
                     ShowBuildingSkinPanel(skinInstId, skinBldId, skinTier);
+                }));
+            }
+
+            // P&C: Bookmark/favorite toggle
+            {
+                string bmInstId = evt.InstanceId;
+                bool isFav = _favoriteBuildings.Contains(bmInstId);
+                string favIcon = isFav ? "\u2605" : "\u2606"; // ★ or ☆
+                string favLabel = isFav ? "Unfav" : "Fav";
+                radialButtons.Add((favIcon, favLabel, new Color(0.65f, 0.55f, 0.15f, 0.9f), () => {
+                    DismissInfoPopup();
+                    ToggleFavoriteBuilding(bmInstId);
                 }));
             }
 
@@ -13814,9 +13831,16 @@ namespace AshenThrone.Empire
                     SetBuildingBurning(shuffled[i].InstanceId, true);
             }
 
+            // P&C: Also damage walls during raids
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "wall")
+                    DamageWall(p.InstanceId, Random.Range(0.15f, 0.40f));
+            }
+
             ShowRaidAlertBanner(attacker);
 
-            // Auto-repair after 30 seconds
+            // Auto-repair after 30 seconds (buildings only — walls need manual repair)
             StartCoroutine(AutoRepairAfterRaid(30f));
         }
 
@@ -14741,6 +14765,448 @@ namespace AshenThrone.Empire
         public int GetTrainingQueueCount(string instanceId)
         {
             return _troopQueues.TryGetValue(instanceId, out var q) ? q.Count : 0;
+        }
+    }
+
+    // ====================================================================
+    // P&C: Building Favorites / Quick-Nav Bookmarks
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private readonly HashSet<string> _favoriteBuildings = new();
+        private GameObject _favoritesBar;
+
+        private void ToggleFavoriteBuilding(string instanceId)
+        {
+            if (_favoriteBuildings.Contains(instanceId))
+            {
+                _favoriteBuildings.Remove(instanceId);
+                Debug.Log($"[CityGridView] Removed {instanceId} from favorites.");
+            }
+            else
+            {
+                _favoriteBuildings.Add(instanceId);
+                Debug.Log($"[CityGridView] Added {instanceId} to favorites.");
+            }
+            RefreshFavoritesBar();
+            // Refresh bookmark star badge on building
+            var placement = _placements.Find(p => p.InstanceId == instanceId);
+            if (placement?.VisualGO != null)
+            {
+                var existingStar = placement.VisualGO.transform.Find("FavStar");
+                if (existingStar != null) Destroy(existingStar.gameObject);
+                if (_favoriteBuildings.Contains(instanceId))
+                    AddFavStarBadge(placement);
+            }
+        }
+
+        private void AddFavStarBadge(CityBuildingPlacement placement)
+        {
+            if (placement.VisualGO == null) return;
+            var star = new GameObject("FavStar");
+            star.transform.SetParent(placement.VisualGO.transform, false);
+            var rect = star.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.75f, 0.80f);
+            rect.anchorMax = new Vector2(0.95f, 0.95f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var img = star.AddComponent<Image>();
+            img.color = new Color(1f, 0.85f, 0.15f, 0.95f);
+            img.raycastTarget = false;
+            var text = new GameObject("StarIcon");
+            text.transform.SetParent(star.transform, false);
+            var textRect = text.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var label = text.AddComponent<Text>();
+            label.text = "\u2605";
+            label.fontSize = 12;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(0.15f, 0.10f, 0.02f);
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.raycastTarget = false;
+        }
+
+        private void RefreshFavoritesBar()
+        {
+            if (_favoritesBar != null) Destroy(_favoritesBar);
+            if (_favoriteBuildings.Count == 0) return;
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _favoritesBar = new GameObject("FavoritesBar");
+            _favoritesBar.transform.SetParent(canvas.transform, false);
+            var barRect = _favoritesBar.AddComponent<RectTransform>();
+            // Right side, below resource bar
+            barRect.anchorMin = new Vector2(0.82f, 0.60f);
+            barRect.anchorMax = new Vector2(0.98f, 0.60f + _favoriteBuildings.Count * 0.05f);
+            barRect.offsetMin = Vector2.zero;
+            barRect.offsetMax = Vector2.zero;
+            var barBg = _favoritesBar.AddComponent<Image>();
+            barBg.color = new Color(0.06f, 0.05f, 0.12f, 0.75f);
+            barBg.raycastTarget = false;
+            var barOutline = _favoritesBar.AddComponent<Outline>();
+            barOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.4f);
+            barOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            int idx = 0;
+            foreach (var instId in _favoriteBuildings)
+            {
+                var placement = _placements.Find(p => p.InstanceId == instId);
+                if (placement == null) continue;
+
+                float slotH = 1f / _favoriteBuildings.Count;
+                var slot = new GameObject($"FavSlot_{idx}");
+                slot.transform.SetParent(_favoritesBar.transform, false);
+                var slotRect = slot.AddComponent<RectTransform>();
+                slotRect.anchorMin = new Vector2(0f, 1f - (idx + 1) * slotH);
+                slotRect.anchorMax = new Vector2(1f, 1f - idx * slotH);
+                slotRect.offsetMin = new Vector2(2, 1);
+                slotRect.offsetMax = new Vector2(-2, -1);
+                var slotBg = slot.AddComponent<Image>();
+                slotBg.color = new Color(0.12f, 0.10f, 0.20f, 0.8f);
+                slotBg.raycastTarget = true;
+
+                // Tap to pan to building
+                var btn = slot.AddComponent<Button>();
+                btn.targetGraphic = slotBg;
+                string capId = instId;
+                btn.onClick.AddListener(() => PanToBuilding(capId));
+
+                string displayName = BuildingDisplayNames.TryGetValue(placement.BuildingId, out var dn) ? dn : placement.BuildingId;
+                var labelGO = new GameObject("Label");
+                labelGO.transform.SetParent(slot.transform, false);
+                var labelRect = labelGO.AddComponent<RectTransform>();
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = new Vector2(2, 0);
+                labelRect.offsetMax = new Vector2(-2, 0);
+                var label = labelGO.AddComponent<Text>();
+                label.text = $"\u2605 {displayName}";
+                label.fontSize = 9;
+                label.fontStyle = FontStyle.Bold;
+                label.alignment = TextAnchor.MiddleLeft;
+                label.color = new Color(0.95f, 0.85f, 0.40f);
+                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                label.raycastTarget = false;
+
+                idx++;
+            }
+        }
+
+        private void PanToBuilding(string instanceId)
+        {
+            var placement = _placements.Find(p => p.InstanceId == instanceId);
+            if (placement == null || contentContainer == null) return;
+
+            var targetPos = GridToLocalCenter(placement.GridOrigin, placement.Size);
+            // Scroll so building is centered in viewport
+            var viewport = GetComponent<RectTransform>();
+            if (viewport == null) return;
+            var scale = contentContainer.localScale.x;
+            contentContainer.anchoredPosition = -targetPos * scale;
+        }
+    }
+
+    // ====================================================================
+    // P&C: Wall Repair Mechanic After Raids
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private readonly Dictionary<string, float> _damagedWalls = new(); // instanceId → damage %
+        private GameObject _wallRepairPanel;
+
+        /// <summary>P&C: Damage a wall section during raids.</summary>
+        private void DamageWall(string instanceId, float damagePercent)
+        {
+            if (!_damagedWalls.ContainsKey(instanceId))
+                _damagedWalls[instanceId] = 0f;
+            _damagedWalls[instanceId] = Mathf.Min(1f, _damagedWalls[instanceId] + damagePercent);
+            RefreshWallDamageVisual(instanceId);
+        }
+
+        private void RefreshWallDamageVisual(string instanceId)
+        {
+            var placement = _placements.Find(p => p.InstanceId == instanceId);
+            if (placement?.VisualGO == null) return;
+
+            // Remove old overlay
+            var existing = placement.VisualGO.transform.Find("WallDamage");
+            if (existing != null) Destroy(existing.gameObject);
+
+            if (!_damagedWalls.TryGetValue(instanceId, out float dmg) || dmg <= 0f) return;
+
+            // Damage overlay: cracks + red tint based on damage level
+            var overlay = new GameObject("WallDamage");
+            overlay.transform.SetParent(placement.VisualGO.transform, false);
+            var rect = overlay.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var img = overlay.AddComponent<Image>();
+            float r = Mathf.Lerp(0.3f, 0.7f, dmg);
+            img.color = new Color(r, 0.10f, 0.05f, dmg * 0.4f);
+            img.raycastTarget = false;
+
+            // Crack text indicators
+            var crackGO = new GameObject("Cracks");
+            crackGO.transform.SetParent(overlay.transform, false);
+            var crackRect = crackGO.AddComponent<RectTransform>();
+            crackRect.anchorMin = new Vector2(0.2f, 0.3f);
+            crackRect.anchorMax = new Vector2(0.8f, 0.7f);
+            crackRect.offsetMin = Vector2.zero;
+            crackRect.offsetMax = Vector2.zero;
+            var crackText = crackGO.AddComponent<Text>();
+            int crackCount = dmg > 0.6f ? 3 : (dmg > 0.3f ? 2 : 1);
+            crackText.text = new string('\u2740', crackCount); // ❀ as crack symbol
+            crackText.fontSize = 16;
+            crackText.alignment = TextAnchor.MiddleCenter;
+            crackText.color = new Color(0.8f, 0.2f, 0.1f, 0.7f);
+            crackText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            crackText.raycastTarget = false;
+
+            // HP bar under wall
+            var hpBar = new GameObject("HPBar");
+            hpBar.transform.SetParent(placement.VisualGO.transform, false);
+            var hpRect = hpBar.AddComponent<RectTransform>();
+            hpRect.anchorMin = new Vector2(0.10f, -0.02f);
+            hpRect.anchorMax = new Vector2(0.90f, 0.03f);
+            hpRect.offsetMin = Vector2.zero;
+            hpRect.offsetMax = Vector2.zero;
+            var hpBg = hpBar.AddComponent<Image>();
+            hpBg.color = new Color(0.2f, 0.05f, 0.05f, 0.8f);
+            hpBg.raycastTarget = false;
+
+            var hpFill = new GameObject("Fill");
+            hpFill.transform.SetParent(hpBar.transform, false);
+            var fillRect = hpFill.AddComponent<RectTransform>();
+            float hpPercent = 1f - dmg;
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(hpPercent, 1f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fillImg = hpFill.AddComponent<Image>();
+            fillImg.color = hpPercent > 0.5f ? new Color(0.15f, 0.65f, 0.20f, 0.9f) : new Color(0.75f, 0.25f, 0.10f, 0.9f);
+            fillImg.raycastTarget = false;
+        }
+
+        /// <summary>P&C: Show wall repair panel with resource cost and timer.</summary>
+        private void ShowWallRepairPanel(string instanceId)
+        {
+            if (_wallRepairPanel != null) { Destroy(_wallRepairPanel); _wallRepairPanel = null; }
+            if (!_damagedWalls.TryGetValue(instanceId, out float dmg) || dmg <= 0f)
+            {
+                ShowUpgradeBlockedToast("Wall is not damaged.");
+                return;
+            }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _wallRepairPanel = new GameObject("WallRepairPanel");
+            _wallRepairPanel.transform.SetParent(canvas.transform, false);
+            var dimRect = _wallRepairPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _wallRepairPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _wallRepairPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_wallRepairPanel != null) { Destroy(_wallRepairPanel); _wallRepairPanel = null; } });
+
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_wallRepairPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.12f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.88f, 0.70f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.96f);
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            AddInfoPanelText(panel.transform, "Title", $"\u26E8 Wall Repair", 15, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.45f), new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.96f), TextAnchor.MiddleCenter);
+
+            // Damage status
+            int dmgPct = (int)(dmg * 100);
+            int hpPct = 100 - dmgPct;
+            AddInfoPanelText(panel.transform, "DmgStatus", $"Wall Integrity: {hpPct}%  (Damage: {dmgPct}%)", 12, FontStyle.Normal,
+                hpPct > 50 ? new Color(0.6f, 0.9f, 0.6f) : new Color(0.9f, 0.4f, 0.3f),
+                new Vector2(0.05f, 0.68f), new Vector2(0.95f, 0.80f), TextAnchor.MiddleCenter);
+
+            // Cost
+            int stoneCost = (int)(dmg * 500);
+            int ironCost = (int)(dmg * 300);
+            int repairTime = (int)(dmg * 120); // seconds
+            AddInfoPanelText(panel.transform, "Cost", $"Repair Cost:  Stone: {stoneCost}  Iron: {ironCost}  Time: {FormatTimeRemaining(repairTime)}", 11, FontStyle.Normal,
+                new Color(0.75f, 0.75f, 0.75f), new Vector2(0.05f, 0.54f), new Vector2(0.95f, 0.66f), TextAnchor.MiddleCenter);
+
+            // Repair button
+            var repairGO = new GameObject("RepairBtn");
+            repairGO.transform.SetParent(panel.transform, false);
+            var repairRect = repairGO.AddComponent<RectTransform>();
+            repairRect.anchorMin = new Vector2(0.15f, 0.25f);
+            repairRect.anchorMax = new Vector2(0.50f, 0.45f);
+            repairRect.offsetMin = Vector2.zero;
+            repairRect.offsetMax = Vector2.zero;
+            var repairBg = repairGO.AddComponent<Image>();
+            repairBg.color = new Color(0.15f, 0.55f, 0.25f, 0.92f);
+            var repairBtn = repairGO.AddComponent<Button>();
+            repairBtn.targetGraphic = repairBg;
+            string capRepairId = instanceId;
+            repairBtn.onClick.AddListener(() =>
+            {
+                _damagedWalls.Remove(capRepairId);
+                RefreshWallDamageVisual(capRepairId);
+                if (_wallRepairPanel != null) { Destroy(_wallRepairPanel); _wallRepairPanel = null; }
+                ShowUpgradeBlockedToast("Wall repaired!");
+            });
+            AddInfoPanelText(repairGO.transform, "Label", "\u2692 REPAIR", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Instant repair (gems)
+            int gemCost = Mathf.Max(5, (int)(dmg * 50));
+            var instantGO = new GameObject("InstantBtn");
+            instantGO.transform.SetParent(panel.transform, false);
+            var instantRect = instantGO.AddComponent<RectTransform>();
+            instantRect.anchorMin = new Vector2(0.55f, 0.25f);
+            instantRect.anchorMax = new Vector2(0.85f, 0.45f);
+            instantRect.offsetMin = Vector2.zero;
+            instantRect.offsetMax = Vector2.zero;
+            var instantBg = instantGO.AddComponent<Image>();
+            instantBg.color = new Color(0.55f, 0.35f, 0.65f, 0.92f);
+            var instantBtn = instantGO.AddComponent<Button>();
+            instantBtn.targetGraphic = instantBg;
+            instantBtn.onClick.AddListener(() =>
+            {
+                _damagedWalls.Remove(capRepairId);
+                RefreshWallDamageVisual(capRepairId);
+                if (_wallRepairPanel != null) { Destroy(_wallRepairPanel); _wallRepairPanel = null; }
+                ShowUpgradeBlockedToast($"Wall instantly repaired! (-{gemCost} gems)");
+            });
+            AddInfoPanelText(instantGO.transform, "Label", $"\u2728 {gemCost} Gems", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Close
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.86f);
+            closeRect.anchorMax = new Vector2(0.97f, 0.96f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.5f, 0.15f, 0.15f, 0.9f);
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(() => { if (_wallRepairPanel != null) { Destroy(_wallRepairPanel); _wallRepairPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _wallRepairPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+    }
+
+    // ====================================================================
+    // P&C: Auto-Collect Toggle for Resource Bubbles
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private bool _autoCollectEnabled;
+        private float _autoCollectTimer;
+        private const float AutoCollectInterval = 25f; // slightly longer than spawn interval
+        private GameObject _autoCollectToggle;
+
+        /// <summary>P&C: Create auto-collect toggle button near collect-all area.</summary>
+        private void CreateAutoCollectToggle()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _autoCollectToggle = new GameObject("AutoCollectToggle");
+            _autoCollectToggle.transform.SetParent(canvas.transform, false);
+            var rect = _autoCollectToggle.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.60f, 0.175f);
+            rect.anchorMax = new Vector2(0.95f, 0.21f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var bg = _autoCollectToggle.AddComponent<Image>();
+            bg.color = _autoCollectEnabled ? new Color(0.15f, 0.50f, 0.25f, 0.85f) : new Color(0.25f, 0.20f, 0.30f, 0.75f);
+            bg.raycastTarget = true;
+            var outline = _autoCollectToggle.AddComponent<Outline>();
+            outline.effectColor = new Color(0.70f, 0.55f, 0.20f, 0.4f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            var btn = _autoCollectToggle.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(ToggleAutoCollect);
+
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(_autoCollectToggle.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(4, 0);
+            labelRect.offsetMax = new Vector2(-4, 0);
+            var label = labelGO.AddComponent<Text>();
+            label.text = _autoCollectEnabled ? "\u2714 AUTO-COLLECT ON" : "\u2610 AUTO-COLLECT OFF";
+            label.fontSize = 10;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = _autoCollectEnabled ? Color.white : new Color(0.65f, 0.65f, 0.65f);
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.raycastTarget = false;
+        }
+
+        private void ToggleAutoCollect()
+        {
+            _autoCollectEnabled = !_autoCollectEnabled;
+            Debug.Log($"[CityGridView] Auto-collect: {(_autoCollectEnabled ? "ON" : "OFF")}");
+
+            // Refresh toggle visual
+            if (_autoCollectToggle != null)
+            {
+                var bg = _autoCollectToggle.GetComponent<Image>();
+                if (bg != null)
+                    bg.color = _autoCollectEnabled ? new Color(0.15f, 0.50f, 0.25f, 0.85f) : new Color(0.25f, 0.20f, 0.30f, 0.75f);
+                var label = _autoCollectToggle.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    label.text = _autoCollectEnabled ? "\u2714 AUTO-COLLECT ON" : "\u2610 AUTO-COLLECT OFF";
+                    label.color = _autoCollectEnabled ? Color.white : new Color(0.65f, 0.65f, 0.65f);
+                }
+            }
+        }
+
+        /// <summary>P&C: Auto-collect all resource bubbles when enabled.</summary>
+        private void TickAutoCollect()
+        {
+            if (!_autoCollectEnabled) return;
+            _autoCollectTimer += Time.deltaTime;
+            if (_autoCollectTimer < AutoCollectInterval) return;
+            _autoCollectTimer = 0f;
+
+            var spawner = FindAnyObjectByType<ResourceBubbleSpawner>();
+            if (spawner == null || spawner.GetTotalActiveBubbleCount() == 0) return;
+
+            spawner.CollectAll();
+            Debug.Log("[CityGridView] Auto-collected all resource bubbles.");
         }
     }
 }

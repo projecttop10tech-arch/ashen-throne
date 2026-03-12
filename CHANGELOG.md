@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.79.0] — 2026-03-12 (Ralph Loop Iteration 74: Favorites, Wall Repair, Auto-Collect)
+
+### ADDED
+- **Building favorites/bookmarks** — P&C-style quick-nav system. Star/unstar buildings via radial context menu (★/☆ toggle). Favorited buildings show gold star badge on visual. Right-side favorites bar lists all bookmarked buildings with tap-to-pan navigation. Bar auto-refreshes when favorites change.
+- **`ToggleFavoriteBuilding()` / `RefreshFavoritesBar()` / `PanToBuilding()` methods** — favorites system with star badges, quick-nav bar, and viewport panning.
+- **Wall repair mechanic** — walls take damage during raids (15-40% per attack). Damaged walls show red tint overlay with crack indicators and HP bar. Wall repair panel shows damage %, resource cost (Stone + Iron scaled by damage), repair time, and instant-repair gem option. Raids now damage all wall instances automatically.
+- **`DamageWall()` / `RefreshWallDamageVisual()` / `ShowWallRepairPanel()` methods** — wall damage system with visual overlays, HP bars, and repair dialog with resource/gem costs.
+- **Auto-collect toggle** — toggle button near collect-all area. When enabled, automatically collects all resource bubbles every 25 seconds via `ResourceBubbleSpawner.CollectAll()`. Visual toggle shows ON/OFF state with color change. Ticks in Update loop.
+- **`CreateAutoCollectToggle()` / `ToggleAutoCollect()` / `TickAutoCollect()` methods** — auto-collection system with configurable interval.
+
+---
+
 ## [0.78.0] — 2026-03-12 (Ralph Loop Iteration 73: Day/Night Cycle, Vault Overflow, Troop Queue)
 
 ### ADDED
