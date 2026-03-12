@@ -3310,6 +3310,8 @@ namespace AshenThrone.Empire
                     if (existingBar != null) Destroy(existingBar.gameObject);
                     var existingScaffold = p.VisualGO.transform.Find("Scaffolding");
                     if (existingScaffold != null) Destroy(existingScaffold.gameObject);
+                    var existingQueueLabel = p.VisualGO.transform.Find("QueuePosLabel");
+                    if (existingQueueLabel != null) Destroy(existingQueueLabel.gameObject);
                 }
 
                 // Check if can afford next tier
@@ -3427,12 +3429,21 @@ namespace AshenThrone.Empire
             float progress = totalTime > 0 ? 1f - (entry.RemainingSeconds / totalTime) : 0f;
             progress = Mathf.Clamp01(progress);
 
+            // Compute queue position
+            int queuePos = 0;
+            for (int i = 0; i < bm.BuildQueue.Count; i++)
+            {
+                if (bm.BuildQueue[i].PlacedId == placement.InstanceId) { queuePos = i + 1; break; }
+            }
+
             // Create or update progress bar
             var existingBar = placement.VisualGO.transform.Find("UpgradeProgressBar");
             if (existingBar == null)
             {
-                CreateUpgradeProgressBar(placement.VisualGO, progress);
+                CreateUpgradeProgressBar(placement.VisualGO, progress, placement.InstanceId, entry.RemainingSeconds);
                 AddScaffoldingOverlay(placement.VisualGO);
+                if (bm.BuildQueue.Count > 1)
+                    CreateQueuePositionLabel(placement.VisualGO, queuePos, bm.BuildQueue.Count);
             }
             else
             {
@@ -3451,10 +3462,38 @@ namespace AshenThrone.Empire
                     if (text != null)
                         text.text = $"{Mathf.RoundToInt(progress * 100)}%";
                 }
+                // Update queue position label
+                var queueLabel = placement.VisualGO.transform.Find("QueuePosLabel");
+                if (bm.BuildQueue.Count > 1)
+                {
+                    if (queueLabel == null)
+                        CreateQueuePositionLabel(placement.VisualGO, queuePos, bm.BuildQueue.Count);
+                    else
+                    {
+                        var qlText = queueLabel.GetComponentInChildren<Text>();
+                        if (qlText != null) qlText.text = $"#{queuePos}/{bm.BuildQueue.Count}";
+                    }
+                }
+                else if (queueLabel != null)
+                    Destroy(queueLabel.gameObject);
+
+                // Update speed-up button time label
+                var speedBtn = existingBar.Find("SpeedUpBtn");
+                if (speedBtn != null)
+                {
+                    var btnLabel = speedBtn.GetComponentInChildren<Text>();
+                    if (btnLabel != null)
+                    {
+                        int secs = Mathf.RoundToInt(entry.RemainingSeconds);
+                        btnLabel.text = secs <= FreeSpeedUpThresholdSeconds
+                            ? $"\u26A1 FREE"
+                            : $"\u26A1 {FormatTimeRemaining(secs)}";
+                    }
+                }
             }
         }
 
-        private void CreateUpgradeProgressBar(GameObject building, float progress)
+        private void CreateUpgradeProgressBar(GameObject building, float progress, string instanceId, float remainingSeconds)
         {
             var bar = new GameObject("UpgradeProgressBar");
             bar.transform.SetParent(building.transform, false);
@@ -3504,6 +3543,97 @@ namespace AshenThrone.Empire
             var pctShadow = pctGO.AddComponent<Shadow>();
             pctShadow.effectColor = new Color(0, 0, 0, 0.9f);
             pctShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // P&C: Speed-up button below the progress bar
+            var speedBtn = new GameObject("SpeedUpBtn");
+            speedBtn.transform.SetParent(bar.transform, false);
+            var speedRect = speedBtn.AddComponent<RectTransform>();
+            speedRect.anchorMin = new Vector2(0.15f, -2.8f);
+            speedRect.anchorMax = new Vector2(0.85f, -0.4f);
+            speedRect.offsetMin = Vector2.zero;
+            speedRect.offsetMax = Vector2.zero;
+
+            var speedBg = speedBtn.AddComponent<Image>();
+            int secs = Mathf.RoundToInt(remainingSeconds);
+            bool isFree = secs <= FreeSpeedUpThresholdSeconds;
+            speedBg.color = isFree
+                ? new Color(0.15f, 0.65f, 0.30f, 0.92f)
+                : new Color(0.55f, 0.30f, 0.70f, 0.90f);
+            speedBg.raycastTarget = true;
+
+            var speedOutline = speedBtn.AddComponent<Outline>();
+            speedOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.6f);
+            speedOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            var btn = speedBtn.AddComponent<Button>();
+            btn.targetGraphic = speedBg;
+            string capturedId = instanceId;
+            float capturedSecs = remainingSeconds;
+            btn.onClick.AddListener(() =>
+            {
+                if (capturedSecs <= FreeSpeedUpThresholdSeconds)
+                {
+                    EventBus.Publish(new SpeedupRequestedEvent(capturedId, 0, capturedSecs));
+                    return;
+                }
+                int gemCost = Mathf.Max(1, Mathf.CeilToInt(capturedSecs / 60f));
+                ShowSpeedUpDialog(capturedId, gemCost, Mathf.RoundToInt(capturedSecs));
+            });
+
+            var speedTextGO = new GameObject("Label");
+            speedTextGO.transform.SetParent(speedBtn.transform, false);
+            var speedTextRect = speedTextGO.AddComponent<RectTransform>();
+            speedTextRect.anchorMin = Vector2.zero;
+            speedTextRect.anchorMax = Vector2.one;
+            speedTextRect.offsetMin = Vector2.zero;
+            speedTextRect.offsetMax = Vector2.zero;
+            var speedText = speedTextGO.AddComponent<Text>();
+            speedText.text = isFree ? "\u26A1 FREE" : $"\u26A1 {FormatTimeRemaining(secs)}";
+            speedText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            speedText.fontSize = 7;
+            speedText.fontStyle = FontStyle.Bold;
+            speedText.alignment = TextAnchor.MiddleCenter;
+            speedText.color = Color.white;
+            speedText.raycastTarget = false;
+            var speedShadow = speedTextGO.AddComponent<Shadow>();
+            speedShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            speedShadow.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        /// <summary>P&C: Queue position label above building showing "#1/2".</summary>
+        private void CreateQueuePositionLabel(GameObject building, int position, int total)
+        {
+            var label = new GameObject("QueuePosLabel");
+            label.transform.SetParent(building.transform, false);
+            var rect = label.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.30f, 0.92f);
+            rect.anchorMax = new Vector2(0.70f, 1.02f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = label.AddComponent<Image>();
+            bg.color = new Color(0.10f, 0.08f, 0.20f, 0.85f);
+            bg.raycastTarget = false;
+
+            var outline = label.AddComponent<Outline>();
+            outline.effectColor = new Color(0.5f, 0.5f, 0.6f, 0.5f);
+            outline.effectDistance = new Vector2(0.4f, -0.4f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(label.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = $"#{position}/{total}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.75f, 0.80f, 0.95f);
+            text.raycastTarget = false;
         }
 
         // ====================================================================

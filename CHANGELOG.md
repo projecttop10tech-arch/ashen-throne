@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.44.0] — 2026-03-12 (Ralph Loop Iteration 39: Speed-Up Button, Queue Position Labels)
+
+### ADDED
+- **Speed-up button on progress bar** — upgrading buildings show a tappable speed-up button below the progress bar. Shows "⚡ FREE" in green when under 5min remaining, or "⚡ [time]" in purple for longer upgrades. Tapping opens the gem speed-up dialog (or applies free speedup if under threshold).
+- **Queue position labels** — when multiple buildings are upgrading simultaneously, each shows a "#1/2" position label above the building. Label auto-updates on the 2s refresh cycle. Hidden when only one item is in queue. Cleaned up when upgrade completes.
+- **Speed-up button live updates** — the speed-up button label updates every 2s to reflect current remaining time and switches to "FREE" when threshold is crossed.
+
+### CHANGED
+- `CreateUpgradeProgressBar` now takes `instanceId` and `remainingSeconds` params for speed-up button
+- `RefreshUpgradeProgressBar` computes queue position and manages queue labels alongside progress bars
+- Progress bar cleanup also removes queue position labels
+
+---
+
 ## [0.43.0] — 2026-03-12 (Ralph Loop Iteration 38: Upgrade Progress Bar, Scaffolding Integration)
 
 ### ADDED
