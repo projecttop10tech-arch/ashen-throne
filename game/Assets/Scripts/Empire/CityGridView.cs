@@ -3199,8 +3199,8 @@ namespace AshenThrone.Empire
                     isMaxLevel ? (System.Action)null : () => {
                         string warning = GetUpgradeBlockReason(upgInstanceId, upgTier);
                         if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
-                        EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingId, upgTier));
                         DismissInfoPopup();
+                        ShowUpgradeConfirmDialog(upgInstanceId, upgBuildingId, upgTier);
                     }));
             }
 
@@ -3747,8 +3747,8 @@ namespace AshenThrone.Empire
                     if (infoMaxLevel) return;
                     string warning = GetUpgradeBlockReason(upgInstanceId, upgTierLocal);
                     if (warning != null) { ShowUpgradeBlockedToast(warning); return; }
-                    EventBus.Publish(new BuildingDoubleTappedEvent(upgInstanceId, upgBuildingIdLocal, upgTierLocal));
                     DismissBuildingInfoPanel();
+                    ShowUpgradeConfirmDialog(upgInstanceId, upgBuildingIdLocal, upgTierLocal);
                 });
                 AddInfoPanelText(upgGO.transform, "Label", infoMaxLevel ? "MAX LEVEL" : "\u2B06 Upgrade", 11,
                     FontStyle.Bold, Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
@@ -4007,6 +4007,214 @@ namespace AshenThrone.Empire
         private void DismissDemolishDialog()
         {
             if (_demolishDialog != null) { Destroy(_demolishDialog); _demolishDialog = null; }
+        }
+
+        // ====================================================================
+        // P&C: Upgrade Confirmation Dialog
+        // ====================================================================
+
+        private GameObject _upgradeConfirmDialog;
+
+        /// <summary>P&C: Show upgrade confirmation dialog with resource cost breakdown, build time, tier preview.</summary>
+        private void ShowUpgradeConfirmDialog(string instanceId, string buildingId, int currentTier)
+        {
+            DismissUpgradeConfirmDialog();
+
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+            if (!bm.PlacedBuildings.TryGetValue(instanceId, out var placed) || placed.Data == null) return;
+            var nextTierData = placed.Data.GetTier(currentTier);
+            if (nextTierData == null) return;
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _upgradeConfirmDialog = new GameObject("UpgradeConfirmDialog");
+            _upgradeConfirmDialog.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _upgradeConfirmDialog.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _upgradeConfirmDialog.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _upgradeConfirmDialog.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissUpgradeConfirmDialog);
+
+            // Center panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_upgradeConfirmDialog.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.25f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.75f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelImg = panel.AddComponent<Image>();
+            panelImg.color = new Color(0.06f, 0.04f, 0.12f, 0.96f);
+            panelImg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.85f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            int nextTier = currentTier + 1;
+
+            // Title: "Upgrade [Building]?"
+            AddInfoPanelText(panel.transform, "Title", $"Upgrade {displayName}?", 16, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.87f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            // Tier change: "Lv.X → Lv.Y"
+            AddInfoPanelText(panel.transform, "TierChange", $"Lv.{currentTier} \u2192 Lv.{nextTier}", 13, FontStyle.Bold,
+                new Color(0.80f, 0.90f, 0.50f),
+                new Vector2(0.30f, 0.78f), new Vector2(0.70f, 0.87f), TextAnchor.MiddleCenter);
+
+            // Tier sprites side by side
+            Sprite curSprite = LoadBuildingSprite(buildingId, currentTier);
+            Sprite nextSprite = LoadBuildingSprite(buildingId, nextTier);
+            if (curSprite != null)
+            {
+                var curGO = new GameObject("CurSprite");
+                curGO.transform.SetParent(panel.transform, false);
+                var curRect = curGO.AddComponent<RectTransform>();
+                curRect.anchorMin = new Vector2(0.10f, 0.55f);
+                curRect.anchorMax = new Vector2(0.35f, 0.78f);
+                curRect.offsetMin = Vector2.zero;
+                curRect.offsetMax = Vector2.zero;
+                var curImg = curGO.AddComponent<Image>();
+                curImg.sprite = curSprite;
+                curImg.preserveAspect = true;
+                curImg.raycastTarget = false;
+                curImg.color = new Color(1, 1, 1, 0.6f); // Dim current
+            }
+            AddInfoPanelText(panel.transform, "Arrow", "\u2192", 18, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.38f, 0.62f), new Vector2(0.62f, 0.72f), TextAnchor.MiddleCenter);
+            if (nextSprite != null)
+            {
+                var nextGO = new GameObject("NextSprite");
+                nextGO.transform.SetParent(panel.transform, false);
+                var nextRect = nextGO.AddComponent<RectTransform>();
+                nextRect.anchorMin = new Vector2(0.65f, 0.55f);
+                nextRect.anchorMax = new Vector2(0.90f, 0.78f);
+                nextRect.offsetMin = Vector2.zero;
+                nextRect.offsetMax = Vector2.zero;
+                var nextImg = nextGO.AddComponent<Image>();
+                nextImg.sprite = nextSprite;
+                nextImg.preserveAspect = true;
+                nextImg.raycastTarget = false;
+            }
+
+            // Resource cost breakdown with afford indicators
+            ServiceLocator.TryGet<ResourceManager>(out var rm);
+            float costY = 0.48f;
+
+            void AddCostRow(string icon, string resName, int cost, long current, Color tint)
+            {
+                if (cost <= 0) return;
+                bool canAfford = current >= cost;
+                string costStr = FormatCost(cost);
+                string curStr = FormatCost((int)Mathf.Min(current, 999999999));
+                Color rowColor = canAfford ? new Color(0.50f, 0.90f, 0.50f) : new Color(0.95f, 0.40f, 0.35f);
+
+                AddInfoPanelText(panel.transform, $"Cost_{resName}", $"{icon} {resName}", 11, FontStyle.Normal, tint,
+                    new Vector2(0.05f, costY - 0.06f), new Vector2(0.35f, costY + 0.01f), TextAnchor.MiddleLeft);
+                AddInfoPanelText(panel.transform, $"CostAmt_{resName}", costStr, 11, FontStyle.Bold, rowColor,
+                    new Vector2(0.38f, costY - 0.06f), new Vector2(0.58f, costY + 0.01f), TextAnchor.MiddleRight);
+                AddInfoPanelText(panel.transform, $"CostCur_{resName}", $"/{curStr}", 9, FontStyle.Normal,
+                    new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0.59f, costY - 0.06f), new Vector2(0.80f, costY + 0.01f), TextAnchor.MiddleLeft);
+
+                string check = canAfford ? "\u2713" : "\u2717"; // ✓ or ✗
+                AddInfoPanelText(panel.transform, $"CostChk_{resName}", check, 12, FontStyle.Bold, rowColor,
+                    new Vector2(0.82f, costY - 0.06f), new Vector2(0.95f, costY + 0.01f), TextAnchor.MiddleCenter);
+                costY -= 0.08f;
+            }
+
+            long curStone = rm != null ? rm.Stone : 0;
+            long curIron = rm != null ? rm.Iron : 0;
+            long curGrain = rm != null ? rm.Grain : 0;
+            long curArcane = rm != null ? rm.ArcaneEssence : 0;
+
+            AddCostRow("\u25C8", "Stone", nextTierData.stoneCost, curStone, new Color(0.70f, 0.70f, 0.75f));
+            AddCostRow("\u2666", "Iron", nextTierData.ironCost, curIron, new Color(0.80f, 0.65f, 0.50f));
+            AddCostRow("\u2740", "Grain", nextTierData.grainCost, curGrain, new Color(0.65f, 0.85f, 0.45f));
+            AddCostRow("\u2726", "Arcane", nextTierData.arcaneEssenceCost, curArcane, new Color(0.60f, 0.50f, 0.90f));
+
+            // Build time
+            float buildSeconds = nextTierData.buildTimeSeconds;
+            string timeStr = FormatTimeRemaining(Mathf.RoundToInt(buildSeconds));
+            AddInfoPanelText(panel.transform, "BuildTime", $"\u23F1 Build Time: {timeStr}", 11, FontStyle.Normal,
+                new Color(0.80f, 0.78f, 0.70f),
+                new Vector2(0.05f, 0.14f), new Vector2(0.60f, 0.22f), TextAnchor.MiddleLeft);
+
+            // Cancel button
+            var cancelGO = new GameObject("CancelBtn");
+            cancelGO.transform.SetParent(panel.transform, false);
+            var cancelRect = cancelGO.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.05f, 0.03f);
+            cancelRect.anchorMax = new Vector2(0.45f, 0.12f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+            var cancelImg = cancelGO.AddComponent<Image>();
+            cancelImg.color = new Color(0.45f, 0.20f, 0.20f, 0.85f);
+            cancelImg.raycastTarget = true;
+            var cancelOutline = cancelGO.AddComponent<Outline>();
+            cancelOutline.effectColor = new Color(0.8f, 0.3f, 0.2f, 0.5f);
+            cancelOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var cancelBtn = cancelGO.AddComponent<Button>();
+            cancelBtn.targetGraphic = cancelImg;
+            cancelBtn.onClick.AddListener(DismissUpgradeConfirmDialog);
+            AddInfoPanelText(cancelGO.transform, "Label", "Cancel", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Upgrade button
+            bool canAffordAll = curStone >= nextTierData.stoneCost && curIron >= nextTierData.ironCost
+                && curGrain >= nextTierData.grainCost && curArcane >= nextTierData.arcaneEssenceCost;
+            var upgGO = new GameObject("UpgradeBtn");
+            upgGO.transform.SetParent(panel.transform, false);
+            var upgRect = upgGO.AddComponent<RectTransform>();
+            upgRect.anchorMin = new Vector2(0.55f, 0.03f);
+            upgRect.anchorMax = new Vector2(0.95f, 0.12f);
+            upgRect.offsetMin = Vector2.zero;
+            upgRect.offsetMax = Vector2.zero;
+            var upgImg = upgGO.AddComponent<Image>();
+            upgImg.color = canAffordAll
+                ? new Color(0.15f, 0.60f, 0.20f, 0.90f)
+                : new Color(0.35f, 0.35f, 0.35f, 0.70f);
+            upgImg.raycastTarget = true;
+            var upgOutline = upgGO.AddComponent<Outline>();
+            upgOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.5f);
+            upgOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var upgBtn = upgGO.AddComponent<Button>();
+            upgBtn.targetGraphic = upgImg;
+            string capId = instanceId;
+            string capBid = buildingId;
+            int capTier = currentTier;
+            upgBtn.onClick.AddListener(() =>
+            {
+                if (!canAffordAll) { ShowUpgradeBlockedToast("Not enough resources!"); return; }
+                DismissUpgradeConfirmDialog();
+                // Publish upgrade start event (BuildingManager handles queue)
+                EventBus.Publish(new BuildingUpgradeStartedEvent(capId, capTier + 1, nextTierData.buildTimeSeconds));
+                if (ServiceLocator.TryGet<BuildingManager>(out var mgr))
+                    mgr.StartUpgrade(capId);
+            });
+            AddInfoPanelText(upgGO.transform, "Label", canAffordAll ? "\u2B06 UPGRADE" : "Can't Afford", 12,
+                FontStyle.Bold, Color.white, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Fade in
+            var cg = _upgradeConfirmDialog.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        private void DismissUpgradeConfirmDialog()
+        {
+            if (_upgradeConfirmDialog != null) { Destroy(_upgradeConfirmDialog); _upgradeConfirmDialog = null; }
         }
 
         // ====================================================================

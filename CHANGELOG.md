@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.53.0] — 2026-03-12 (Ralph Loop Iteration 48: Upgrade Confirmation Dialog)
+
+### ADDED
+- **P&C-style upgrade confirmation dialog** — tapping Upgrade now shows a full-screen dialog with: tier sprite comparison (current dimmed → next highlighted), "Lv.X → Lv.Y" header, per-resource cost breakdown with current amounts and green ✓ / red ✗ afford indicators, build time display, and Cancel/Upgrade buttons. Upgrade button is grayed out and shows "Can't Afford" when resources are insufficient.
+- **`ShowUpgradeConfirmDialog()` method** — creates the confirmation dialog with resource cost rows, sprite previews, and conditional upgrade action.
+- **`DismissUpgradeConfirmDialog()` method** — cleanup for upgrade confirmation dialog.
+
+### CHANGED
+- Radial menu Upgrade button now opens upgrade confirmation dialog instead of directly triggering `BuildingDoubleTappedEvent`
+- Info panel Upgrade button also routes through the confirmation dialog
+- Both upgrade paths now show detailed resource costs before committing to the upgrade
+- Upgrade confirmation publishes `BuildingUpgradeStartedEvent` with correct `buildTimeSeconds` from `BuildingTierData`
+
+---
+
 ## [0.52.0] — 2026-03-12 (Ralph Loop Iteration 47: Notification Badges, Build Selector Hints)
 
 ### ADDED
