@@ -72,6 +72,13 @@ namespace AshenThrone.Empire
             { "banner",           new Vector2Int(1, 1) },
         };
 
+        /// <summary>P&C: Max allowed instances per building type. Types not listed default to 1 (unique).</summary>
+        private static readonly Dictionary<string, int> MaxBuildingCountPerType = new()
+        {
+            { "grain_farm", 5 }, { "iron_mine", 3 }, { "stone_quarry", 3 }, { "arcane_tower", 2 },
+            { "barracks", 2 }, { "training_ground", 2 }, { "wall", 4 },
+        };
+
         // Virtual grid occupancy: cell position -> instance ID
         private readonly Dictionary<Vector2Int, string> _occupancy = new();
         private readonly List<CityBuildingPlacement> _placements = new();
@@ -155,6 +162,7 @@ namespace AshenThrone.Empire
         // P&C: Building info popup on tap
         private GameObject _infoPopup;
         private string _infoPopupInstanceId;
+        private Coroutine _popupAutoDismiss;
         private EventSubscription _buildingTappedSub;
 
         // P&C: Move mode confirm/cancel bar
@@ -325,6 +333,7 @@ namespace AshenThrone.Empire
                 RefreshUpgradeArrows();
                 UpdateBuilderCountHUD();
                 RefreshResourceCapWarnings();
+                RefreshStrongholdUpgradeBanner();
             }
 
             // P&C: Pulse selection ring glow
@@ -814,6 +823,7 @@ namespace AshenThrone.Empire
             img.raycastTarget = true;
 
             CreateLevelBadge(go, placement.Tier);
+            CreateBuildingCountBadge(go, placement.BuildingId);
 
             // P&C-style production rate label on resource buildings
             CreateProductionLabel(go, placement.BuildingId, placement.Tier);
@@ -1137,6 +1147,52 @@ namespace AshenThrone.Empire
             var shadow = lvlGO.AddComponent<Shadow>();
             shadow.effectColor = new Color(0, 0, 0, 0.9f);
             shadow.effectDistance = new Vector2(0.8f, -0.8f);
+        }
+
+        /// <summary>P&C: Small count badge showing "#/max" for building types that allow multiples.</summary>
+        private void CreateBuildingCountBadge(GameObject parent, string buildingId)
+        {
+            if (!MaxBuildingCountPerType.TryGetValue(buildingId, out int maxCount)) return;
+            if (maxCount <= 1) return;
+
+            // Count how many of this type exist
+            int current = 0;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == buildingId) current++;
+            }
+
+            var badge = new GameObject("CountBadge");
+            badge.transform.SetParent(parent.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0.35f, 0.13f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.12f, 0.10f, 0.20f, 0.88f);
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(0.5f, 0.5f, 0.6f, 0.5f);
+            outline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = $"{current}/{maxCount}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = current >= maxCount ? new Color(0.85f, 0.4f, 0.3f) : new Color(0.70f, 0.75f, 0.80f);
+            text.raycastTarget = false;
         }
 
         private void PositionBuildingRect(RectTransform rect, CityBuildingPlacement placement)
@@ -2619,6 +2675,10 @@ namespace AshenThrone.Empire
             cg.alpha = 0f;
             _infoPopup = popup;
             StartCoroutine(FadeInPopup(cg));
+
+            // P&C: Auto-dismiss popup after 5 seconds of no interaction
+            if (_popupAutoDismiss != null) StopCoroutine(_popupAutoDismiss);
+            _popupAutoDismiss = StartCoroutine(AutoDismissPopup(5f));
         }
 
         private void CreatePopupButton(Transform parent, string label, string icon, Vector2 anchorMin, Vector2 anchorMax,
@@ -2710,6 +2770,7 @@ namespace AshenThrone.Empire
 
         private void DismissInfoPopup()
         {
+            if (_popupAutoDismiss != null) { StopCoroutine(_popupAutoDismiss); _popupAutoDismiss = null; }
             if (_infoPopup != null)
             {
                 Destroy(_infoPopup);
@@ -2718,11 +2779,34 @@ namespace AshenThrone.Empire
             _infoPopupInstanceId = null;
         }
 
+        /// <summary>P&C: Auto-dismiss popup after timeout — fade out then destroy.</summary>
+        private IEnumerator AutoDismissPopup(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (_infoPopup != null)
+            {
+                var cg = _infoPopup.GetComponent<CanvasGroup>();
+                if (cg != null)
+                {
+                    float elapsed = 0f;
+                    while (elapsed < 0.25f && cg != null)
+                    {
+                        elapsed += Time.deltaTime;
+                        cg.alpha = 1f - Mathf.Clamp01(elapsed / 0.25f);
+                        yield return null;
+                    }
+                }
+                DismissInfoPopup();
+            }
+            _popupAutoDismiss = null;
+        }
+
         // ====================================================================
         // P&C: Building Info Detail Panel
         // ====================================================================
 
         private GameObject _buildingInfoPanel;
+        private GameObject _strongholdUpgradeBanner;
 
         /// <summary>P&C: Full-screen building info panel with stats, description, production info.</summary>
         private void ShowBuildingInfoPanel(string buildingId, string instanceId, int tier)
@@ -3389,6 +3473,118 @@ namespace AshenThrone.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
+        }
+
+        // ====================================================================
+        // P&C: Stronghold recommended upgrade banner
+        // ====================================================================
+
+        /// <summary>
+        /// P&C: Shows a prominent "RECOMMENDED UPGRADE" banner on the stronghold
+        /// when no upgrades are active and builders are free — nudges progression.
+        /// </summary>
+        private void RefreshStrongholdUpgradeBanner()
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+
+            // Find stronghold placement
+            CityBuildingPlacement stronghold = null;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "stronghold") { stronghold = p; break; }
+            }
+            if (stronghold == null || stronghold.VisualGO == null)
+            {
+                DestroyStrongholdUpgradeBanner();
+                return;
+            }
+
+            // Show banner only when: no active upgrades & stronghold not at max tier
+            bool hasActiveUpgrade = bm.BuildQueue.Count > 0;
+            bool isMaxTier = stronghold.Tier >= 3; // tier 0,1,2 = t1,t2,t3
+            bool shouldShow = !hasActiveUpgrade && !isMaxTier;
+
+            if (!shouldShow)
+            {
+                DestroyStrongholdUpgradeBanner();
+                return;
+            }
+
+            if (_strongholdUpgradeBanner != null) return; // already showing
+
+            // Create banner above stronghold
+            var banner = new GameObject("StrongholdUpgradeBanner");
+            banner.transform.SetParent(stronghold.VisualGO.transform, false);
+            var rect = banner.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.15f, 0.88f);
+            rect.anchorMax = new Vector2(1.15f, 1.08f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark bg with gold border
+            var bg = banner.AddComponent<Image>();
+            bg.color = new Color(0.10f, 0.06f, 0.18f, 0.92f);
+            bg.raycastTarget = true;
+
+            var outline = banner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.9f);
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
+
+            // Tap to upgrade
+            var btn = banner.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            string capturedInstanceId = stronghold.InstanceId;
+            btn.onClick.AddListener(() =>
+            {
+                if (ServiceLocator.TryGet<BuildingManager>(out var mgr))
+                    mgr.StartUpgrade(capturedInstanceId);
+            });
+
+            // Arrow icon + text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(banner.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(4, 0);
+            textRect.offsetMax = new Vector2(-4, 0);
+            var text = textGO.AddComponent<Text>();
+            text.text = $"\u2B06 UPGRADE STRONGHOLD";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(1f, 0.88f, 0.35f);
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(0.6f, -0.6f);
+
+            _strongholdUpgradeBanner = banner;
+            StartCoroutine(PulseStrongholdBanner());
+        }
+
+        private IEnumerator PulseStrongholdBanner()
+        {
+            while (_strongholdUpgradeBanner != null)
+            {
+                var img = _strongholdUpgradeBanner.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 2.5f);
+                    img.color = new Color(0.10f, 0.06f * pulse, 0.18f * pulse, 0.92f);
+                }
+                yield return null;
+            }
+        }
+
+        private void DestroyStrongholdUpgradeBanner()
+        {
+            if (_strongholdUpgradeBanner != null)
+            {
+                Destroy(_strongholdUpgradeBanner);
+                _strongholdUpgradeBanner = null;
+            }
         }
 
         // ====================================================================

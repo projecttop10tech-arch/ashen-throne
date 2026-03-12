@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.42.0] — 2026-03-11 (Ralph Loop Iteration 37: Stronghold Banner, Count Badges, Auto-Dismiss)
+
+### ADDED
+- **Stronghold recommended upgrade banner** — when no upgrades are active and stronghold isn't at max tier, a pulsing "⬆ UPGRADE STRONGHOLD" banner appears above the stronghold with dark/gold P&C styling. Tapping the banner starts the upgrade directly. Banner auto-hides when an upgrade is in progress or stronghold is maxed.
+- **Building count badges** — buildings that allow multiples (grain_farm 5, iron_mine 3, stone_quarry 3, arcane_tower 2, barracks 2, training_ground 2, wall 4) show a small "#/max" badge in the bottom-left corner. Text turns red when at capacity.
+- **Auto-dismiss popup after 5s** — building info popup now auto-fades out after 5 seconds of inactivity. Uses a 0.25s fade-out animation before destroying. Dismissing manually or tapping another building cancels the timer.
+
+### CHANGED
+- Added `MaxBuildingCountPerType` dictionary for building instance limits
+- Added `_popupAutoDismiss` coroutine tracking field for proper cleanup
+- `RefreshStrongholdUpgradeBanner()` runs on the 2s periodic refresh cycle alongside upgrade arrows
+
+---
+
 ## [0.41.0] — 2026-03-11 (Ralph Loop Iteration 36: Popup Timer, Collect Toast, Move Coords)
 
 ### ADDED
