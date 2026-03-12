@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.43.0] — 2026-03-12 (Ralph Loop Iteration 38: Upgrade Progress Bar, Scaffolding Integration)
+
+### ADDED
+- **Upgrade progress bar on buildings** — buildings currently being upgraded show a green progress bar with percentage text overlaid at the building's center. Progress is calculated from `BuildQueueEntry.StartTime` and `RemainingSeconds`. Bar updates every 2s on the periodic refresh cycle.
+- **Scaffolding + progress bar combo** — upgrading buildings now show both the existing scaffolding overlay (diagonal construction lines, shimmer animation) AND the new progress bar simultaneously, matching P&C's construction visual.
+- **Progress bar cleanup** — progress bar and scaffolding are automatically removed when the upgrade completes.
+
+### CHANGED
+- `RefreshUpgradeArrows()` now also manages progress bars and scaffolding for upgrading buildings
+- Added `RefreshUpgradeProgressBar()` method to create/update progress bar fill based on real build queue timing
+- Uses existing `AddScaffoldingOverlay()` instead of duplicating scaffolding code
+
+---
+
 ## [0.42.0] — 2026-03-11 (Ralph Loop Iteration 37: Stronghold Banner, Count Badges, Auto-Dismiss)
 
 ### ADDED

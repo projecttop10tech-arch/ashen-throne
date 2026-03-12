@@ -3299,7 +3299,17 @@ namespace AshenThrone.Empire
                 if (isUpgrading)
                 {
                     if (existingArrow != null) Destroy(existingArrow.gameObject);
+                    // P&C: Show progress bar + scaffolding on upgrading buildings
+                    RefreshUpgradeProgressBar(p, bm);
                     continue;
+                }
+                else
+                {
+                    // Remove progress bar if upgrade finished
+                    var existingBar = p.VisualGO.transform.Find("UpgradeProgressBar");
+                    if (existingBar != null) Destroy(existingBar.gameObject);
+                    var existingScaffold = p.VisualGO.transform.Find("Scaffolding");
+                    if (existingScaffold != null) Destroy(existingScaffold.gameObject);
                 }
 
                 // Check if can afford next tier
@@ -3393,6 +3403,107 @@ namespace AshenThrone.Empire
                 }
                 yield return null;
             }
+        }
+
+        // ====================================================================
+        // P&C: Upgrade Progress Bar + Scaffolding
+        // ====================================================================
+
+        /// <summary>P&C: Green progress bar overlay + scaffolding on buildings being upgraded.</summary>
+        private void RefreshUpgradeProgressBar(CityBuildingPlacement placement, BuildingManager bm)
+        {
+            if (placement.VisualGO == null) return;
+
+            // Find the queue entry
+            BuildQueueEntry entry = null;
+            foreach (var qe in bm.BuildQueue)
+            {
+                if (qe.PlacedId == placement.InstanceId) { entry = qe; break; }
+            }
+            if (entry == null) return;
+
+            // Calculate progress (0 to 1)
+            float totalTime = (float)(System.DateTime.UtcNow - entry.StartTime).TotalSeconds + entry.RemainingSeconds;
+            float progress = totalTime > 0 ? 1f - (entry.RemainingSeconds / totalTime) : 0f;
+            progress = Mathf.Clamp01(progress);
+
+            // Create or update progress bar
+            var existingBar = placement.VisualGO.transform.Find("UpgradeProgressBar");
+            if (existingBar == null)
+            {
+                CreateUpgradeProgressBar(placement.VisualGO, progress);
+                AddScaffoldingOverlay(placement.VisualGO);
+            }
+            else
+            {
+                // Update fill amount
+                var fill = existingBar.Find("Fill");
+                if (fill != null)
+                {
+                    var fillRect = fill.GetComponent<RectTransform>();
+                    if (fillRect != null)
+                        fillRect.anchorMax = new Vector2(Mathf.Lerp(0.04f, 0.96f, progress), 0.80f);
+                }
+                var pctText = existingBar.Find("PctText");
+                if (pctText != null)
+                {
+                    var text = pctText.GetComponent<Text>();
+                    if (text != null)
+                        text.text = $"{Mathf.RoundToInt(progress * 100)}%";
+                }
+            }
+        }
+
+        private void CreateUpgradeProgressBar(GameObject building, float progress)
+        {
+            var bar = new GameObject("UpgradeProgressBar");
+            bar.transform.SetParent(building.transform, false);
+            var barRect = bar.AddComponent<RectTransform>();
+            barRect.anchorMin = new Vector2(0.05f, 0.42f);
+            barRect.anchorMax = new Vector2(0.95f, 0.52f);
+            barRect.offsetMin = Vector2.zero;
+            barRect.offsetMax = Vector2.zero;
+
+            // Dark track background
+            var trackBg = bar.AddComponent<Image>();
+            trackBg.color = new Color(0.05f, 0.05f, 0.05f, 0.80f);
+            trackBg.raycastTarget = false;
+
+            var trackOutline = bar.AddComponent<Outline>();
+            trackOutline.effectColor = new Color(0.4f, 0.35f, 0.2f, 0.6f);
+            trackOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Green fill
+            var fill = new GameObject("Fill");
+            fill.transform.SetParent(bar.transform, false);
+            var fillRect = fill.AddComponent<RectTransform>();
+            fillRect.anchorMin = new Vector2(0.04f, 0.20f);
+            fillRect.anchorMax = new Vector2(Mathf.Lerp(0.04f, 0.96f, progress), 0.80f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            var fillImg = fill.AddComponent<Image>();
+            fillImg.color = new Color(0.25f, 0.85f, 0.35f, 0.90f);
+            fillImg.raycastTarget = false;
+
+            // Percentage text
+            var pctGO = new GameObject("PctText");
+            pctGO.transform.SetParent(bar.transform, false);
+            var pctRect = pctGO.AddComponent<RectTransform>();
+            pctRect.anchorMin = Vector2.zero;
+            pctRect.anchorMax = Vector2.one;
+            pctRect.offsetMin = Vector2.zero;
+            pctRect.offsetMax = Vector2.zero;
+            var pctText = pctGO.AddComponent<Text>();
+            pctText.text = $"{Mathf.RoundToInt(progress * 100)}%";
+            pctText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            pctText.fontSize = 7;
+            pctText.fontStyle = FontStyle.Bold;
+            pctText.alignment = TextAnchor.MiddleCenter;
+            pctText.color = Color.white;
+            pctText.raycastTarget = false;
+            var pctShadow = pctGO.AddComponent<Shadow>();
+            pctShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            pctShadow.effectDistance = new Vector2(0.5f, -0.5f);
         }
 
         // ====================================================================
