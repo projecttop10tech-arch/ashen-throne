@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using AshenThrone.Core;
 using AshenThrone.Data;
+using AshenThrone.Heroes;
 
 namespace AshenThrone.Empire
 {
@@ -263,6 +264,8 @@ namespace AshenThrone.Empire
             StartCoroutine(DelayedCenterOnStronghold());
             // P&C: Show "Welcome back" offline earnings banner
             StartCoroutine(ShowOfflineEarningsBanner());
+            // P&C: Peace shield dome (active by default)
+            CreatePeaceShield();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -5142,6 +5145,42 @@ namespace AshenThrone.Empire
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
 
+            // P&C: Hero assignment button for applicable buildings
+            if (HeroAssignableBuildings.Contains(buildingId))
+            {
+                var assignGO = new GameObject("HeroAssignBtn");
+                assignGO.transform.SetParent(panel.transform, false);
+                var assignRect = assignGO.AddComponent<RectTransform>();
+                assignRect.anchorMin = new Vector2(0.05f, 0.20f);
+                assignRect.anchorMax = new Vector2(0.48f, 0.27f);
+                assignRect.offsetMin = Vector2.zero;
+                assignRect.offsetMax = Vector2.zero;
+                var assignBg = assignGO.AddComponent<Image>();
+                bool hasAssigned = _heroAssignments.ContainsKey(instanceId);
+                assignBg.color = hasAssigned
+                    ? new Color(0.15f, 0.40f, 0.55f, 0.90f)
+                    : new Color(0.25f, 0.18f, 0.45f, 0.90f);
+                assignBg.raycastTarget = true;
+                var assignOutline = assignGO.AddComponent<Outline>();
+                assignOutline.effectColor = new Color(0.50f, 0.40f, 0.80f, 0.6f);
+                assignOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                var assignBtn = assignGO.AddComponent<Button>();
+                assignBtn.targetGraphic = assignBg;
+                string capAssignInst = instanceId;
+                string capAssignBld = buildingId;
+                int capAssignTier = tier;
+                assignBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowHeroAssignPanel(capAssignInst, capAssignBld, capAssignTier);
+                });
+                string assignLabel = hasAssigned
+                    ? $"\u265F Hero: +{GetHeroAssignmentBonus(instanceId)}%"
+                    : "\u265F Assign Hero";
+                AddInfoPanelText(assignGO.transform, "Label", assignLabel, 9, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
             // P&C: Production boost button for resource buildings
             if (buildingId == "grain_farm" || buildingId == "iron_mine" || buildingId == "stone_quarry" || buildingId == "arcane_tower")
             {
@@ -5324,21 +5363,32 @@ namespace AshenThrone.Empire
                 AddInfoPanelText(helpGO.transform, "Label", "\u2764 Help", 10, FontStyle.Bold, Color.white,
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
 
-                // Close/dismiss button
-                var dismissGO = new GameObject("DismissBtn");
-                dismissGO.transform.SetParent(panel.transform, false);
-                var dismissRect = dismissGO.AddComponent<RectTransform>();
-                dismissRect.anchorMin = new Vector2(0.72f, 0.00f);
-                dismissRect.anchorMax = new Vector2(0.95f, 0.07f);
-                dismissRect.offsetMin = Vector2.zero;
-                dismissRect.offsetMax = Vector2.zero;
-                var dismissImg = dismissGO.AddComponent<Image>();
-                dismissImg.color = new Color(0.35f, 0.30f, 0.30f, 0.85f);
-                dismissImg.raycastTarget = true;
-                var dismissBtn = dismissGO.AddComponent<Button>();
-                dismissBtn.targetGraphic = dismissImg;
-                dismissBtn.onClick.AddListener(DismissBuildingInfoPanel);
-                AddInfoPanelText(dismissGO.transform, "Label", "Close", 10, FontStyle.Bold, Color.white,
+                // P&C: Cancel upgrade button
+                var cancelGO = new GameObject("CancelUpgradeBtn");
+                cancelGO.transform.SetParent(panel.transform, false);
+                var cancelRect = cancelGO.AddComponent<RectTransform>();
+                cancelRect.anchorMin = new Vector2(0.72f, 0.00f);
+                cancelRect.anchorMax = new Vector2(0.95f, 0.07f);
+                cancelRect.offsetMin = Vector2.zero;
+                cancelRect.offsetMax = Vector2.zero;
+                var cancelImg = cancelGO.AddComponent<Image>();
+                cancelImg.color = new Color(0.60f, 0.25f, 0.20f, 0.85f);
+                cancelImg.raycastTarget = true;
+                var cancelOutline2 = cancelGO.AddComponent<Outline>();
+                cancelOutline2.effectColor = new Color(0.85f, 0.35f, 0.25f, 0.5f);
+                cancelOutline2.effectDistance = new Vector2(0.5f, -0.5f);
+                var cancelBtn = cancelGO.AddComponent<Button>();
+                cancelBtn.targetGraphic = cancelImg;
+                string cancelInstId = instanceId;
+                string cancelBldId = buildingId;
+                int cancelTargetTier = activeQueueEntry.TargetTier;
+                float cancelRemaining = activeQueueEntry.RemainingSeconds;
+                cancelBtn.onClick.AddListener(() =>
+                {
+                    DismissBuildingInfoPanel();
+                    ShowCancelUpgradeDialog(cancelInstId, cancelBldId, cancelTargetTier, cancelRemaining);
+                });
+                AddInfoPanelText(cancelGO.transform, "Label", "\u2715 Cancel", 9, FontStyle.Bold, Color.white,
                     Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
             }
             else
@@ -12511,6 +12561,570 @@ namespace AshenThrone.Empire
                         new Color(0.50f, 0.90f, 0.50f), new Vector2(0.55f, 0f), new Vector2(0.95f, 1f), TextAnchor.MiddleLeft);
                 statsY -= 0.05f;
             }
+        }
+
+        // ====================================================================
+        // P&C: Hero Assignment to Buildings — assign heroes for production bonuses
+        // ====================================================================
+
+        private readonly Dictionary<string, string> _heroAssignments = new(); // instanceId → heroId
+        private GameObject _heroAssignPanel;
+
+        /// <summary>P&C: Which building types can have a hero assigned.</summary>
+        private static readonly HashSet<string> HeroAssignableBuildings = new()
+        {
+            "grain_farm", "iron_mine", "stone_quarry", "arcane_tower",
+            "barracks", "training_ground", "forge", "academy", "laboratory",
+        };
+
+        /// <summary>P&C: Get production bonus % from assigned hero level.</summary>
+        private int GetHeroAssignmentBonus(string instanceId)
+        {
+            if (!_heroAssignments.TryGetValue(instanceId, out var heroId)) return 0;
+            if (!ServiceLocator.TryGet<HeroRoster>(out var roster)) return 0;
+            var hero = roster.GetHero(heroId);
+            if (hero == null) return 0;
+            return 5 + hero.Level * 2; // 7% at Lv1, 15% at Lv5, etc.
+        }
+
+        /// <summary>P&C: Show hero assignment panel for a building.</summary>
+        private void ShowHeroAssignPanel(string instanceId, string buildingId, int tier)
+        {
+            if (_heroAssignPanel != null) { Destroy(_heroAssignPanel); _heroAssignPanel = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _heroAssignPanel = new GameObject("HeroAssignPanel");
+            _heroAssignPanel.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _heroAssignPanel.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _heroAssignPanel.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _heroAssignPanel.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_heroAssignPanel != null) { Destroy(_heroAssignPanel); _heroAssignPanel = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_heroAssignPanel.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.08f, 0.20f);
+            panelRect.anchorMax = new Vector2(0.92f, 0.80f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            AddInfoPanelText(panel.transform, "Title", $"\u265F Assign Hero — {displayName}", 14, FontStyle.Bold,
+                new Color(0.95f, 0.82f, 0.35f),
+                new Vector2(0.05f, 0.90f), new Vector2(0.95f, 0.98f), TextAnchor.MiddleCenter);
+
+            // Current assignment
+            string currentHeroId = _heroAssignments.TryGetValue(instanceId, out var h) ? h : null;
+            if (currentHeroId != null)
+            {
+                int bonus = GetHeroAssignmentBonus(instanceId);
+                AddInfoPanelText(panel.transform, "Current",
+                    $"Currently assigned: {currentHeroId} (+{bonus}% bonus)", 10, FontStyle.Normal,
+                    new Color(0.50f, 0.90f, 0.50f),
+                    new Vector2(0.05f, 0.83f), new Vector2(0.70f, 0.90f), TextAnchor.MiddleLeft);
+
+                // Unassign button
+                var unGO = new GameObject("UnassignBtn");
+                unGO.transform.SetParent(panel.transform, false);
+                var unRect = unGO.AddComponent<RectTransform>();
+                unRect.anchorMin = new Vector2(0.72f, 0.83f);
+                unRect.anchorMax = new Vector2(0.95f, 0.90f);
+                unRect.offsetMin = Vector2.zero;
+                unRect.offsetMax = Vector2.zero;
+                var unBg = unGO.AddComponent<Image>();
+                unBg.color = new Color(0.60f, 0.20f, 0.18f, 0.90f);
+                unBg.raycastTarget = true;
+                var unBtn = unGO.AddComponent<Button>();
+                unBtn.targetGraphic = unBg;
+                string capInst = instanceId;
+                string capBld = buildingId;
+                int capTier = tier;
+                unBtn.onClick.AddListener(() =>
+                {
+                    _heroAssignments.Remove(capInst);
+                    RefreshHeroAssignBadge(capInst);
+                    ShowHeroAssignPanel(capInst, capBld, capTier);
+                });
+                AddInfoPanelText(unGO.transform, "Label", "\u2715 Remove", 9, FontStyle.Bold, Color.white,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                AddInfoPanelText(panel.transform, "NoHero", "No hero assigned — tap a hero to assign", 10, FontStyle.Normal,
+                    new Color(0.60f, 0.58f, 0.55f),
+                    new Vector2(0.05f, 0.83f), new Vector2(0.95f, 0.90f), TextAnchor.MiddleCenter);
+            }
+
+            // Separator
+            var sep = new GameObject("Sep");
+            sep.transform.SetParent(panel.transform, false);
+            var sepRect = sep.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.05f, 0.815f);
+            sepRect.anchorMax = new Vector2(0.95f, 0.82f);
+            sepRect.offsetMin = Vector2.zero;
+            sepRect.offsetMax = Vector2.zero;
+            var sepImg = sep.AddComponent<Image>();
+            sepImg.color = new Color(0.78f, 0.62f, 0.22f, 0.3f);
+            sepImg.raycastTarget = false;
+
+            // Hero grid: show owned heroes
+            float rowY = 0.78f;
+            float rowH = 0.10f;
+
+            // Collect already-assigned hero IDs (can't assign same hero to 2 buildings)
+            var assignedHeroes = new HashSet<string>();
+            foreach (var kvp in _heroAssignments) assignedHeroes.Add(kvp.Value);
+
+            // Get hero roster
+            if (ServiceLocator.TryGet<HeroRoster>(out var roster))
+            {
+                int col = 0;
+                foreach (var kvp in roster.OwnedHeroes)
+                {
+                    var hero = kvp.Value;
+                    bool isAssigned = assignedHeroes.Contains(hero.HeroId);
+                    bool isCurrentAssigned = hero.HeroId == currentHeroId;
+
+                    float x0 = 0.03f + col * 0.235f;
+                    float x1 = x0 + 0.22f;
+
+                    var heroGO = new GameObject($"Hero_{hero.HeroId}");
+                    heroGO.transform.SetParent(panel.transform, false);
+                    var heroRect = heroGO.AddComponent<RectTransform>();
+                    heroRect.anchorMin = new Vector2(x0, rowY - rowH);
+                    heroRect.anchorMax = new Vector2(x1, rowY);
+                    heroRect.offsetMin = Vector2.zero;
+                    heroRect.offsetMax = Vector2.zero;
+
+                    var heroBg = heroGO.AddComponent<Image>();
+                    heroBg.color = isCurrentAssigned
+                        ? new Color(0.20f, 0.50f, 0.25f, 0.85f)
+                        : isAssigned
+                            ? new Color(0.30f, 0.28f, 0.32f, 0.60f)
+                            : new Color(0.12f, 0.10f, 0.18f, 0.85f);
+                    heroBg.raycastTarget = true;
+
+                    var heroOutline = heroGO.AddComponent<Outline>();
+                    heroOutline.effectColor = isCurrentAssigned
+                        ? new Color(0.40f, 0.90f, 0.50f, 0.6f)
+                        : new Color(0.60f, 0.50f, 0.25f, 0.4f);
+                    heroOutline.effectDistance = new Vector2(0.6f, -0.6f);
+
+                    if (!isAssigned || isCurrentAssigned)
+                    {
+                        var heroBtn = heroGO.AddComponent<Button>();
+                        heroBtn.targetGraphic = heroBg;
+                        string capHeroId = hero.HeroId;
+                        string capInstId = instanceId;
+                        string capBldId = buildingId;
+                        int capTierL = tier;
+                        heroBtn.onClick.AddListener(() =>
+                        {
+                            _heroAssignments[capInstId] = capHeroId;
+                            RefreshHeroAssignBadge(capInstId);
+                            ShowHeroAssignPanel(capInstId, capBldId, capTierL);
+                        });
+                    }
+
+                    // Hero name
+                    string shortName = hero.HeroId.Length > 12 ? hero.HeroId.Substring(0, 12) : hero.HeroId;
+                    AddInfoPanelText(heroGO.transform, "Name", shortName, 8, FontStyle.Bold,
+                        Color.white, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
+
+                    // Level + star
+                    string stars = new string('\u2605', hero.StarTier);
+                    AddInfoPanelText(heroGO.transform, "Level", $"Lv.{hero.Level} {stars}", 7, FontStyle.Normal,
+                        new Color(0.95f, 0.82f, 0.35f),
+                        new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.50f), TextAnchor.MiddleCenter);
+
+                    // Bonus preview
+                    int previewBonus = 5 + hero.Level * 2;
+                    AddInfoPanelText(heroGO.transform, "Bonus", $"+{previewBonus}%", 7, FontStyle.Bold,
+                        new Color(0.50f, 0.90f, 0.50f),
+                        new Vector2(0.65f, 0.60f), new Vector2(0.98f, 0.95f), TextAnchor.MiddleRight);
+
+                    if (isAssigned && !isCurrentAssigned)
+                    {
+                        AddInfoPanelText(heroGO.transform, "Busy", "BUSY", 7, FontStyle.Bold,
+                            new Color(0.90f, 0.45f, 0.35f),
+                            new Vector2(0.05f, 0.60f), new Vector2(0.50f, 0.95f), TextAnchor.MiddleLeft);
+                    }
+
+                    col++;
+                    if (col >= 4)
+                    {
+                        col = 0;
+                        rowY -= rowH + 0.015f;
+                    }
+                }
+            }
+
+            // Bonus explanation
+            AddInfoPanelText(panel.transform, "Help",
+                "Assigned heroes boost building output by 5% + 2% per hero level.\nHeroes can only be assigned to one building at a time.",
+                8, FontStyle.Normal, new Color(0.55f, 0.53f, 0.50f),
+                new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.10f), TextAnchor.MiddleCenter);
+
+            // Close button
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(panel.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.88f, 0.90f);
+            closeRect.anchorMax = new Vector2(0.98f, 1.0f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeImg = closeGO.AddComponent<Image>();
+            closeImg.color = new Color(0.6f, 0.15f, 0.15f, 0.85f);
+            closeImg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeImg;
+            closeBtn.onClick.AddListener(() => { if (_heroAssignPanel != null) { Destroy(_heroAssignPanel); _heroAssignPanel = null; } });
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 14, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _heroAssignPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
+        }
+
+        /// <summary>P&C: Show/hide the small hero portrait badge on a building that has an assigned hero.</summary>
+        private void RefreshHeroAssignBadge(string instanceId)
+        {
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId != instanceId || p.VisualGO == null) continue;
+
+                // Remove existing badge
+                var existing = p.VisualGO.transform.Find("HeroAssignBadge");
+                if (existing != null) Destroy(existing.gameObject);
+
+                if (!_heroAssignments.TryGetValue(instanceId, out var heroId)) break;
+
+                // Create small hero badge on the building
+                var badge = new GameObject("HeroAssignBadge");
+                badge.transform.SetParent(p.VisualGO.transform, false);
+                var badgeRect = badge.AddComponent<RectTransform>();
+                badgeRect.anchorMin = new Vector2(0.70f, 0.75f);
+                badgeRect.anchorMax = new Vector2(0.95f, 0.95f);
+                badgeRect.offsetMin = Vector2.zero;
+                badgeRect.offsetMax = Vector2.zero;
+
+                var badgeBg = badge.AddComponent<Image>();
+                badgeBg.color = new Color(0.12f, 0.30f, 0.55f, 0.90f);
+                badgeBg.raycastTarget = false;
+                var badgeOutline = badge.AddComponent<Outline>();
+                badgeOutline.effectColor = new Color(0.40f, 0.65f, 0.90f, 0.7f);
+                badgeOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+                var iconGO = new GameObject("Icon");
+                iconGO.transform.SetParent(badge.transform, false);
+                var iconRect = iconGO.AddComponent<RectTransform>();
+                iconRect.anchorMin = Vector2.zero;
+                iconRect.anchorMax = Vector2.one;
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconText = iconGO.AddComponent<Text>();
+                iconText.text = "\u265F";
+                iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                iconText.fontSize = 8;
+                iconText.alignment = TextAnchor.MiddleCenter;
+                iconText.color = Color.white;
+                iconText.raycastTarget = false;
+
+                break;
+            }
+        }
+
+        // ====================================================================
+        // P&C: City Peace Shield — translucent dome over city when shield is active
+        // ====================================================================
+
+        private GameObject _peaceShield;
+        private float _peaceShieldTimer = 28800f; // 8 hours default
+        private bool _peaceShieldActive = true;
+
+        /// <summary>P&C: Create the peace shield visual dome over the city.</summary>
+        private void CreatePeaceShield()
+        {
+            if (_peaceShield != null) return;
+            if (!_peaceShieldActive) return;
+
+            var container = buildingContainer ?? contentContainer;
+            if (container == null) return;
+
+            _peaceShield = new GameObject("PeaceShield");
+            _peaceShield.transform.SetParent(container, false);
+            // Set as last sibling so it renders above buildings
+            _peaceShield.transform.SetAsLastSibling();
+
+            var rect = _peaceShield.AddComponent<RectTransform>();
+            // Cover entire city area centered on stronghold
+            Vector2 shCenter = GridToLocalCenter(new Vector2Int(22, 22), new Vector2Int(6, 6));
+            float shieldRadius = CellSize * 18f;
+            rect.anchoredPosition = shCenter;
+            rect.sizeDelta = new Vector2(shieldRadius * 2, shieldRadius * 1.2f);
+
+            var img = _peaceShield.AddComponent<Image>();
+            img.color = new Color(0.30f, 0.60f, 0.95f, 0.08f);
+            img.raycastTarget = false;
+
+            // Try radial gradient for dome look
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+#if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+#endif
+            if (spr != null) img.sprite = spr;
+
+            // Shield border ring
+            var ring = new GameObject("ShieldRing");
+            ring.transform.SetParent(_peaceShield.transform, false);
+            var ringRect = ring.AddComponent<RectTransform>();
+            ringRect.anchorMin = new Vector2(-0.02f, -0.02f);
+            ringRect.anchorMax = new Vector2(1.02f, 1.02f);
+            ringRect.offsetMin = Vector2.zero;
+            ringRect.offsetMax = Vector2.zero;
+            var ringImg = ring.AddComponent<Image>();
+            ringImg.color = new Color(0.35f, 0.65f, 0.95f, 0.12f);
+            ringImg.raycastTarget = false;
+            if (spr != null) ringImg.sprite = spr;
+
+            // Timer label above shield
+            var timerGO = new GameObject("ShieldTimer");
+            timerGO.transform.SetParent(_peaceShield.transform, false);
+            var timerRect = timerGO.AddComponent<RectTransform>();
+            timerRect.anchorMin = new Vector2(0.30f, 0.85f);
+            timerRect.anchorMax = new Vector2(0.70f, 0.98f);
+            timerRect.offsetMin = Vector2.zero;
+            timerRect.offsetMax = Vector2.zero;
+
+            // Timer bg pill
+            var timerBg = timerGO.AddComponent<Image>();
+            timerBg.color = new Color(0.10f, 0.25f, 0.50f, 0.80f);
+            timerBg.raycastTarget = false;
+            var timerOutline = timerGO.AddComponent<Outline>();
+            timerOutline.effectColor = new Color(0.35f, 0.60f, 0.90f, 0.5f);
+            timerOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(timerGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var timerText = textGO.AddComponent<Text>();
+            timerText.text = $"\u26E8 Shield: {FormatTimeRemaining((int)_peaceShieldTimer)}";
+            timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            timerText.fontSize = 8;
+            timerText.fontStyle = FontStyle.Bold;
+            timerText.alignment = TextAnchor.MiddleCenter;
+            timerText.color = new Color(0.70f, 0.85f, 1f);
+            timerText.raycastTarget = false;
+
+            StartCoroutine(AnimatePeaceShield());
+        }
+
+        private IEnumerator AnimatePeaceShield()
+        {
+            while (_peaceShield != null && _peaceShieldActive)
+            {
+                // Gentle pulse
+                var img = _peaceShield.GetComponent<Image>();
+                if (img != null)
+                {
+                    float pulse = 0.06f + 0.04f * Mathf.Sin(Time.time * 1.5f);
+                    img.color = new Color(0.30f, 0.60f, 0.95f, pulse);
+                }
+
+                // Update timer
+                _peaceShieldTimer -= Time.deltaTime;
+                if (_peaceShieldTimer <= 0)
+                {
+                    _peaceShieldActive = false;
+                    DestroyPeaceShield();
+                    yield break;
+                }
+
+                // Update timer text
+                var timerText = _peaceShield?.transform.Find("ShieldTimer/Text")?.GetComponent<Text>();
+                if (timerText != null)
+                    timerText.text = $"\u26E8 Shield: {FormatTimeRemaining((int)_peaceShieldTimer)}";
+
+                yield return null;
+            }
+        }
+
+        private void DestroyPeaceShield()
+        {
+            if (_peaceShield != null) { Destroy(_peaceShield); _peaceShield = null; }
+        }
+
+        // ====================================================================
+        // P&C: Cancel Upgrade with Partial Refund
+        // ====================================================================
+
+        private GameObject _cancelUpgradeDialog;
+
+        /// <summary>P&C: Show cancel upgrade confirmation with partial refund details.</summary>
+        private void ShowCancelUpgradeDialog(string instanceId, string buildingId, int targetTier, float remainingSeconds)
+        {
+            if (_cancelUpgradeDialog != null) { Destroy(_cancelUpgradeDialog); _cancelUpgradeDialog = null; }
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _cancelUpgradeDialog = new GameObject("CancelUpgradeDialog");
+            _cancelUpgradeDialog.transform.SetParent(canvas.transform, false);
+
+            // Dim overlay
+            var dimRect = _cancelUpgradeDialog.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _cancelUpgradeDialog.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.6f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _cancelUpgradeDialog.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(() => { if (_cancelUpgradeDialog != null) { Destroy(_cancelUpgradeDialog); _cancelUpgradeDialog = null; } });
+
+            // Panel
+            var panel = new GameObject("Panel");
+            panel.transform.SetParent(_cancelUpgradeDialog.transform, false);
+            var panelRect = panel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.12f, 0.30f);
+            panelRect.anchorMax = new Vector2(0.88f, 0.70f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+            var panelBg = panel.AddComponent<Image>();
+            panelBg.color = new Color(0.08f, 0.06f, 0.14f, 0.95f);
+            panelBg.raycastTarget = true;
+            var panelOutline = panel.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.90f, 0.40f, 0.25f, 0.7f);
+            panelOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Title
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+            AddInfoPanelText(panel.transform, "Title", $"\u26A0 Cancel Upgrade?", 15, FontStyle.Bold,
+                new Color(0.95f, 0.55f, 0.30f),
+                new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.97f), TextAnchor.MiddleCenter);
+
+            AddInfoPanelText(panel.transform, "SubTitle",
+                $"{displayName} Lv.{targetTier - 1} \u2192 Lv.{targetTier}", 12, FontStyle.Normal,
+                new Color(0.80f, 0.78f, 0.75f),
+                new Vector2(0.05f, 0.75f), new Vector2(0.95f, 0.85f), TextAnchor.MiddleCenter);
+
+            // Calculate refund (50% of original cost)
+            int baseCost = targetTier * 500;
+            int stoneRefund = baseCost / 2;
+            int ironRefund = (baseCost * 3 / 4) / 2;
+            int grainRefund = (baseCost / 2) / 2;
+
+            AddInfoPanelText(panel.transform, "RefundHeader", "Partial Refund (50%):", 11, FontStyle.Bold,
+                new Color(0.70f, 0.85f, 0.70f),
+                new Vector2(0.05f, 0.60f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
+
+            // Refund amounts
+            string refundText = $"\u25C6 Stone: {stoneRefund}  \u25C6 Iron: {ironRefund}  \u25C6 Grain: {grainRefund}";
+            AddInfoPanelText(panel.transform, "Refunds", refundText, 10, FontStyle.Normal,
+                new Color(0.85f, 0.80f, 0.55f),
+                new Vector2(0.05f, 0.48f), new Vector2(0.95f, 0.60f), TextAnchor.MiddleCenter);
+
+            // Warning
+            AddInfoPanelText(panel.transform, "Warning",
+                "All progress will be lost.\nThe building will return to Lv." + (targetTier - 1) + ".",
+                10, FontStyle.Normal, new Color(0.90f, 0.50f, 0.40f),
+                new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.48f), TextAnchor.MiddleCenter);
+
+            // Cancel upgrade button (confirm)
+            var confirmGO = new GameObject("ConfirmCancelBtn");
+            confirmGO.transform.SetParent(panel.transform, false);
+            var confirmRect = confirmGO.AddComponent<RectTransform>();
+            confirmRect.anchorMin = new Vector2(0.08f, 0.05f);
+            confirmRect.anchorMax = new Vector2(0.48f, 0.18f);
+            confirmRect.offsetMin = Vector2.zero;
+            confirmRect.offsetMax = Vector2.zero;
+            var confirmBg = confirmGO.AddComponent<Image>();
+            confirmBg.color = new Color(0.70f, 0.20f, 0.15f, 0.90f);
+            confirmBg.raycastTarget = true;
+            var confirmOutline = confirmGO.AddComponent<Outline>();
+            confirmOutline.effectColor = new Color(0.90f, 0.35f, 0.25f, 0.6f);
+            confirmOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var confirmBtn = confirmGO.AddComponent<Button>();
+            confirmBtn.targetGraphic = confirmBg;
+            string capId = instanceId;
+            confirmBtn.onClick.AddListener(() =>
+            {
+                // Refund resources
+                if (ServiceLocator.TryGet<ResourceManager>(out var rm))
+                {
+                    rm.AddResource(ResourceType.Stone, stoneRefund);
+                    rm.AddResource(ResourceType.Iron, ironRefund);
+                    rm.AddResource(ResourceType.Grain, grainRefund);
+                }
+                // Cancel the build
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+                    bm.CancelUpgrade(capId);
+                if (_cancelUpgradeDialog != null) { Destroy(_cancelUpgradeDialog); _cancelUpgradeDialog = null; }
+                ShowUpgradeBlockedToast("\u26A0 Upgrade cancelled. 50% resources refunded.");
+                // Refresh visuals
+                foreach (var p in _placements)
+                {
+                    if (p.InstanceId == capId && p.VisualGO != null)
+                    {
+                        RemoveScaffoldingOverlay(p.VisualGO);
+                        var progressBar = p.VisualGO.transform.Find("UpgradeProgressBar");
+                        if (progressBar != null) Destroy(progressBar.gameObject);
+                    }
+                }
+            });
+            AddInfoPanelText(confirmGO.transform, "Label", "\u2620 Cancel Upgrade", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // Keep building button
+            var keepGO = new GameObject("KeepBtn");
+            keepGO.transform.SetParent(panel.transform, false);
+            var keepRect = keepGO.AddComponent<RectTransform>();
+            keepRect.anchorMin = new Vector2(0.52f, 0.05f);
+            keepRect.anchorMax = new Vector2(0.92f, 0.18f);
+            keepRect.offsetMin = Vector2.zero;
+            keepRect.offsetMax = Vector2.zero;
+            var keepBg = keepGO.AddComponent<Image>();
+            keepBg.color = new Color(0.15f, 0.50f, 0.25f, 0.90f);
+            keepBg.raycastTarget = true;
+            var keepOutline = keepGO.AddComponent<Outline>();
+            keepOutline.effectColor = new Color(0.35f, 0.80f, 0.45f, 0.6f);
+            keepOutline.effectDistance = new Vector2(0.6f, -0.6f);
+            var keepBtn = keepGO.AddComponent<Button>();
+            keepBtn.targetGraphic = keepBg;
+            keepBtn.onClick.AddListener(() => { if (_cancelUpgradeDialog != null) { Destroy(_cancelUpgradeDialog); _cancelUpgradeDialog = null; } });
+            AddInfoPanelText(keepGO.transform, "Label", "\u2713 Keep Building", 11, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            var cg = _cancelUpgradeDialog.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            StartCoroutine(FadeInDialog(cg));
         }
     }
 

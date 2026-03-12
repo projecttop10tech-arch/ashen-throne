@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.75.0] — 2026-03-12 (Ralph Loop Iteration 70: Hero Assignment, Peace Shield, Cancel Upgrade)
+
+### ADDED
+- **Hero assignment to buildings** — P&C-style hero assignment system. Assignable buildings (farms, mines, barracks, academy, forge, etc.) show a purple "Assign Hero" button in the info panel. Opens full hero roster grid with level, star tier, bonus preview (+5% base + 2% per level), and "BUSY" state for already-assigned heroes. Assigned hero shows a blue badge on the building visual and updated bonus % in info panel.
+- **`ShowHeroAssignPanel()` method** — hero roster grid with assign/unassign, bonus preview, and BUSY indicators. `RefreshHeroAssignBadge()` updates building visual. `GetHeroAssignmentBonus()` calculates production bonus.
+- **City peace shield** — translucent blue dome overlay covering the entire city (centered on stronghold) with radial gradient sprite, pulsing opacity animation, and countdown timer pill showing remaining shield time. Shield auto-destroys when timer expires.
+- **`CreatePeaceShield()` / `AnimatePeaceShield()` methods** — dome visual with ring border, timer label, and gentle pulse coroutine. Default 8-hour timer.
+- **Cancel upgrade with partial refund** — buildings being upgraded now show a red "Cancel" button in the info panel. Opens confirmation dialog showing building name, target tier, 50% resource refund breakdown (stone/iron/grain), and warning. Confirming calls `BuildingManager.CancelUpgrade()`, refunds resources, removes scaffolding and progress bar.
+- **`ShowCancelUpgradeDialog()` method** — cancel confirmation UI with refund calculation, resource return, and visual cleanup.
+
+---
+
 ## [0.74.0] — 2026-03-12 (Ralph Loop Iteration 69: Second Builder, Troop March, Defense Stats)
 
 ### ADDED
