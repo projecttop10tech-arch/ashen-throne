@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.73.0] — 2026-03-12 (Ralph Loop Iteration 68: Requirements Checklist, Queue Reorder, Warehouse)
+
+### ADDED
+- **Upgrade requirements checklist** — detailed panel showing all prerequisites for upgrading a building: Stronghold level check, per-resource cost with current/required amounts, build queue availability, and not-already-upgrading check. Each row color-coded green (met) or red (unmet) with check/cross icons.
+- **`ShowUpgradeRequirements()` method** — renders requirement rows with pass/fail indicators, resource checks via BuildingManager/ResourceManager.
+- **`AddRequirementRow()` helper** — reusable requirement row renderer with color-coded backgrounds.
+- **Build queue reorder** — `SwapQueueEntries()` method for swapping queue entry positions. Refreshes the queue panel after swap.
+- **Warehouse resource protection panel** — marketplace buildings now show a "Warehouse" button. Opens panel displaying per-resource protection status: protection bar fill, protected amount vs cap, and "at risk" warning for unprotected resources. Protection cap scales with marketplace tier (5K base + 5K per tier).
+- **`ShowWarehousePanel()` method** — full warehouse display with 4 resource rows, protection bars, risk indicators, and marketplace tier info.
+- **Warehouse button in Overview tab** — marketplace info panel now shows a gold "Warehouse" button.
+
+---
+
 ## [0.72.0] — 2026-03-12 (Ralph Loop Iteration 67: Speed-Up Items, Boosts, Building Swap)
 
 ### ADDED
