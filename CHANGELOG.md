@@ -12,6 +12,8 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 - **Event icon timer badges** — Countdown timers below EVENT and GIFTS circular icons (P&C-style).
 - **Building countdown timer text** — Prominent green countdown above progress bars on upgrading buildings, updating every second.
 - **Special offer icons** — VS Battle, Rewards Center, and Limited Offer rectangular icons on right side with timers and gold borders (P&C upper-right pattern).
+- **Floating building name tooltip** — Tap a building to see its name in a gold-bordered pill below the sprite, auto-fades after 3 seconds (P&C-style "Institute" label).
+- **Recommended upgrade banner** — "Upgrade [Building] to Lv.X" banner above chat bar, auto-finds lowest-tier affordable building. Tappable to center and open upgrade dialog.
 
 ### CHANGED
 - **Event icons moved to right side** — Circular event icons (daily chest, merchant, event hub, gifts) repositioned from left to right edge, matching P&C's layout.

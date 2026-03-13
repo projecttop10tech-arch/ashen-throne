@@ -295,6 +295,8 @@ namespace AshenThrone.Empire
             CreateQueueStatusPanel();
             // P&C: Right-side special offer/event icons (VS, Rewards, Offer)
             CreateSpecialOfferIcons();
+            // P&C: "Upgrade [Building] to Lv.X" recommendation banner
+            CreateUpgradeRecommendBanner();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -505,6 +507,7 @@ namespace AshenThrone.Empire
                 RefreshResourceCapWarnings();
                 RefreshStrongholdUpgradeBanner();
                 RefreshAllNotificationBadges();
+                RefreshUpgradeRecommendBanner();
             }
 
             // P&C: Troop march spawning
@@ -10682,6 +10685,9 @@ namespace AshenThrone.Empire
             if (tapped.VisualGO != null)
                 SoftCenterOnBuilding(tapped);
 
+            // P&C: Floating name tooltip below building (like "Institute" in P&C)
+            ShowBuildingNameTooltip(tapped);
+
             // P&C IT99: Auto-collect all resource bubbles on tap
             TapCollectAllForBuilding(tapped.InstanceId, tapped.BuildingId);
 
@@ -20460,6 +20466,282 @@ namespace AshenThrone.Empire
                     timerShadow.effectColor = new Color(0, 0, 0, 0.8f);
                     timerShadow.effectDistance = new Vector2(0.5f, -0.5f);
                 }
+            }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Floating Building Name Tooltip + Recommended Upgrade Banner
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _nameTooltip;
+        private Coroutine _nameTooltipFade;
+        private GameObject _upgradeRecommendBanner;
+        private Text _upgradeRecommendText;
+
+        /// <summary>P&C: Show floating name label below tapped building, auto-fades after 3s.</summary>
+        private void ShowBuildingNameTooltip(CityBuildingPlacement placement)
+        {
+            // Destroy previous tooltip
+            if (_nameTooltip != null) Destroy(_nameTooltip);
+            if (_nameTooltipFade != null) StopCoroutine(_nameTooltipFade);
+
+            if (placement.VisualGO == null) return;
+
+            string displayName = BuildingDisplayNames.TryGetValue(placement.BuildingId, out var dn)
+                ? dn : FormatBuildingDisplayName(placement.InstanceId);
+
+            _nameTooltip = new GameObject("NameTooltip");
+            _nameTooltip.transform.SetParent(placement.VisualGO.transform, false);
+
+            var rect = _nameTooltip.AddComponent<RectTransform>();
+            // Position below the building sprite
+            rect.anchorMin = new Vector2(0.05f, -0.12f);
+            rect.anchorMax = new Vector2(0.95f, 0.05f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark pill background
+            var bg = _nameTooltip.AddComponent<Image>();
+            bg.color = new Color(0.05f, 0.03f, 0.10f, 0.90f);
+            bg.raycastTarget = false;
+            var outline = _nameTooltip.AddComponent<Outline>();
+            outline.effectColor = new Color(0.80f, 0.65f, 0.20f, 0.65f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Name text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(_nameTooltip.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(2, 0);
+            textRect.offsetMax = new Vector2(-2, 0);
+            var text = textGO.AddComponent<Text>();
+            text.text = displayName;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 9;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.95f, 0.90f, 0.60f);
+            text.raycastTarget = false;
+            var shadow = textGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Auto-fade after 3 seconds
+            _nameTooltipFade = StartCoroutine(FadeAndDestroyTooltip(_nameTooltip));
+        }
+
+        private IEnumerator FadeAndDestroyTooltip(GameObject tooltip)
+        {
+            yield return new WaitForSeconds(3f);
+            if (tooltip == null) yield break;
+
+            var bg = tooltip.GetComponent<Image>();
+            var texts = tooltip.GetComponentsInChildren<Text>();
+            float fadeDuration = 0.5f;
+            float elapsed = 0f;
+
+            while (elapsed < fadeDuration && tooltip != null)
+            {
+                float alpha = 1f - (elapsed / fadeDuration);
+                if (bg != null) bg.color = new Color(bg.color.r, bg.color.g, bg.color.b, bg.color.a * alpha);
+                foreach (var t in texts)
+                    if (t != null) t.color = new Color(t.color.r, t.color.g, t.color.b, alpha);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            if (tooltip != null) Destroy(tooltip);
+            if (_nameTooltip == tooltip) _nameTooltip = null;
+        }
+
+        /// <summary>P&C: "Upgrade [Building] to Lv.X" banner above chat bar.</summary>
+        private void CreateUpgradeRecommendBanner()
+        {
+            if (_upgradeRecommendBanner != null) return;
+
+            Transform canvasRoot = transform;
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            _upgradeRecommendBanner = new GameObject("UpgradeRecommendBanner");
+            _upgradeRecommendBanner.transform.SetParent(canvasRoot, false);
+            _upgradeRecommendBanner.transform.SetAsLastSibling();
+
+            var rect = _upgradeRecommendBanner.AddComponent<RectTransform>();
+            // Position above chat bar, below building area
+            rect.anchorMin = new Vector2(0.05f, 0.145f);
+            rect.anchorMax = new Vector2(0.95f, 0.195f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = _upgradeRecommendBanner.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.06f, 0.14f, 0.92f);
+            bg.raycastTarget = true;
+
+            var outline = _upgradeRecommendBanner.AddComponent<Outline>();
+            outline.effectColor = new Color(0.70f, 0.55f, 0.18f, 0.55f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            var btn = _upgradeRecommendBanner.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(OnUpgradeRecommendTapped);
+
+            // Hammer icon on left
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(_upgradeRecommendBanner.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.02f, 0.05f);
+            iconRect.anchorMax = new Vector2(0.10f, 0.95f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = "\u2692"; // ⚒
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = 14;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = new Color(0.95f, 0.80f, 0.30f);
+            iconText.raycastTarget = false;
+
+            // Recommendation text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(_upgradeRecommendBanner.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.10f, 0f);
+            textRect.anchorMax = new Vector2(0.88f, 1f);
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            _upgradeRecommendText = textGO.AddComponent<Text>();
+            _upgradeRecommendText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _upgradeRecommendText.fontSize = 10;
+            _upgradeRecommendText.fontStyle = FontStyle.Bold;
+            _upgradeRecommendText.alignment = TextAnchor.MiddleLeft;
+            _upgradeRecommendText.color = new Color(0.92f, 0.88f, 0.70f);
+            _upgradeRecommendText.raycastTarget = false;
+            _upgradeRecommendText.text = "Upgrade Stronghold to Lv.2";
+            var textShadow = textGO.AddComponent<Shadow>();
+            textShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            textShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Arrow on right
+            var arrowGO = new GameObject("Arrow");
+            arrowGO.transform.SetParent(_upgradeRecommendBanner.transform, false);
+            var arrowRect = arrowGO.AddComponent<RectTransform>();
+            arrowRect.anchorMin = new Vector2(0.88f, 0.05f);
+            arrowRect.anchorMax = new Vector2(0.98f, 0.95f);
+            arrowRect.offsetMin = Vector2.zero;
+            arrowRect.offsetMax = Vector2.zero;
+            var arrowText = arrowGO.AddComponent<Text>();
+            arrowText.text = "\u25B6"; // ▶
+            arrowText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            arrowText.fontSize = 12;
+            arrowText.alignment = TextAnchor.MiddleCenter;
+            arrowText.color = new Color(0.85f, 0.65f, 0.20f);
+            arrowText.raycastTarget = false;
+
+            RefreshUpgradeRecommendBanner();
+        }
+
+        private void RefreshUpgradeRecommendBanner()
+        {
+            if (_upgradeRecommendText == null) return;
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
+
+            // Find the best building to recommend upgrading (lowest-tier non-upgrading affordable building)
+            string bestId = null;
+            string bestBuildingId = null;
+            int bestTier = int.MaxValue;
+
+            foreach (var p in _placements)
+            {
+                // Skip decorations
+                if (p.BuildingId == "road" || p.BuildingId == "fountain" || p.BuildingId == "tree"
+                    || p.BuildingId == "statue" || p.BuildingId == "lantern" || p.BuildingId == "arcane_crystal")
+                    continue;
+
+                // Skip if already upgrading
+                bool isUpgrading = false;
+                foreach (var qe in bm.BuildQueue)
+                {
+                    if (qe.PlacedId == p.InstanceId) { isUpgrading = true; break; }
+                }
+                if (isUpgrading) continue;
+
+                // Check if can afford
+                if (!bm.PlacedBuildings.TryGetValue(p.InstanceId, out var placed) || placed.Data == null)
+                    continue;
+                var nextTier = placed.Data.GetTier(p.Tier);
+                if (nextTier == null) continue; // max level
+                bool canAfford = rm.CanAfford(nextTier.stoneCost, nextTier.ironCost,
+                    nextTier.grainCost, nextTier.arcaneEssenceCost);
+                if (!canAfford) continue;
+
+                if (p.Tier < bestTier)
+                {
+                    bestTier = p.Tier;
+                    bestId = p.InstanceId;
+                    bestBuildingId = p.BuildingId;
+                }
+            }
+
+            if (bestId != null)
+            {
+                string displayName = BuildingDisplayNames.TryGetValue(bestBuildingId, out var dn)
+                    ? dn : bestBuildingId;
+                _upgradeRecommendText.text = $"Upgrade {displayName} to Lv.{bestTier + 1}";
+                _upgradeRecommendBanner.SetActive(true);
+            }
+            else
+            {
+                _upgradeRecommendBanner.SetActive(false);
+            }
+        }
+
+        private void OnUpgradeRecommendTapped()
+        {
+            // Find the recommended building and center + open upgrade
+            if (_upgradeRecommendText == null) return;
+            string text = _upgradeRecommendText.text;
+            // Parse building name from "Upgrade [Name] to Lv.X"
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
+
+            // Find the lowest-tier affordable building again
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "road" || p.BuildingId == "fountain" || p.BuildingId == "tree"
+                    || p.BuildingId == "statue" || p.BuildingId == "lantern" || p.BuildingId == "arcane_crystal")
+                    continue;
+
+                bool isUpgrading = false;
+                foreach (var qe in bm.BuildQueue)
+                {
+                    if (qe.PlacedId == p.InstanceId) { isUpgrading = true; break; }
+                }
+                if (isUpgrading) continue;
+
+                if (!bm.PlacedBuildings.TryGetValue(p.InstanceId, out var placed) || placed.Data == null)
+                    continue;
+                var nextTier = placed.Data.GetTier(p.Tier);
+                if (nextTier == null) continue;
+                bool canAfford = rm.CanAfford(nextTier.stoneCost, nextTier.ironCost,
+                    nextTier.grainCost, nextTier.arcaneEssenceCost);
+                if (!canAfford) continue;
+
+                // Found it — center and show upgrade dialog
+                if (p.VisualGO != null)
+                {
+                    CenterOnBuilding(p);
+                    ShowBuildingFootprint(p);
+                    ShowBuildingNameTooltip(p);
+                }
+                EventBus.Publish(new BuildingTappedEvent(p));
+                break;
             }
         }
     }
