@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.89.0] — 2026-03-12 (Ralph Loop Iteration 84: Visual Cleanup, Placement Highlights)
+
+### CHANGED
+- **Resource income ticker disabled** — Removed scrolling resource ticker bar that cluttered the area between resource bar and city view. Cleaner P&C-style look with only the top resource bar for resource info.
+- **Placement highlight colors strengthened** — Move mode grid highlights now more visible: fill alpha 0.25→0.35, border alpha 0.55→0.70. Green for valid, red for invalid placement.
+
+---
+
 ## [0.88.0] — 2026-03-12 (Ralph Loop Iteration 83: P&C Resource Bubbles, Radial Menu Polish)
 
 ### CHANGED

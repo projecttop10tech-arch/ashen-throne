@@ -110,10 +110,11 @@ namespace AshenThrone.Empire
         private const int FreeSpeedUpThresholdSeconds = 300; // 5 minutes
 
         // Placement highlight (shows snap target during drag) — iso diamond cells
-        private static readonly Color HighlightValid = new(0.15f, 0.9f, 0.3f, 0.25f);
-        private static readonly Color HighlightInvalid = new(0.95f, 0.15f, 0.15f, 0.25f);
-        private static readonly Color BorderValid = new(0.2f, 1f, 0.4f, 0.55f);
-        private static readonly Color BorderInvalid = new(1f, 0.2f, 0.2f, 0.55f);
+        // P&C: Bold placement highlights — clearly visible green/red
+        private static readonly Color HighlightValid = new(0.15f, 0.90f, 0.30f, 0.35f);
+        private static readonly Color HighlightInvalid = new(0.95f, 0.15f, 0.15f, 0.35f);
+        private static readonly Color BorderValid = new(0.20f, 1f, 0.40f, 0.70f);
+        private static readonly Color BorderInvalid = new(1f, 0.20f, 0.20f, 0.70f);
 
         // P&C: Building footprint highlight on tap
         private static readonly Color FootprintColor = new(0.78f, 0.62f, 0.22f, 0.18f);
@@ -11161,6 +11162,10 @@ namespace AshenThrone.Empire
 
         private void CreateResourceIncomeTicker()
         {
+            // P&C: No scrolling ticker bar — resource rates shown in BuilderCountHUD and BuildQueuePanel.
+            // Removed in iteration 84 to reduce visual clutter between resource bar and info panel.
+            return;
+#pragma warning disable CS0162 // Unreachable code
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
@@ -11229,6 +11234,7 @@ namespace AshenThrone.Empire
             text.verticalOverflow = VerticalWrapMode.Overflow;
 
             StartCoroutine(ScrollTicker(textRect));
+#pragma warning restore CS0162
         }
 
         private IEnumerator ScrollTicker(RectTransform textRect)
