@@ -4,6 +4,13 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.98.0] — 2026-03-12 (Ralph Loop Iteration 93: Static Resource Icons)
+
+### CHANGED
+- **Resource bubbles now static** — Removed bobbing and pulsing animations from `ResourceCollectBubble`. Icons now appear as static indicators above production buildings, matching P&C's resource-ready visual style. Collect animation (fly-to-bar arc) preserved on tap.
+
+---
+
 ## [0.97.0] — 2026-03-12 (Ralph Loop Iteration 92: P&C Detail Panel, Batch Resource Collection)
 
 ### CHANGED

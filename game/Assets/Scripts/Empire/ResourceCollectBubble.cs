@@ -163,15 +163,9 @@ namespace AshenThrone.Empire
             if (_canvasGroup.alpha < 1f)
                 _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, 1f, Time.deltaTime * 3f);
 
-            // Bob animation
-            _bobPhase += Time.deltaTime * _bobSpeed;
-            float bobOffset = Mathf.Sin(_bobPhase) * _bobAmplitude;
-            _rect.anchoredPosition = _basePosition + Vector2.up * bobOffset;
-
-            // Gentle scale pulse
-            _pulsePhase += Time.deltaTime * _pulseSpeed;
-            float pulse = 1f + 0.05f * Mathf.Sin(_pulsePhase);
-            transform.localScale = Vector3.one * pulse;
+            // P&C: Static icon — stays at base position, no bob/pulse
+            _rect.anchoredPosition = _basePosition;
+            transform.localScale = Vector3.one;
         }
 
         public void SetBasePosition(Vector2 pos)
