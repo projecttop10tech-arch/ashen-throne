@@ -184,7 +184,18 @@ namespace AshenThrone.Empire
         public void OnPointerClick(PointerEventData eventData)
         {
             if (_collecting) return;
-            Collect();
+
+            // P&C: Tapping one bubble collects ALL bubbles of the same resource type
+            // Only trigger batch collection on direct user tap (eventData != null)
+            if (eventData != null)
+            {
+                EventBus.Publish(new ResourceBubbleBatchCollectEvent(ResourceType));
+            }
+            else
+            {
+                // Called programmatically (from batch collect) — just collect this one
+                Collect();
+            }
         }
 
         private void Collect()
@@ -282,5 +293,12 @@ namespace AshenThrone.Empire
         public readonly long Amount;
         public readonly string BuildingInstanceId;
         public ResourceCollectedEvent(ResourceType t, long a, string b) { Type = t; Amount = a; BuildingInstanceId = b; }
+    }
+
+    /// <summary>P&C: Batch-collect all bubbles of the same resource type (fired when tapping any single bubble).</summary>
+    public readonly struct ResourceBubbleBatchCollectEvent
+    {
+        public readonly ResourceType Type;
+        public ResourceBubbleBatchCollectEvent(ResourceType t) { Type = t; }
     }
 }

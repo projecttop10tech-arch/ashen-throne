@@ -4395,7 +4395,7 @@ namespace AshenThrone.Empire
 
             _infoPopupInstanceId = evt.InstanceId;
 
-            // P&C: Bottom sheet panel anchored to screen bottom (not building position)
+            // P&C: Full detail panel anchored to screen bottom half
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
@@ -4404,15 +4404,15 @@ namespace AshenThrone.Empire
             popup.transform.SetAsLastSibling();
 
             var popupRect = popup.AddComponent<RectTransform>();
-            // P&C: Bottom sheet — full width, anchored to bottom ~15% of screen
-            popupRect.anchorMin = new Vector2(0.02f, 0.11f); // just above nav bar
-            popupRect.anchorMax = new Vector2(0.98f, 0.28f);
+            // P&C: Detail panel — full width, covers bottom ~42% of screen
+            popupRect.anchorMin = new Vector2(0.01f, 0.10f);
+            popupRect.anchorMax = new Vector2(0.99f, 0.52f);
             popupRect.offsetMin = Vector2.zero;
             popupRect.offsetMax = Vector2.zero;
 
             // P&C: Dark panel background with ornate gold border
             var panelBg = popup.AddComponent<Image>();
-            panelBg.color = new Color(0.05f, 0.03f, 0.10f, 0.94f);
+            panelBg.color = new Color(0.04f, 0.03f, 0.09f, 0.96f);
             panelBg.raycastTarget = true;
             var panelOutline = popup.AddComponent<Outline>();
             panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.80f);
@@ -4424,41 +4424,42 @@ namespace AshenThrone.Empire
             string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-            // === LEFT SECTION: Building icon + name/level ===
+            // ============================================
+            // TOP ROW: Building image + name/level + close
+            // ============================================
 
-            // Building sprite thumbnail
+            // Building sprite (large, left side)
             Sprite bldSprite = LoadBuildingSprite(evt.BuildingId, evt.Tier);
             if (bldSprite != null)
             {
                 var iconGO = new GameObject("BuildingIcon");
                 iconGO.transform.SetParent(popup.transform, false);
                 var iconRect = iconGO.AddComponent<RectTransform>();
-                iconRect.anchorMin = new Vector2(0.02f, 0.10f);
-                iconRect.anchorMax = new Vector2(0.18f, 0.90f);
+                iconRect.anchorMin = new Vector2(0.02f, 0.50f);
+                iconRect.anchorMax = new Vector2(0.22f, 0.96f);
                 iconRect.offsetMin = Vector2.zero;
                 iconRect.offsetMax = Vector2.zero;
                 var iconImg = iconGO.AddComponent<Image>();
                 iconImg.sprite = bldSprite;
                 iconImg.preserveAspect = true;
                 iconImg.raycastTarget = false;
-                // Subtle border around icon
                 var iconOutline = iconGO.AddComponent<Outline>();
                 iconOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.50f);
                 iconOutline.effectDistance = new Vector2(1f, -1f);
             }
 
-            // Building name (bold, gold)
+            // Building name (bold, gold, prominent)
             var nameGO = new GameObject("Name");
             nameGO.transform.SetParent(popup.transform, false);
             var nameRect = nameGO.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.20f, 0.60f);
-            nameRect.anchorMax = new Vector2(0.58f, 0.92f);
+            nameRect.anchorMin = new Vector2(0.24f, 0.78f);
+            nameRect.anchorMax = new Vector2(0.85f, 0.97f);
             nameRect.offsetMin = Vector2.zero;
             nameRect.offsetMax = Vector2.zero;
             var nameText = nameGO.AddComponent<Text>();
             nameText.text = displayName;
             nameText.font = font;
-            nameText.fontSize = 14;
+            nameText.fontSize = 16;
             nameText.fontStyle = FontStyle.Bold;
             nameText.alignment = TextAnchor.MiddleLeft;
             nameText.color = new Color(0.95f, 0.85f, 0.40f);
@@ -4467,17 +4468,17 @@ namespace AshenThrone.Empire
             nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
             nameOutline.effectDistance = new Vector2(1f, -1f);
 
-            // Level label below name
+            // Level + status line
             var lvlGO = new GameObject("Level");
             lvlGO.transform.SetParent(popup.transform, false);
             var lvlRect = lvlGO.AddComponent<RectTransform>();
-            lvlRect.anchorMin = new Vector2(0.20f, 0.30f);
-            lvlRect.anchorMax = new Vector2(0.58f, 0.60f);
+            lvlRect.anchorMin = new Vector2(0.24f, 0.62f);
+            lvlRect.anchorMax = new Vector2(0.85f, 0.78f);
             lvlRect.offsetMin = Vector2.zero;
             lvlRect.offsetMax = Vector2.zero;
             var lvlText = lvlGO.AddComponent<Text>();
             lvlText.font = font;
-            lvlText.fontSize = 11;
+            lvlText.fontSize = 12;
             lvlText.alignment = TextAnchor.MiddleLeft;
             lvlText.raycastTarget = false;
             var lvlOutline = lvlGO.AddComponent<Outline>();
@@ -4500,21 +4501,102 @@ namespace AshenThrone.Empire
                 }
             }
 
+            string ucostStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
+            bool uIsMax = ucostStr == "MAX LEVEL";
+
             if (isUpgrading)
             {
                 string timerStr = FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
-                lvlText.text = $"Lv.{evt.Tier}  \u2692 {timerStr}";
+                lvlText.text = $"Level {evt.Tier}  \u2692 Upgrading: {timerStr}";
                 lvlText.color = new Color(0.90f, 0.75f, 0.30f);
             }
             else
             {
-                string costStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
-                bool isMax = costStr == "MAX LEVEL";
-                lvlText.text = isMax ? $"Lv.{evt.Tier}  \u2605 MAX" : $"Lv.{evt.Tier}  \u2192 Lv.{evt.Tier + 1}";
-                lvlText.color = isMax ? new Color(0.70f, 0.70f, 0.70f) : new Color(0.75f, 0.90f, 0.55f);
+                lvlText.text = uIsMax ? $"Level {evt.Tier}  \u2605 MAX" : $"Level {evt.Tier}  \u2192 Level {evt.Tier + 1}";
+                lvlText.color = uIsMax ? new Color(0.70f, 0.70f, 0.70f) : new Color(0.75f, 0.90f, 0.55f);
             }
 
-            // === RIGHT SECTION: Action buttons in a row ===
+            // Thin gold separator line
+            var sepGO = new GameObject("Separator");
+            sepGO.transform.SetParent(popup.transform, false);
+            var sepRect = sepGO.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.02f, 0.49f);
+            sepRect.anchorMax = new Vector2(0.98f, 0.505f);
+            sepRect.offsetMin = Vector2.zero;
+            sepRect.offsetMax = Vector2.zero;
+            var sepImg = sepGO.AddComponent<Image>();
+            sepImg.color = new Color(0.75f, 0.58f, 0.18f, 0.45f);
+            sepImg.raycastTarget = false;
+
+            // Close X button (top-right)
+            var closeGO = new GameObject("CloseBtn");
+            closeGO.transform.SetParent(popup.transform, false);
+            var closeRect = closeGO.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(0.90f, 0.85f);
+            closeRect.anchorMax = new Vector2(0.99f, 0.98f);
+            closeRect.offsetMin = Vector2.zero;
+            closeRect.offsetMax = Vector2.zero;
+            var closeBg = closeGO.AddComponent<Image>();
+            closeBg.color = new Color(0.50f, 0.15f, 0.12f, 0.85f);
+            closeBg.raycastTarget = true;
+            var closeBtn = closeGO.AddComponent<Button>();
+            closeBtn.targetGraphic = closeBg;
+            closeBtn.onClick.AddListener(DismissInfoPopup);
+            AddInfoPanelText(closeGO.transform, "X", "\u2715", 12, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            // ============================================
+            // MIDDLE ROW: Upgrade costs (if not max/upgrading)
+            // ============================================
+            if (!uIsMax && !isUpgrading)
+            {
+                ServiceLocator.TryGet<ResourceManager>(out var rm);
+                // Show cost breakdown inline
+                var costRow = new (string Sym, string Name, int Cost, long Have, Color Tint)[] {
+                    ("\u25C8", "Stone", 0, rm != null ? rm.Stone : 0, new Color(0.70f, 0.70f, 0.75f)),
+                    ("\u2666", "Iron", 0, rm != null ? rm.Iron : 0, new Color(0.80f, 0.65f, 0.50f)),
+                    ("\u2740", "Grain", 0, rm != null ? rm.Grain : 0, new Color(0.65f, 0.85f, 0.45f)),
+                    ("\u2726", "Arcane", 0, rm != null ? rm.ArcaneEssence : 0, new Color(0.60f, 0.50f, 0.90f)),
+                };
+
+                // Try get actual costs from BuildingManager
+                if (popupBm != null && popupBm.PlacedBuildings.TryGetValue(evt.InstanceId, out var placed) && placed.Data != null)
+                {
+                    var tierData = placed.Data.GetTier(evt.Tier);
+                    if (tierData != null)
+                    {
+                        costRow[0].Cost = tierData.stoneCost;
+                        costRow[1].Cost = tierData.ironCost;
+                        costRow[2].Cost = tierData.grainCost;
+                        costRow[3].Cost = tierData.arcaneEssenceCost;
+                    }
+                }
+
+                int visibleCosts = 0;
+                foreach (var c in costRow) if (c.Cost > 0) visibleCosts++;
+
+                if (visibleCosts > 0)
+                {
+                    float costX = 0.04f;
+                    float costW = 0.92f / visibleCosts;
+                    foreach (var (sym, resName, cost, have, tint) in costRow)
+                    {
+                        if (cost <= 0) continue;
+                        bool canAfford = have >= cost;
+                        Color valColor = canAfford ? new Color(0.50f, 0.90f, 0.50f) : new Color(0.95f, 0.40f, 0.35f);
+
+                        AddInfoPanelText(popup.transform, $"Cost_{resName}",
+                            $"{sym} {FormatCost(cost)}", 10, FontStyle.Bold, valColor,
+                            new Vector2(costX, 0.36f), new Vector2(costX + costW - 0.01f, 0.48f),
+                            TextAnchor.MiddleCenter);
+                        costX += costW;
+                    }
+                }
+            }
+
+            // ============================================
+            // BOTTOM ROW: Action buttons (full width)
+            // ============================================
             string upgInstanceId = evt.InstanceId;
             string upgBuildingId = evt.BuildingId;
             int upgTier = evt.Tier;
@@ -4524,13 +4606,10 @@ namespace AshenThrone.Empire
 
             var actions = new List<(string Icon, string Label, Color BgColor, System.Action OnClick)>();
 
-            // Upgrade / Timer button (always first, largest)
-            string ucostStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
-            bool uIsMax = ucostStr == "MAX LEVEL";
-
+            // Upgrade button (green, prominent)
             if (isUpgrading)
             {
-                actions.Add(("\u2692", "Speed", new Color(0.55f, 0.45f, 0.15f, 0.95f), null));
+                actions.Add(("\u2692", "Speed Up", new Color(0.55f, 0.45f, 0.15f, 0.95f), null));
             }
             else
             {
@@ -4544,19 +4623,19 @@ namespace AshenThrone.Empire
                     }));
             }
 
-            // Info button
+            // Info
             actions.Add(("\u2139", "Info", new Color(0.15f, 0.30f, 0.60f, 0.95f), () => {
                 DismissInfoPopup();
                 ShowBuildingInfoPanel(capBuildingId, capInstanceId, capTier);
             }));
 
-            // Move button
+            // Move
             actions.Add(("\u2725", "Move", new Color(0.50f, 0.38f, 0.12f, 0.95f), () => {
                 DismissInfoPopup();
                 EnterMoveModeForBuilding(evt.InstanceId);
             }));
 
-            // Demolish (not for stronghold)
+            // Demolish (not stronghold)
             if (evt.BuildingId != "stronghold")
             {
                 string demInstanceId = evt.InstanceId;
@@ -4567,114 +4646,48 @@ namespace AshenThrone.Empire
                 }));
             }
 
-            // P&C: Lay out action buttons in a horizontal row on the right side
-            float btnStartX = 0.60f;
-            float btnEndX = 0.98f;
-            float btnW = (btnEndX - btnStartX) / actions.Count;
-
+            // P&C: Horizontal action button row across full bottom
+            float abtnW = 0.96f / actions.Count;
             for (int i = 0; i < actions.Count; i++)
             {
                 var (icon, label, bgColor, onClick) = actions[i];
-                float x0 = btnStartX + i * btnW + 0.005f;
-                float x1 = btnStartX + (i + 1) * btnW - 0.005f;
-                bool isFirst = i == 0; // Upgrade button is taller/more prominent
+                float x0 = 0.02f + i * abtnW;
+                float x1 = x0 + abtnW - 0.01f;
+                bool isUpgrade = i == 0;
 
                 var btnGO = new GameObject($"ActionBtn_{i}");
                 btnGO.transform.SetParent(popup.transform, false);
                 var btnRect = btnGO.AddComponent<RectTransform>();
-                btnRect.anchorMin = new Vector2(x0, isFirst ? 0.08f : 0.12f);
-                btnRect.anchorMax = new Vector2(x1, isFirst ? 0.92f : 0.88f);
+                btnRect.anchorMin = new Vector2(x0, 0.04f);
+                btnRect.anchorMax = new Vector2(x1, isUpgrade ? 0.34f : 0.30f);
                 btnRect.offsetMin = Vector2.zero;
                 btnRect.offsetMax = Vector2.zero;
 
                 var btnBg = btnGO.AddComponent<Image>();
                 btnBg.color = bgColor;
                 btnBg.raycastTarget = onClick != null;
-                var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
-                if (radialSpr != null) { btnBg.sprite = radialSpr; btnBg.type = Image.Type.Simple; }
 
                 var btnOutline = btnGO.AddComponent<Outline>();
-                btnOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, isFirst ? 0.70f : 0.45f);
+                btnOutline.effectColor = new Color(0.85f, 0.68f, 0.20f, isUpgrade ? 0.65f : 0.40f);
                 btnOutline.effectDistance = new Vector2(1f, -1f);
 
                 if (onClick != null)
                 {
                     var btn = btnGO.AddComponent<Button>();
                     btn.targetGraphic = btnBg;
-                    var cb = onClick; // capture
+                    var cb = onClick;
                     btn.onClick.AddListener(() => cb());
                 }
 
                 // Icon
-                var iconGO2 = new GameObject("Icon");
-                iconGO2.transform.SetParent(btnGO.transform, false);
-                var iconRect2 = iconGO2.AddComponent<RectTransform>();
-                iconRect2.anchorMin = new Vector2(0.05f, 0.45f);
-                iconRect2.anchorMax = new Vector2(0.95f, 0.95f);
-                iconRect2.offsetMin = Vector2.zero;
-                iconRect2.offsetMax = Vector2.zero;
-                var iconText = iconGO2.AddComponent<Text>();
-                iconText.text = icon;
-                iconText.font = font;
-                iconText.fontSize = isFirst ? 16 : 13;
-                iconText.fontStyle = FontStyle.Bold;
-                iconText.alignment = TextAnchor.MiddleCenter;
-                iconText.color = Color.white;
-                iconText.raycastTarget = false;
-                var iconShadow = iconGO2.AddComponent<Shadow>();
-                iconShadow.effectColor = new Color(0, 0, 0, 0.9f);
-                iconShadow.effectDistance = new Vector2(0.8f, -0.8f);
-
+                AddInfoPanelText(btnGO.transform, "Icon", icon,
+                    isUpgrade ? 18 : 14, FontStyle.Bold, Color.white,
+                    new Vector2(0.05f, 0.40f), new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
                 // Label
-                var lblGO = new GameObject("Label");
-                lblGO.transform.SetParent(btnGO.transform, false);
-                var lblRect = lblGO.AddComponent<RectTransform>();
-                lblRect.anchorMin = new Vector2(0, 0.02f);
-                lblRect.anchorMax = new Vector2(1, 0.42f);
-                lblRect.offsetMin = Vector2.zero;
-                lblRect.offsetMax = Vector2.zero;
-                var lblText = lblGO.AddComponent<Text>();
-                lblText.text = label;
-                lblText.font = font;
-                lblText.fontSize = 8;
-                lblText.fontStyle = FontStyle.Bold;
-                lblText.alignment = TextAnchor.MiddleCenter;
-                lblText.color = new Color(0.90f, 0.88f, 0.82f);
-                lblText.raycastTarget = false;
-                var lblShadow = lblGO.AddComponent<Shadow>();
-                lblShadow.effectColor = new Color(0, 0, 0, 0.8f);
-                lblShadow.effectDistance = new Vector2(0.6f, -0.6f);
+                AddInfoPanelText(btnGO.transform, "Label", label,
+                    9, FontStyle.Bold, new Color(0.92f, 0.90f, 0.84f),
+                    new Vector2(0, 0.02f), new Vector2(1, 0.38f), TextAnchor.MiddleCenter);
             }
-
-            // P&C: Close X button in top-right corner
-            var closeGO = new GameObject("CloseBtn");
-            closeGO.transform.SetParent(popup.transform, false);
-            var closeRect = closeGO.AddComponent<RectTransform>();
-            closeRect.anchorMin = new Vector2(0.92f, 0.75f);
-            closeRect.anchorMax = new Vector2(1.0f, 1.0f);
-            closeRect.offsetMin = Vector2.zero;
-            closeRect.offsetMax = Vector2.zero;
-            var closeBg = closeGO.AddComponent<Image>();
-            closeBg.color = new Color(0.50f, 0.15f, 0.12f, 0.85f);
-            closeBg.raycastTarget = true;
-            var closeBtn = closeGO.AddComponent<Button>();
-            closeBtn.targetGraphic = closeBg;
-            closeBtn.onClick.AddListener(DismissInfoPopup);
-            var closeTxt = new GameObject("X");
-            closeTxt.transform.SetParent(closeGO.transform, false);
-            var closeTxtRect = closeTxt.AddComponent<RectTransform>();
-            closeTxtRect.anchorMin = Vector2.zero;
-            closeTxtRect.anchorMax = Vector2.one;
-            closeTxtRect.offsetMin = Vector2.zero;
-            closeTxtRect.offsetMax = Vector2.zero;
-            var closeText = closeTxt.AddComponent<Text>();
-            closeText.text = "\u2715";
-            closeText.font = font;
-            closeText.fontSize = 10;
-            closeText.fontStyle = FontStyle.Bold;
-            closeText.alignment = TextAnchor.MiddleCenter;
-            closeText.color = Color.white;
-            closeText.raycastTarget = false;
 
             // Upgrading? Start live timer on the level label
             if (isUpgrading)
@@ -4683,15 +4696,15 @@ namespace AshenThrone.Empire
                 StartCoroutine(UpdatePopupTimer(lvlText, timerInstanceId, popup));
             }
 
-            // P&C: Slide-up animation from bottom
+            // P&C: Slide-up animation
             var cg = popup.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             _infoPopup = popup;
             StartCoroutine(AnimateBottomSheetIn(popup, popupRect, cg));
 
-            // P&C: Auto-dismiss popup after 8 seconds of no interaction
+            // P&C: No auto-dismiss on detail panel (user closes manually or taps elsewhere)
             if (_popupAutoDismiss != null) StopCoroutine(_popupAutoDismiss);
-            _popupAutoDismiss = StartCoroutine(AutoDismissPopup(8f));
+            _popupAutoDismiss = null;
         }
 
         /// <summary>P&C: Create a circular radial menu button at a pixel offset from parent origin.</summary>

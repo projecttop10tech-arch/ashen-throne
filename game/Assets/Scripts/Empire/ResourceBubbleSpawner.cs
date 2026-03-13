@@ -41,9 +41,31 @@ namespace AshenThrone.Empire
             { "arcane_tower", ResourceType.ArcaneEssence },
         };
 
+        private System.IDisposable _batchCollectSub;
+
         private void Start()
         {
             _spawnTimer = SpawnInterval * 0.5f; // First spawn comes sooner
+            // P&C: Listen for batch-collect events (tap one bubble → collect all same type)
+            _batchCollectSub = EventBus.Subscribe<ResourceBubbleBatchCollectEvent>(OnBatchCollect);
+        }
+
+        private void OnDestroy()
+        {
+            _batchCollectSub?.Dispose();
+        }
+
+        /// <summary>P&C: When any bubble is tapped, collect ALL bubbles producing the same resource type.</summary>
+        private void OnBatchCollect(ResourceBubbleBatchCollectEvent evt)
+        {
+            foreach (var kvp in _activeBubbles)
+            {
+                foreach (var bubble in kvp.Value)
+                {
+                    if (bubble != null && bubble.ResourceType == evt.Type)
+                        bubble.OnPointerClick(null); // null eventData = programmatic collect
+                }
+            }
         }
 
         private void Update()

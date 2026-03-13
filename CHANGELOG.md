@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.97.0] — 2026-03-12 (Ralph Loop Iteration 92: P&C Detail Panel, Batch Resource Collection)
+
+### CHANGED
+- **Building tap → P&C half-screen detail panel** — Expanded bottom sheet from 17% to 42% of screen. Now shows large building sprite thumbnail, prominent gold name, level/status line, inline upgrade cost breakdown (green=affordable, red=insufficient), gold separator, and full-width action button row (Upgrade, Info, Move, Remove). Close button in top-right corner. No auto-dismiss — user closes explicitly or taps ground. Matches P&C's building detail panel pattern.
+- **Batch resource collection** — Tapping one resource bubble now collects ALL bubbles of the same resource type across every building. E.g., tapping a grain bubble on one farm also collects all other grain farm bubbles. Uses EventBus (`ResourceBubbleBatchCollectEvent`) pattern for loose coupling. Matches P&C's batch-collect-all-of-type behavior.
+
+---
+
 ## [0.96.0] — 2026-03-12 (Ralph Loop Iteration 91: P&C Bottom Sheet, City Overview Zoom)
 
 ### CHANGED
