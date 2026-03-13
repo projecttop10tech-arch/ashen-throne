@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.95.0] — 2026-03-12 (Ralph Loop Iteration 90: Radial Sprite Fallback, Footprint Sync, Popup Dismiss)
+
+### FIXED
+- **Radial gradient sprite fallback chain** — Generator action indicators now try 3 paths: `Assets/Resources/`, `Assets/Art/`, then procedural generation. Prevents colored-square fallback if any single path is missing.
+- **Generator footprint synced to runtime** — Generator `FootprintSize` was 0.55x while runtime used 0.70x, causing misaligned building visuals between editor generation and play mode. Synced to 0.70x + 1.3x height ratio.
+- **Popup dismisses on empty ground tap** — Tapping empty ground now properly calls `DismissInfoPopup()` and `ClearBuildingFootprint()`, matching P&C behavior where tapping away closes any open building menu.
+
+---
+
 ## [0.94.0] — 2026-03-12 (Ralph Loop Iteration 89: Glow Fix, Popup Spacing, Roads, Error Fix)
 
 ### FIXED

@@ -9831,6 +9831,8 @@ namespace AshenThrone.Empire
 
             if (tapped == null)
             {
+                // P&C: Dismiss radial popup when tapping empty ground
+                DismissInfoPopup();
                 // Clear footprint when tapping empty ground
                 ClearBuildingFootprint();
 

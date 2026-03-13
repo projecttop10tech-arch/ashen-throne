@@ -194,9 +194,9 @@ namespace AshenThrone.Editor
 
         static Vector2 FootprintSize(Vector2Int size)
         {
-            // P&C-style: buildings significantly smaller than footprint so terrain shows between them
-            float w = (size.x + size.y) * HalfW * 0.55f;
-            float h = w; // Square bounding box — sprites are ~1:1 with iso perspective baked in
+            // Must match CityGridView.FootprintScreenSize for consistent layout
+            float w = (size.x + size.y) * HalfW * 0.70f;
+            float h = w * 1.3f; // Taller bounding box — P&C buildings rise above footprint
             return new Vector2(w, h);
         }
 
@@ -843,6 +843,10 @@ namespace AshenThrone.Editor
 
             // P&C: Circular upgrade indicator with glow — top-right
             var radialSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Production/radial_gradient.png");
+            if (radialSpr == null)
+                radialSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            if (radialSpr == null)
+                radialSpr = GetOrCreateRadialGradient();
 
             var upgradeGO = CreateChild(indicatorGO, "UpgradeIcon");
             var upRect = upgradeGO.AddComponent<RectTransform>();
