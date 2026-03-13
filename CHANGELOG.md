@@ -4,11 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
-## [1.11.0] — 2026-03-13 (Empire: P&C Queue Panel + Right-Side Events)
+## [1.11.0] — 2026-03-13 (Empire: P&C Queue Panel + Right-Side Events + Timers)
 
 ### ADDED
 - **P&C-style queue status panel** — Left-side panel showing Build Slot 1, Build Slot 2, and Research slot with real-time status (IDLE or building name + countdown timer + progress bar). Tappable to jump to building or open research panel.
 - **Per-slot progress bars** — Green fill bars on each queue slot showing upgrade/research progress.
+- **Event icon timer badges** — Countdown timers below EVENT and GIFTS circular icons (P&C-style).
+- **Building countdown timer text** — Prominent green countdown above progress bars on upgrading buildings, updating every second.
+- **Special offer icons** — VS Battle, Rewards Center, and Limited Offer rectangular icons on right side with timers and gold borders (P&C upper-right pattern).
 
 ### CHANGED
 - **Event icons moved to right side** — Circular event icons (daily chest, merchant, event hub, gifts) repositioned from left to right edge, matching P&C's layout.

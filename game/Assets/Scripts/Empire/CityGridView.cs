@@ -293,6 +293,8 @@ namespace AshenThrone.Empire
             WireResourceBarTapHandlers();
             // P&C: Left-side queue status panel (Build/Research slots)
             CreateQueueStatusPanel();
+            // P&C: Right-side special offer/event icons (VS, Rewards, Offer)
+            CreateSpecialOfferIcons();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -20343,6 +20345,121 @@ namespace AshenThrone.Empire
             {
                 _queueSlotRefreshTimer = 0f;
                 RefreshQueueSlots();
+            }
+        }
+    }
+
+    // ====================================================================
+    // P&C: Right-side Special Offer/Event Icons (VS, Rewards, Limited Offer)
+    // Positioned in upper-right, above the circular event icons
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private void CreateSpecialOfferIcons()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // P&C upper-right: stacked rectangular offer buttons with timers
+            float iconW = 0.18f;
+            float iconH = 0.055f;
+            float gap = 0.008f;
+            float xMin = 1f - iconW - 0.005f;
+            float baseY = 0.50f; // just below quick-nav
+
+            var offers = new (string label, string icon, string timer, Color bgColor, Color borderColor)[]
+            {
+                ("VS Battle", "\u2694", "10:04:49", new Color(0.65f, 0.18f, 0.15f, 0.92f), new Color(0.95f, 0.40f, 0.25f)),
+                ("Rewards",   "\u2605", "",         new Color(0.55f, 0.40f, 0.12f, 0.92f), new Color(0.95f, 0.80f, 0.25f)),
+                ("Offer",     "\u2666", "23:59:52", new Color(0.50f, 0.20f, 0.55f, 0.92f), new Color(0.80f, 0.50f, 0.90f)),
+            };
+
+            for (int i = 0; i < offers.Length; i++)
+            {
+                var offer = offers[i];
+                float yTop = baseY - i * (iconH + gap);
+                float yBot = yTop - iconH;
+
+                var go = new GameObject($"SpecialOffer_{offer.label.Replace(" ", "")}");
+                go.transform.SetParent(canvas.transform, false);
+                var rect = go.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(xMin, yBot);
+                rect.anchorMax = new Vector2(xMin + iconW, yTop);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                var bg = go.AddComponent<Image>();
+                bg.color = offer.bgColor;
+                bg.raycastTarget = true;
+
+                var outline = go.AddComponent<Outline>();
+                outline.effectColor = new Color(offer.borderColor.r, offer.borderColor.g, offer.borderColor.b, 0.70f);
+                outline.effectDistance = new Vector2(1f, -1f);
+
+                var btn = go.AddComponent<Button>();
+                btn.targetGraphic = bg;
+                string capLabel = offer.label;
+                btn.onClick.AddListener(() => ShowUpgradeBlockedToast($"{capLabel} — Coming soon!"));
+
+                // Icon on left
+                var iconGO = new GameObject("Icon");
+                iconGO.transform.SetParent(go.transform, false);
+                var iconRect = iconGO.AddComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.02f, 0.05f);
+                iconRect.anchorMax = new Vector2(0.25f, 0.95f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconText = iconGO.AddComponent<Text>();
+                iconText.text = offer.icon;
+                iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                iconText.fontSize = 14;
+                iconText.fontStyle = FontStyle.Bold;
+                iconText.alignment = TextAnchor.MiddleCenter;
+                iconText.color = offer.borderColor;
+                iconText.raycastTarget = false;
+
+                // Label text (right of icon, top)
+                var labelGO = new GameObject("Label");
+                labelGO.transform.SetParent(go.transform, false);
+                var labelRect = labelGO.AddComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0.26f, 0.40f);
+                labelRect.anchorMax = new Vector2(0.98f, 0.95f);
+                labelRect.offsetMin = Vector2.zero;
+                labelRect.offsetMax = Vector2.zero;
+                var labelText = labelGO.AddComponent<Text>();
+                labelText.text = offer.label;
+                labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                labelText.fontSize = 8;
+                labelText.fontStyle = FontStyle.Bold;
+                labelText.alignment = TextAnchor.MiddleLeft;
+                labelText.color = Color.white;
+                labelText.raycastTarget = false;
+                var labelShadow = labelGO.AddComponent<Shadow>();
+                labelShadow.effectColor = new Color(0, 0, 0, 0.8f);
+                labelShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+                // Timer text (right of icon, bottom)
+                if (!string.IsNullOrEmpty(offer.timer))
+                {
+                    var timerGO = new GameObject("Timer");
+                    timerGO.transform.SetParent(go.transform, false);
+                    var timerRect = timerGO.AddComponent<RectTransform>();
+                    timerRect.anchorMin = new Vector2(0.26f, 0.05f);
+                    timerRect.anchorMax = new Vector2(0.98f, 0.45f);
+                    timerRect.offsetMin = Vector2.zero;
+                    timerRect.offsetMax = Vector2.zero;
+                    var timerText = timerGO.AddComponent<Text>();
+                    timerText.text = offer.timer;
+                    timerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    timerText.fontSize = 7;
+                    timerText.alignment = TextAnchor.MiddleLeft;
+                    timerText.color = new Color(0.85f, 0.85f, 0.55f);
+                    timerText.raycastTarget = false;
+                    var timerShadow = timerGO.AddComponent<Shadow>();
+                    timerShadow.effectColor = new Color(0, 0, 0, 0.8f);
+                    timerShadow.effectDistance = new Vector2(0.5f, -0.5f);
+                }
             }
         }
     }
