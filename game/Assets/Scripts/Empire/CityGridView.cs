@@ -8229,6 +8229,14 @@ namespace AshenThrone.Empire
                             : $"\u26A1 {FormatTimeRemaining(secs)}";
                     }
                 }
+                // P&C: Update countdown timer text above bar
+                var countdown = existingBar.Find("CountdownTimer");
+                if (countdown != null)
+                {
+                    var cdText = countdown.GetComponentInChildren<Text>();
+                    if (cdText != null)
+                        cdText.text = FormatTimeRemaining(Mathf.RoundToInt(entry.RemainingSeconds));
+                }
             }
         }
 
@@ -8263,7 +8271,7 @@ namespace AshenThrone.Empire
             fillImg.color = new Color(0.25f, 0.85f, 0.35f, 0.90f);
             fillImg.raycastTarget = false;
 
-            // Percentage text
+            // Percentage text (inside bar)
             var pctGO = new GameObject("PctText");
             pctGO.transform.SetParent(bar.transform, false);
             var pctRect = pctGO.AddComponent<RectTransform>();
@@ -8282,6 +8290,41 @@ namespace AshenThrone.Empire
             var pctShadow = pctGO.AddComponent<Shadow>();
             pctShadow.effectColor = new Color(0, 0, 0, 0.9f);
             pctShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // P&C: Large countdown timer ABOVE the progress bar (very prominent like P&C)
+            var countdownGO = new GameObject("CountdownTimer");
+            countdownGO.transform.SetParent(bar.transform, false);
+            var cdRect = countdownGO.AddComponent<RectTransform>();
+            cdRect.anchorMin = new Vector2(-0.05f, 1.2f);
+            cdRect.anchorMax = new Vector2(1.05f, 4.5f);
+            cdRect.offsetMin = Vector2.zero;
+            cdRect.offsetMax = Vector2.zero;
+            // Dark bg pill for readability
+            var cdBg = countdownGO.AddComponent<Image>();
+            cdBg.color = new Color(0.05f, 0.03f, 0.10f, 0.85f);
+            cdBg.raycastTarget = false;
+            var cdOutline = countdownGO.AddComponent<Outline>();
+            cdOutline.effectColor = new Color(0.40f, 0.80f, 0.35f, 0.5f);
+            cdOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            var cdTextGO = new GameObject("Text");
+            cdTextGO.transform.SetParent(countdownGO.transform, false);
+            var cdTextRect = cdTextGO.AddComponent<RectTransform>();
+            cdTextRect.anchorMin = Vector2.zero;
+            cdTextRect.anchorMax = Vector2.one;
+            cdTextRect.offsetMin = Vector2.zero;
+            cdTextRect.offsetMax = Vector2.zero;
+            var cdText = cdTextGO.AddComponent<Text>();
+            int remSecs = Mathf.RoundToInt(remainingSeconds);
+            cdText.text = FormatTimeRemaining(remSecs);
+            cdText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            cdText.fontSize = 9;
+            cdText.fontStyle = FontStyle.Bold;
+            cdText.alignment = TextAnchor.MiddleCenter;
+            cdText.color = new Color(0.45f, 0.95f, 0.45f); // bright green like P&C
+            cdText.raycastTarget = false;
+            var cdShadow = cdTextGO.AddComponent<Shadow>();
+            cdShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            cdShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             // P&C: Speed-up button below the progress bar
             var speedBtn = new GameObject("SpeedUpBtn");
@@ -17722,25 +17765,38 @@ namespace AshenThrone.Empire
                 2, new Color(0.70f, 0.22f, 0.18f, 0.92f), new Color(0.95f, 0.45f, 0.25f),
                 "\u2694", new Color(1f, 0.80f, 0.50f), ShowEventHubPanel);
 
-            // "EVENT" label below
-            var labelGO = new GameObject("Label");
-            labelGO.transform.SetParent(_eventHubIcon.transform, false);
-            var lr = labelGO.AddComponent<RectTransform>();
-            lr.anchorMin = new Vector2(0f, -0.18f);
-            lr.anchorMax = new Vector2(1f, 0.05f);
-            lr.offsetMin = Vector2.zero;
-            lr.offsetMax = Vector2.zero;
-            var lt = labelGO.AddComponent<Text>();
-            lt.text = "EVENT";
-            lt.fontSize = 6;
-            lt.fontStyle = FontStyle.Bold;
-            lt.alignment = TextAnchor.MiddleCenter;
-            lt.color = new Color(0.95f, 0.80f, 0.50f);
-            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            lt.raycastTarget = false;
-            var ls = labelGO.AddComponent<Shadow>();
-            ls.effectColor = new Color(0, 0, 0, 0.9f);
-            ls.effectDistance = new Vector2(0.4f, -0.4f);
+            // P&C: Timer badge below icon (event countdown)
+            var timerGO = new GameObject("Timer");
+            timerGO.transform.SetParent(_eventHubIcon.transform, false);
+            var tr = timerGO.AddComponent<RectTransform>();
+            tr.anchorMin = new Vector2(-0.10f, -0.28f);
+            tr.anchorMax = new Vector2(1.10f, 0.02f);
+            tr.offsetMin = Vector2.zero;
+            tr.offsetMax = Vector2.zero;
+            var tbg = timerGO.AddComponent<Image>();
+            tbg.color = new Color(0.06f, 0.04f, 0.10f, 0.88f);
+            tbg.raycastTarget = false;
+            var tOutline = timerGO.AddComponent<Outline>();
+            tOutline.effectColor = new Color(0.95f, 0.45f, 0.25f, 0.5f);
+            tOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            var tt = new GameObject("Text");
+            tt.transform.SetParent(timerGO.transform, false);
+            var ttr = tt.AddComponent<RectTransform>();
+            ttr.anchorMin = Vector2.zero;
+            ttr.anchorMax = Vector2.one;
+            ttr.offsetMin = Vector2.zero;
+            ttr.offsetMax = Vector2.zero;
+            var ttxt = tt.AddComponent<Text>();
+            ttxt.text = "10:04:49";
+            ttxt.fontSize = 6;
+            ttxt.fontStyle = FontStyle.Bold;
+            ttxt.alignment = TextAnchor.MiddleCenter;
+            ttxt.color = new Color(0.95f, 0.80f, 0.50f);
+            ttxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            ttxt.raycastTarget = false;
+            var ts = tt.AddComponent<Shadow>();
+            ts.effectColor = new Color(0, 0, 0, 0.9f);
+            ts.effectDistance = new Vector2(0.4f, -0.4f);
 
             // Notification dot
             AddNotificationDot(_eventHubIcon.transform, "3");
@@ -17755,25 +17811,38 @@ namespace AshenThrone.Empire
                 3, new Color(0.20f, 0.50f, 0.30f, 0.92f), new Color(0.40f, 0.80f, 0.45f),
                 "\u2618", new Color(0.80f, 1f, 0.70f), ShowGiftsPanel);
 
-            // "GIFTS" label below
-            var labelGO = new GameObject("Label");
-            labelGO.transform.SetParent(_giftsIcon.transform, false);
-            var lr = labelGO.AddComponent<RectTransform>();
-            lr.anchorMin = new Vector2(0f, -0.18f);
-            lr.anchorMax = new Vector2(1f, 0.05f);
-            lr.offsetMin = Vector2.zero;
-            lr.offsetMax = Vector2.zero;
-            var lt = labelGO.AddComponent<Text>();
-            lt.text = "GIFTS";
-            lt.fontSize = 6;
-            lt.fontStyle = FontStyle.Bold;
-            lt.alignment = TextAnchor.MiddleCenter;
-            lt.color = new Color(0.70f, 1f, 0.70f);
-            lt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            lt.raycastTarget = false;
-            var ls = labelGO.AddComponent<Shadow>();
-            ls.effectColor = new Color(0, 0, 0, 0.9f);
-            ls.effectDistance = new Vector2(0.4f, -0.4f);
+            // P&C: Timer badge below icon (gift expiry)
+            var timerGO = new GameObject("Timer");
+            timerGO.transform.SetParent(_giftsIcon.transform, false);
+            var tr = timerGO.AddComponent<RectTransform>();
+            tr.anchorMin = new Vector2(-0.10f, -0.28f);
+            tr.anchorMax = new Vector2(1.10f, 0.02f);
+            tr.offsetMin = Vector2.zero;
+            tr.offsetMax = Vector2.zero;
+            var tbg = timerGO.AddComponent<Image>();
+            tbg.color = new Color(0.06f, 0.04f, 0.10f, 0.88f);
+            tbg.raycastTarget = false;
+            var tOutline = timerGO.AddComponent<Outline>();
+            tOutline.effectColor = new Color(0.40f, 0.80f, 0.45f, 0.5f);
+            tOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            var tt = new GameObject("Text");
+            tt.transform.SetParent(timerGO.transform, false);
+            var ttr = tt.AddComponent<RectTransform>();
+            ttr.anchorMin = Vector2.zero;
+            ttr.anchorMax = Vector2.one;
+            ttr.offsetMin = Vector2.zero;
+            ttr.offsetMax = Vector2.zero;
+            var ttxt = tt.AddComponent<Text>();
+            ttxt.text = "23:59:52";
+            ttxt.fontSize = 6;
+            ttxt.fontStyle = FontStyle.Bold;
+            ttxt.alignment = TextAnchor.MiddleCenter;
+            ttxt.color = new Color(0.70f, 1f, 0.70f);
+            ttxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            ttxt.raycastTarget = false;
+            var ts = tt.AddComponent<Shadow>();
+            ts.effectColor = new Color(0, 0, 0, 0.9f);
+            ts.effectDistance = new Vector2(0.4f, -0.4f);
 
             // Notification dot
             AddNotificationDot(_giftsIcon.transform, "5");
