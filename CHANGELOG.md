@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.13.0] — 2026-03-13 (Empire: Warm Lighting, Chat Ticker, Road Paths)
+
+### ADDED
+- **Strong warm terrain lighting** — 1.6x terrain brightness multiplier, full-coverage amber wash overlay (0.25 alpha), and radial golden center glow (0.22 alpha). Dramatically closer to P&C's warm golden city ambiance.
+- **Scrolling alliance chat ticker** — Chat bar cycles through 8 fake alliance/world/system messages every 4.5s, matching P&C's live chat feed.
+- **Stone road paths** — Subtle brown paths connecting nearest-neighbor buildings (within 8 grid cells), matching P&C's road network.
+
+---
+
 ## [1.12.0] — 2026-03-13 (Empire: Brightness, Production Labels, Enhanced Badges)
 
 ### ADDED

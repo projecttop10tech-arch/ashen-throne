@@ -303,6 +303,10 @@ namespace AshenThrone.Empire
             CreateProductionRateLabels();
             // P&C: Enhance level badges for better visibility
             EnhanceLevelBadges();
+            // P&C: Scrolling alliance chat ticker in chat bar
+            SetupChatTicker();
+            // P&C: Stone road paths connecting buildings
+            CreateBuildingRoads();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -569,6 +573,8 @@ namespace AshenThrone.Empire
 
             // P&C: Tick queue status panel (builder/research slots)
             TickQueueStatusPanel();
+            // P&C: Tick chat message ticker
+            TickChatTicker();
 
             // P&C: Auto-collect resource bubbles
             TickAutoCollect();
@@ -20763,44 +20769,57 @@ namespace AshenThrone.Empire
         {
             if (contentContainer == null) return;
 
-            // Find GroundBG and brighten it
+            // Find GroundBG and brighten it significantly — P&C uses warm golden tones
             var groundBG = contentContainer.Find("GroundBG");
             if (groundBG != null)
             {
                 var img = groundBG.GetComponent<Image>();
                 if (img != null)
                 {
-                    // Warm tint: slightly brighter with warm cast
-                    img.color = new Color(1.0f, 0.95f, 0.88f, 1f);
+                    // Strong warm brightening — lifts the dark terrain art toward P&C's golden warmth
+                    img.color = new Color(1.6f, 1.45f, 1.2f, 1f);
                 }
             }
 
-            // Find viewport background and make it warmer
+            // Find viewport background and make it warm blue-grey (P&C edge color)
             var viewport = contentContainer.parent;
             if (viewport != null)
             {
                 var vpImg = viewport.GetComponent<Image>();
-                if (vpImg != null && vpImg.color.r < 0.1f)
+                if (vpImg != null && vpImg.color.r < 0.15f)
                 {
-                    vpImg.color = new Color(0.08f, 0.06f, 0.12f, 1f); // slightly brighter than pure dark
+                    vpImg.color = new Color(0.12f, 0.10f, 0.18f, 1f);
                 }
             }
 
-            // Add warm glow overlay above terrain but below buildings
+            // Full-coverage warm wash — simulates P&C's warm ambient lighting
+            var warmWash = new GameObject("WarmWash");
+            warmWash.transform.SetParent(contentContainer, false);
+            warmWash.transform.SetSiblingIndex(1); // above ground, below buildings
+            var washRect = warmWash.AddComponent<RectTransform>();
+            washRect.anchorMin = Vector2.zero;
+            washRect.anchorMax = Vector2.one;
+            washRect.offsetMin = Vector2.zero;
+            washRect.offsetMax = Vector2.zero;
+            var washImg = warmWash.AddComponent<Image>();
+            washImg.color = new Color(0.45f, 0.35f, 0.20f, 0.25f); // warm amber wash
+            washImg.raycastTarget = false;
+
+            // Central radial glow — brighter center, softer edges (P&C focal lighting)
             var warmGlow = new GameObject("WarmGlow");
             warmGlow.transform.SetParent(contentContainer, false);
-            warmGlow.transform.SetSiblingIndex(1); // above ground, below buildings
+            warmGlow.transform.SetSiblingIndex(2); // above wash, below buildings
 
             var glowRect = warmGlow.AddComponent<RectTransform>();
-            glowRect.anchorMin = new Vector2(0.15f, 0.15f);
-            glowRect.anchorMax = new Vector2(0.85f, 0.85f);
+            glowRect.anchorMin = new Vector2(0.10f, 0.10f);
+            glowRect.anchorMax = new Vector2(0.90f, 0.90f);
             glowRect.offsetMin = Vector2.zero;
             glowRect.offsetMax = Vector2.zero;
 
             var glowImg = warmGlow.AddComponent<Image>();
             var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             if (radialSpr != null) glowImg.sprite = radialSpr;
-            glowImg.color = new Color(1f, 0.85f, 0.55f, 0.08f); // subtle warm glow
+            glowImg.color = new Color(1f, 0.88f, 0.55f, 0.22f); // strong golden center glow
             glowImg.raycastTarget = false;
         }
 
@@ -20919,5 +20938,152 @@ namespace AshenThrone.Empire
                 }
             }
         }
+
+        // ============================================================
+        //  P&C: Scrolling alliance chat ticker
+        // ============================================================
+        private Text _chatTickerText;
+        private float _chatTickerTimer;
+        private int _chatTickerIndex;
+        private static readonly string[] ChatMessages = new[]
+        {
+            "<color=#2EC7A6>[Alliance]</color> NBAHeartless: Rally at Lv.17 Monster Den!",
+            "<color=#2EC7A6>[Alliance]</color> TrueDictator237: Lv.39 Monster rally — join up!",
+            "<color=#FFC040>[World]</color> DarkLord99: Anyone trading iron for grain?",
+            "<color=#2EC7A6>[Alliance]</color> StormBringer: Shield up before reset!",
+            "<color=#FF6060>[System]</color> Void Rift event starts in 2h!",
+            "<color=#2EC7A6>[Alliance]</color> XxShadowxX: Need reinforcements at coords 412,88",
+            "<color=#FFC040>[World]</color> IronQueen: WTS Legendary weapon — 500K iron",
+            "<color=#2EC7A6>[Alliance]</color> GhostReaper: War rally in 5 min, all online join!",
+        };
+
+        private void SetupChatTicker()
+        {
+            // Find the ChatBar > MessageArea > Message text created by SceneUIGenerator
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) canvas = FindObjectOfType<Canvas>();
+            if (canvas == null) return;
+
+            var chatBar = canvas.transform.Find("ChatBar");
+            if (chatBar == null) return;
+
+            var msgArea = chatBar.Find("MessageArea");
+            if (msgArea == null) return;
+
+            var msgT = msgArea.Find("Message");
+            if (msgT != null)
+            {
+                _chatTickerText = msgT.GetComponent<Text>();
+                if (_chatTickerText != null)
+                {
+                    _chatTickerText.supportRichText = true;
+                    _chatTickerText.text = ChatMessages[0];
+                }
+            }
+            _chatTickerTimer = 0f;
+            _chatTickerIndex = 0;
+        }
+
+        private void TickChatTicker()
+        {
+            if (_chatTickerText == null) return;
+            _chatTickerTimer += Time.deltaTime;
+            if (_chatTickerTimer >= 4.5f) // cycle every 4.5s like P&C
+            {
+                _chatTickerTimer = 0f;
+                _chatTickerIndex = (_chatTickerIndex + 1) % ChatMessages.Length;
+                _chatTickerText.text = ChatMessages[_chatTickerIndex];
+            }
+        }
+
+        // ============================================================
+        //  P&C: Stone road paths connecting buildings
+        // ============================================================
+        private void CreateBuildingRoads()
+        {
+            if (contentContainer == null || _placements == null || _placements.Count < 2) return;
+
+            // Road container — below buildings but above ground overlays
+            var roadRoot = new GameObject("Roads");
+            roadRoot.transform.SetParent(contentContainer, false);
+            // Place after warm overlays (index 3) but before building container
+            int buildingContainerIdx = buildingContainer != null ? buildingContainer.GetSiblingIndex() : 5;
+            roadRoot.transform.SetSiblingIndex(Mathf.Max(3, buildingContainerIdx - 1));
+
+            var rootRect = roadRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            // Connect each building to its nearest neighbor with a road segment
+            // Use a simple approach: connect buildings that are within ~8 grid cells
+            var connected = new HashSet<string>();
+            float cellW = CellSize;
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+
+                // Find closest neighbor not yet connected to this building
+                CityBuildingPlacement closest = null;
+                float closestDist = float.MaxValue;
+
+                foreach (var q in _placements)
+                {
+                    if (q == p || q.VisualGO == null) continue;
+                    string pairKey = p.GridOrigin.x < q.GridOrigin.x ||
+                        (p.GridOrigin.x == q.GridOrigin.x && p.GridOrigin.y < q.GridOrigin.y)
+                        ? $"{p.GridOrigin}-{q.GridOrigin}"
+                        : $"{q.GridOrigin}-{p.GridOrigin}";
+                    if (connected.Contains(pairKey)) continue;
+
+                    int dx = p.GridOrigin.x - q.GridOrigin.x;
+                    int dy = p.GridOrigin.y - q.GridOrigin.y;
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (dist < closestDist && dist <= 8f)
+                    {
+                        closestDist = dist;
+                        closest = q;
+                    }
+                }
+
+                if (closest == null) continue;
+
+                string key = p.GridOrigin.x < closest.GridOrigin.x ||
+                    (p.GridOrigin.x == closest.GridOrigin.x && p.GridOrigin.y < closest.GridOrigin.y)
+                    ? $"{p.GridOrigin}-{closest.GridOrigin}"
+                    : $"{closest.GridOrigin}-{p.GridOrigin}";
+                connected.Add(key);
+
+                // Calculate screen positions from grid coords
+                Vector2 posA = GridToLocalCenter(p.GridOrigin, p.Size);
+                Vector2 posB = GridToLocalCenter(closest.GridOrigin, closest.Size);
+
+                CreateRoadSegment(roadRoot.transform, posA, posB, cellW);
+            }
+        }
+
+        private void CreateRoadSegment(Transform parent, Vector2 start, Vector2 end, float cellWidth)
+        {
+            var road = new GameObject("Road");
+            road.transform.SetParent(parent, false);
+
+            var rect = road.AddComponent<RectTransform>();
+            Vector2 mid = (start + end) * 0.5f;
+            Vector2 diff = end - start;
+            float length = diff.magnitude;
+            float angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+
+            rect.anchoredPosition = mid;
+            rect.sizeDelta = new Vector2(length, cellWidth * 0.18f); // thin road
+            rect.localRotation = Quaternion.Euler(0, 0, angle);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            var img = road.AddComponent<Image>();
+            img.color = new Color(0.35f, 0.28f, 0.18f, 0.30f); // subtle brown stone path
+            img.raycastTarget = false;
+        }
+
     }
 }
