@@ -1220,8 +1220,9 @@ namespace AshenThrone.Empire
             int sx = size.x, sy = size.y;
 
             // Dark fantasy purple ground plate — per-cell iso diamonds using diamond sprite
-            Color plateFill = new Color(0.18f, 0.12f, 0.25f, 0.55f);
-            Color plateBorder = new Color(0.30f, 0.20f, 0.42f, 0.45f);
+            // Lighter purple ground plate — makes buildings pop against dark terrain
+            Color plateFill = new Color(0.25f, 0.18f, 0.35f, 0.70f);
+            Color plateBorder = new Color(0.50f, 0.35f, 0.65f, 0.60f);
             var diamondSpr = GetDiamondCellSprite();
 
             for (int gx = 0; gx < sx; gx++)

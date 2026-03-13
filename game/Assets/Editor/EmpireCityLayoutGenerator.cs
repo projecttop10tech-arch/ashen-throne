@@ -317,22 +317,25 @@ namespace AshenThrone.Editor
             outerImg.raycastTarget = true;
 
             // ================================================================
-            // 4. Diamond wall border (isometric perimeter of playable area)
+            // 4. Edge fog vignette (P&C-style natural boundary fade)
             // ================================================================
-            // The 4 corners of the playable diamond in screen coords:
+            // Instead of hard wall segments, create gradient fog panels on each
+            // edge that fade from transparent (at playable area) to dark purple-black.
             var cornerBL = GridToIso(PlayMinX, PlayMinY);   // bottom vertex
             var cornerBR = GridToIso(PlayMaxX, PlayMinY);   // right vertex
             var cornerTR = GridToIso(PlayMaxX, PlayMaxY);   // top vertex
             var cornerTL = GridToIso(PlayMinX, PlayMaxY);   // left vertex
 
-            EnsureSpriteImportSettings("Assets/Art/Environments/wall_border.png");
-            var wallSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/wall_border.png");
+            CreateEdgeFogTexture();
+            var fogSprite = LoadOrCreateSprite("Assets/Art/UI/Production/edge_fog.png");
+            Color fogColor = new Color(0.04f, 0.02f, 0.08f, 0.95f); // deep dark purple
 
-            // Create 4 wall segments along the diamond edges
-            CreateDiamondWall(content, "WallBottomRight", wallSprite, cornerBL, cornerBR);
-            CreateDiamondWall(content, "WallRightTop", wallSprite, cornerBR, cornerTR);
-            CreateDiamondWall(content, "WallTopLeft", wallSprite, cornerTR, cornerTL);
-            CreateDiamondWall(content, "WallLeftBottom", wallSprite, cornerTL, cornerBL);
+            // 4 fog panels along each diamond edge, extending outward
+            float fogThickness = CellSize * 6f; // thick fog band
+            CreateEdgeFog(content, "FogBottom", fogSprite, fogColor, cornerBL, cornerBR, fogThickness, true);
+            CreateEdgeFog(content, "FogRight", fogSprite, fogColor, cornerBR, cornerTR, fogThickness, true);
+            CreateEdgeFog(content, "FogTop", fogSprite, fogColor, cornerTR, cornerTL, fogThickness, false);
+            CreateEdgeFog(content, "FogLeft", fogSprite, fogColor, cornerTL, cornerBL, fogThickness, false);
 
             // ================================================================
             // 5. Grid overlay (hidden by default, shown during move mode)
@@ -1201,6 +1204,80 @@ namespace AshenThrone.Editor
             return 1;
         }
 
+        // ================================================================
+        // Edge fog (P&C-style natural boundary)
+        // ================================================================
+
+        static void CreateEdgeFogTexture()
+        {
+            string path = "Assets/Art/UI/Production/edge_fog.png";
+            // Gradient: transparent on one edge → opaque on the other
+            int w = 8, h = 64;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            for (int y = 0; y < h; y++)
+            {
+                // y=0 is transparent (near playable area), y=h-1 is opaque (outer)
+                float t = y / (float)(h - 1);
+                // Ease-in for smooth fog: t^2 ramp
+                float alpha = t * t;
+                for (int x = 0; x < w; x++)
+                    tex.SetPixel(x, y, new Color(1, 1, 1, alpha));
+            }
+            tex.Apply();
+            byte[] png = tex.EncodeToPNG();
+            Object.DestroyImmediate(tex);
+
+            string dir = System.IO.Path.GetDirectoryName(path);
+            if (!System.IO.Directory.Exists(dir))
+                System.IO.Directory.CreateDirectory(dir);
+            System.IO.File.WriteAllBytes(path, png);
+            AssetDatabase.ImportAsset(path);
+            EnsureSpriteImportSettings(path);
+        }
+
+        static Sprite LoadOrCreateSprite(string path)
+        {
+            EnsureSpriteImportSettings(path);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        /// <summary>
+        /// Create a fog panel along one edge of the diamond, extending outward.
+        /// The fog gradient goes from transparent (at the edge) to opaque (away from playable area).
+        /// </summary>
+        static void CreateEdgeFog(GameObject parent, string name, Sprite fogSprite, Color fogColor,
+            Vector2 from, Vector2 to, float thickness, bool outwardDown)
+        {
+            var fogGO = CreateChild(parent, name);
+            var fogRect = fogGO.AddComponent<RectTransform>();
+
+            Vector2 mid = (from + to) * 0.5f;
+            Vector2 delta = to - from;
+            float length = delta.magnitude + thickness; // extend past corners
+            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+
+            // Position the fog strip along the edge, offset outward by half thickness
+            Vector2 edgeNormal = new Vector2(-delta.y, delta.x).normalized;
+            if (!outwardDown) edgeNormal = -edgeNormal;
+            // Shift center outward so the transparent edge aligns with playable boundary
+            fogRect.anchoredPosition = mid + edgeNormal * (thickness * 0.5f);
+            fogRect.sizeDelta = new Vector2(length, thickness);
+            fogRect.localRotation = Quaternion.Euler(0, 0, angle);
+
+            var fogImg = fogGO.AddComponent<Image>();
+            if (fogSprite != null)
+            {
+                fogImg.sprite = fogSprite;
+                fogImg.type = Image.Type.Simple;
+            }
+            fogImg.color = fogColor;
+            fogImg.raycastTarget = false;
+            // Flip the gradient so transparent side faces the playable area
+            if (!outwardDown)
+                fogRect.localScale = new Vector3(1, -1, 1);
+        }
     }
 }
 #endif

@@ -178,7 +178,7 @@ namespace AshenThrone.Empire
 
             // Background
             var bg = _collectAllButton.AddComponent<Image>();
-            bg.color = new Color(0.15f, 0.65f, 0.30f, 0.92f);
+            bg.color = new Color(0.30f, 0.15f, 0.55f, 0.92f); // dark fantasy purple
             bg.raycastTarget = true;
 
             // Gold border
@@ -223,8 +223,8 @@ namespace AshenThrone.Empire
                 if (img != null)
                 {
                     float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 3f);
-                    float greenBase = 0.65f;
-                    img.color = new Color(0.15f, greenBase * pulse, 0.30f * pulse, 0.92f);
+                    float purpleBase = 0.55f;
+                    img.color = new Color(0.30f * pulse, 0.15f, purpleBase * pulse, 0.92f);
                 }
                 // Subtle scale pulse
                 float scale = 1f + 0.03f * Mathf.Sin(Time.time * 2.5f);

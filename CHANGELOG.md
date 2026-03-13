@@ -4,6 +4,16 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.91.0] — 2026-03-12 (Ralph Loop Iteration 86: Fog Boundary, Ground Plates, Purple Theme)
+
+### CHANGED
+- **Wall border → fog vignette** — Removed tiled stone wall segments at playable area edges. Replaced with 4 procedural gradient fog panels that fade from transparent (at boundary) to dark purple-black. Natural P&C-style boundary instead of hard geometric wall.
+- **Building ground plates brighter** — Diamond shadow plates under buildings now use lighter purple (0.25/0.18/0.35 fill, 0.50/0.35/0.65 border) for better contrast against dark terrain.
+- **Collect All button → dark purple** — Button and pulse animation recolored from green to dark fantasy purple to match theme.
+- **Terrain tint darkened** — Generator terrain base color now deep purple-black (0.15/0.12/0.22) for darker atmosphere.
+
+---
+
 ## [0.90.0] — 2026-03-12 (Ralph Loop Iteration 85: Dark Fantasy Art Overhaul)
 
 ### ADDED
