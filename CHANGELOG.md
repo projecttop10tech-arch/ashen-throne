@@ -4,6 +4,21 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.90.0] — 2026-03-12 (Ralph Loop Iteration 85: Dark Fantasy Art Overhaul)
+
+### ADDED
+- **Dark fantasy building sprites** — All 63 building sprites (21 types × 3 tiers) regenerated with dark fantasy purple aesthetic. Gothic architecture, arcane purple glows, amber lighting, obsidian details. Generated via Runware AI with new `DARK_FANTASY_STYLE` prefix and background removal.
+- **Dark fantasy terrain background** — New 2048×2048 empire terrain with dark obsidian stone, purple crystalline veins, runic pathways, and mystical fog. Replaces bright green terrain.
+- **Diamond cell sprite system** — Runtime-generated diamond texture (64×32) used for all grid cells. Eliminates broken `Outline` component on rotated/scaled elements. Grid shadows, footprints, and move mode cells now render with clean flat diamond edges.
+
+### CHANGED
+- **Grid colors → dark fantasy purple** — Grid overlay, move mode cells, building footprints, and building shadows all use purple/amber color palette instead of green.
+- **Building shadows use per-cell iso diamonds** — Building ground plates now use proper grid-aligned diamond cells matching the grid overlay, replacing the old single anchor-relative diamond.
+- **Zoom range expanded** — Min zoom 0.4x→0.3x, max zoom 2.5x→5.0x for much closer inspection of buildings.
+- **Terrain tint darkened** — Generator terrain color changed from green-brown to deep purple-black for dark fantasy atmosphere.
+
+---
+
 ## [0.89.0] — 2026-03-12 (Ralph Loop Iteration 84: Visual Cleanup, Placement Highlights)
 
 ### CHANGED

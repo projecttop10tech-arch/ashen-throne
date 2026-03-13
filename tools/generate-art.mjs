@@ -19,6 +19,7 @@ const MODEL = 'runware:100@1';
 
 const STYLE_PREFIX = 'dark fantasy game art, painterly digital illustration, rich colors, dramatic lighting, ';
 const EMPIRE_STYLE_PREFIX = 'mobile strategy game art, vibrant painterly digital illustration, bright saturated colors, warm golden daylight, colorful and inviting, ';
+const DARK_FANTASY_STYLE = 'dark fantasy mobile strategy game art, highly detailed painterly illustration, dramatic purple and amber lighting, deep shadows with arcane purple glows, mystical atmosphere, gothic medieval architecture, rich ornate textures, professional AAA mobile game quality, ';
 const STYLE_SUFFIX = ', high detail, professional game asset, transparent background where applicable';
 
 // -------------------------------------------------------------------
@@ -87,7 +88,7 @@ const ENVIRONMENTS = [
     { id: 'worldmap_swamp', prompt: 'bird eye view dark fantasy swamp region for world map, murky water, dead trees' },
     { id: 'worldmap_volcanic', prompt: 'bird eye view dark fantasy volcanic region for world map, lava rivers, smoke' },
     { id: 'empire_bg', prompt: 'dark fantasy city overhead view background, medieval gothic architecture, bird eye perspective' },
-    { id: 'empire_terrain_bg', prompt: 'vibrant fantasy medieval kingdom city map from above, bright isometric perspective mobile game art style, lush bright green grass terrain with gentle hills, many distinct cleared building plots arranged in a grid pattern connected by warm sandy stone pathways, bright daylight with warm golden sun, colorful flower beds and hedges between plots, tall green trees scattered around edges, small sparkling streams and ponds, stone walls with banners, large central plaza area for main castle, the terrain should be bright cheerful and colorful like a mobile strategy game city builder, no buildings just the terrain and paths and nature', w: 2048, h: 2048 },
+    { id: 'empire_terrain_bg', prompt: 'dark fantasy medieval kingdom city map from above, isometric perspective mobile game art style, dark obsidian stone terrain with deep purple crystalline veins running through the ground, ancient runic stone pathways glowing faint purple between building plots, dark moody atmosphere with dramatic purple and amber magical light sources, twisted dark trees with glowing purple leaves scattered around edges, dark stone walls with tattered banners, mystical fog and arcane energy wisps, large central dark stone plaza for main fortress, the terrain should be dark gothic and mystical like a dark fantasy strategy game city, no buildings just the dark terrain and glowing paths and arcane nature', w: 2048, h: 2048 },
 ];
 
 const UI_ASSETS = [
@@ -262,20 +263,20 @@ async function generateBuildings() {
     await ensureDir(dir);
 
     const tiers = [
-        { suffix: 't1', desc: 'rustic simple wooden, few torches, basic construction,' },
-        { suffix: 't2', desc: 'reinforced stone, glowing runes, banners, ornate details,' },
-        { suffix: 't3', desc: 'grand towering, magical auras, gold accents, masterwork architecture,' },
+        { suffix: 't1', desc: 'rustic wooden with faint purple torchlight, basic dark stone construction, few glowing runes,' },
+        { suffix: 't2', desc: 'reinforced dark stone with pulsing arcane purple runes, tattered banners, ornate gothic details, glowing crystal accents,' },
+        { suffix: 't3', desc: 'grand towering gothic masterwork, intense magical purple auras, gold and obsidian accents, arcane conduits, masterwork dark architecture,' },
     ];
 
     for (const building of BUILDINGS) {
         console.log(`\n  Building: ${building.id}`);
         for (const tier of tiers) {
             try {
-                // Generate with bright style matching terrain
+                // Generate with dark fantasy purple style
                 const genUrl = await generateImage(
-                    `${tier.desc} ${building.prompt}, bright colorful fantasy architecture, isometric game building sprite, top-down 3/4 view, vibrant saturated colors, warm sunlit, detailed textures, isolated single building on plain white background`,
+                    `${tier.desc} ${building.prompt}, dark fantasy gothic architecture, isometric game building sprite, top-down 3/4 view, deep purple and amber magical lighting, dark moody atmosphere, glowing arcane details, highly detailed textures, isolated single building on plain white background`,
                     768, 768,
-                    { stylePrefix: EMPIRE_STYLE_PREFIX }
+                    { stylePrefix: DARK_FANTASY_STYLE }
                 );
                 // Remove background for clean transparent sprite
                 console.log(`    removing background...`);

@@ -307,12 +307,12 @@ namespace AshenThrone.Editor
                 terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
                 outerImg.sprite = terrainSprite;
                 // P&C-style visible terrain — dark green/brown, clearly visible ground
-                outerImg.color = new Color(0.25f, 0.30f, 0.20f, 1f);
+                outerImg.color = new Color(0.15f, 0.12f, 0.22f, 1f);
             }
             else
             {
-                // Fallback: dark green-brown terrain color
-                outerImg.color = new Color(0.20f, 0.25f, 0.15f, 1f);
+                // Fallback: dark fantasy purple terrain
+                outerImg.color = new Color(0.12f, 0.10f, 0.20f, 1f);
             }
             outerImg.raycastTarget = true;
 
@@ -363,7 +363,7 @@ namespace AshenThrone.Editor
             }
             goImg.raycastTarget = false;
             // P&C-style: subtle but visible diamond grid lines on terrain
-            goImg.color = new Color(0.35f, 0.55f, 0.30f, 0.18f);
+            goImg.color = new Color(0.30f, 0.20f, 0.50f, 0.15f); // dark fantasy purple grid
             gridOverlayGO.SetActive(true);
 
             // ================================================================
@@ -1109,7 +1109,7 @@ namespace AshenThrone.Editor
             tex.wrapMode = TextureWrapMode.Repeat;
 
             Color clear = new Color(0, 0, 0, 0);
-            Color line = new Color(0.5f, 1f, 0.4f, 0.5f);
+            Color line = new Color(0.55f, 0.35f, 0.85f, 0.5f); // dark fantasy purple grid
 
             int hw = tw / 2; // 32
             int hh = th / 2; // 16

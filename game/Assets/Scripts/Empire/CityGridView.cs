@@ -116,16 +116,16 @@ namespace AshenThrone.Empire
         private static readonly Color BorderValid = new(0.20f, 1f, 0.40f, 0.70f);
         private static readonly Color BorderInvalid = new(1f, 0.20f, 0.20f, 0.70f);
 
-        // P&C: Building footprint highlight on tap
-        private static readonly Color FootprintColor = new(0.78f, 0.62f, 0.22f, 0.18f);
-        private static readonly Color FootprintBorder = new(0.83f, 0.66f, 0.26f, 0.45f);
+        // Dark fantasy: Building footprint highlight on tap — purple-gold
+        private static readonly Color FootprintColor = new(0.50f, 0.30f, 0.70f, 0.22f);
+        private static readonly Color FootprintBorder = new(0.78f, 0.55f, 0.22f, 0.55f);
         private readonly List<GameObject> _footprintCells = new();
         private string _footprintInstanceId;
         private GameObject _selectionRing;
 
         // Pinch-zoom state
-        private const float ZoomMin = 0.4f;
-        private const float ZoomMax = 2.5f;
+        private const float ZoomMin = 0.3f;
+        private const float ZoomMax = 5.0f;
         private const float ZoomSpeed = 0.005f; // per pixel of pinch delta
         private const float MouseScrollZoomSpeed = 0.15f;
         private const float ZoomLerpSpeed = 8f; // P&C: smooth zoom interpolation
@@ -1059,8 +1059,8 @@ namespace AshenThrone.Empire
             var img = gridOverlay.GetComponent<UnityEngine.UI.Image>();
             if (img != null)
                 img.color = visible
-                    ? new Color(0.35f, 0.55f, 0.30f, 0.30f)  // bright move-mode
-                    : new Color(0.35f, 0.55f, 0.30f, 0.18f);  // P&C-style visible grid lines
+                    ? new Color(0.40f, 0.25f, 0.65f, 0.30f)  // bright move-mode (dark fantasy purple)
+                    : new Color(0.30f, 0.20f, 0.50f, 0.15f);  // faint dark fantasy purple grid
         }
 
         // ====================================================================
@@ -1199,45 +1199,80 @@ namespace AshenThrone.Empire
             placement.VisualGO = go;
         }
 
-        /// <summary>P&C: Subtle oval drop shadow behind each building for depth.</summary>
+        /// <summary>
+        /// P&C: Per-cell isometric diamond shadow under each building.
+        /// Uses the same iso diamond geometry as the grid overlay so shadows
+        /// perfectly align with the grid shown during move mode.
+        /// </summary>
         private void CreateBuildingShadow(GameObject building, Vector2Int size)
         {
-            // P&C-style diamond ground plate — raised terrain base under each building
-            var plateGO = new GameObject("GroundPlate");
-            plateGO.transform.SetParent(building.transform, false);
-            plateGO.transform.SetAsFirstSibling(); // Behind building sprite
+            // Container for all shadow cells (first sibling = behind sprite)
+            var shadowRoot = new GameObject("ShadowCells");
+            shadowRoot.transform.SetParent(building.transform, false);
+            shadowRoot.transform.SetAsFirstSibling();
+            var rootRect = shadowRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
 
-            var plateRect = plateGO.AddComponent<RectTransform>();
-            // Diamond plate is wider than building (fills the grid footprint)
-            // and sits at the bottom portion of the building bounding box
-            plateRect.anchorMin = new Vector2(-0.15f, -0.20f);
-            plateRect.anchorMax = new Vector2(1.15f, 0.35f);
-            plateRect.offsetMin = Vector2.zero;
-            plateRect.offsetMax = Vector2.zero;
-            // Rotate 45° to make a diamond shape from a square Image
-            plateRect.localRotation = Quaternion.Euler(0, 0, 45f);
+            float yOffset = FootprintScreenSize(size).y * 0.15f;
+            int sx = size.x, sy = size.y;
 
-            var plateImg = plateGO.AddComponent<Image>();
-            // Slightly lighter green-brown than surrounding terrain — raised platform look
-            plateImg.color = new Color(0.30f, 0.38f, 0.22f, 0.65f);
-            plateImg.raycastTarget = false;
+            // Dark fantasy purple ground plate — per-cell iso diamonds using diamond sprite
+            Color plateFill = new Color(0.18f, 0.12f, 0.25f, 0.55f);
+            Color plateBorder = new Color(0.30f, 0.20f, 0.42f, 0.45f);
+            var diamondSpr = GetDiamondCellSprite();
 
-            // Subtle border on the plate
-            var plateOutline = plateGO.AddComponent<Outline>();
-            plateOutline.effectColor = new Color(0.20f, 0.28f, 0.15f, 0.50f);
-            plateOutline.effectDistance = new Vector2(1f, -1f);
+            for (int gx = 0; gx < sx; gx++)
+            {
+                for (int gy = 0; gy < sy; gy++)
+                {
+                    // Offset from building center to this cell's iso center
+                    float dx = (gx - gy + (sy - sx) / 2.0f) * HalfW;
+                    float dy = (gx + gy + 1.0f - (sx + sy) / 2.0f) * HalfH - yOffset;
 
-            // Drop shadow underneath the plate for depth
-            var shadowGO = new GameObject("Shadow");
+                    var cellGO = new GameObject($"Shadow_{gx}_{gy}");
+                    cellGO.transform.SetParent(shadowRoot.transform, false);
+
+                    var rect = cellGO.AddComponent<RectTransform>();
+                    rect.anchoredPosition = new Vector2(dx, dy);
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    // Diamond sprite — no rotation needed
+                    rect.sizeDelta = new Vector2(CellSize, CellSize * 0.5f);
+
+                    var img = cellGO.AddComponent<Image>();
+                    if (diamondSpr != null) { img.sprite = diamondSpr; img.type = Image.Type.Simple; }
+                    img.color = plateBorder;
+                    img.raycastTarget = false;
+
+                    // Fill
+                    var fillGO = new GameObject("Fill");
+                    fillGO.transform.SetParent(cellGO.transform, false);
+                    fillGO.transform.SetAsFirstSibling();
+                    var fillRect = fillGO.AddComponent<RectTransform>();
+                    fillRect.anchorMin = Vector2.zero;
+                    fillRect.anchorMax = Vector2.one;
+                    fillRect.offsetMin = new Vector2(1f, 0.5f);
+                    fillRect.offsetMax = new Vector2(-1f, -0.5f);
+                    var fillImg = fillGO.AddComponent<Image>();
+                    if (diamondSpr != null) { fillImg.sprite = diamondSpr; fillImg.type = Image.Type.Simple; }
+                    fillImg.color = plateFill;
+                    fillImg.raycastTarget = false;
+                }
+            }
+
+            // Soft radial shadow underneath for depth
+            var shadowGO = new GameObject("DropShadow");
             shadowGO.transform.SetParent(building.transform, false);
-            shadowGO.transform.SetAsFirstSibling(); // Behind plate
+            shadowGO.transform.SetAsFirstSibling(); // Behind shadow cells
             var shadowRect = shadowGO.AddComponent<RectTransform>();
-            shadowRect.anchorMin = new Vector2(-0.10f, -0.15f);
-            shadowRect.anchorMax = new Vector2(1.10f, 0.20f);
+            shadowRect.anchorMin = new Vector2(-0.08f, -0.12f);
+            shadowRect.anchorMax = new Vector2(1.08f, 0.18f);
             shadowRect.offsetMin = Vector2.zero;
             shadowRect.offsetMax = Vector2.zero;
             var shadowImg = shadowGO.AddComponent<Image>();
-            shadowImg.color = new Color(0.02f, 0.01f, 0.05f, 0.25f);
+            shadowImg.color = new Color(0.05f, 0.02f, 0.10f, 0.30f);
             shadowImg.raycastTarget = false;
             var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             #if UNITY_EDITOR
@@ -10010,6 +10045,73 @@ namespace AshenThrone.Empire
         // Side length for iso diamond cell: square of this size rotated 45° = diamond CellSize wide
         private static readonly float IsoDiamondSide = CellSize / Mathf.Sqrt(2f); // ~45.25
 
+        // ====================================================================
+        // Diamond cell sprite cache (runtime-generated, no rotation needed)
+        // ====================================================================
+        private static Texture2D _diamondCellTex;
+        private static Sprite _diamondCellSprite;
+
+        /// <summary>
+        /// Get or create a diamond-shaped sprite for grid cells.
+        /// CellSize wide × CellSize/2 tall (64×32), with a 1px border baked in.
+        /// White fill + white border — color via Image.color tint.
+        /// </summary>
+        private static Sprite GetDiamondCellSprite()
+        {
+            if (_diamondCellSprite != null) return _diamondCellSprite;
+
+            int tw = (int)CellSize;      // 64
+            int th = (int)(CellSize / 2); // 32
+            _diamondCellTex = new Texture2D(tw, th, TextureFormat.RGBA32, false);
+            _diamondCellTex.filterMode = FilterMode.Bilinear;
+            _diamondCellTex.wrapMode = TextureWrapMode.Clamp;
+
+            int hw = tw / 2; // 32
+            int hh = th / 2; // 16
+            float borderWidth = 1.2f; // px
+
+            for (int y = 0; y < th; y++)
+            {
+                for (int x = 0; x < tw; x++)
+                {
+                    // Diamond distance: |x-hw|/hw + |y-hh|/hh compared to 1
+                    float dx = Mathf.Abs(x - hw) / (float)hw;
+                    float dy = Mathf.Abs(y - hh) / (float)hh;
+                    float d = dx + dy; // 0 at center, 1 at edge
+
+                    if (d > 1.0f)
+                    {
+                        // Outside diamond
+                        _diamondCellTex.SetPixel(x, y, new Color(0, 0, 0, 0));
+                    }
+                    else
+                    {
+                        // Border region: within borderWidth px of edge
+                        float edgeDist = (1.0f - d) * hw; // approx pixels from edge
+                        if (edgeDist < borderWidth)
+                        {
+                            // Border: full white, alpha based on distance for anti-aliasing
+                            float a = Mathf.Clamp01(edgeDist / borderWidth);
+                            _diamondCellTex.SetPixel(x, y, new Color(1, 1, 1, 1f - 0.3f * a));
+                        }
+                        else
+                        {
+                            // Interior fill: semi-transparent white
+                            _diamondCellTex.SetPixel(x, y, new Color(1, 1, 1, 0.5f));
+                        }
+                    }
+                }
+            }
+
+            _diamondCellTex.Apply();
+            _diamondCellSprite = Sprite.Create(
+                _diamondCellTex,
+                new Rect(0, 0, tw, th),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            return _diamondCellSprite;
+        }
+
         /// <summary>P&C: Show gold footprint highlight under a tapped building.</summary>
         public void ShowBuildingFootprint(CityBuildingPlacement placement)
         {
@@ -10052,13 +10154,14 @@ namespace AshenThrone.Empire
 
         /// <summary>
         /// Create a single isometric diamond cell at the given grid position.
-        /// A square rotated 45° becomes a diamond. Scale Y by 0.5 for 2:1 iso ratio.
-        /// Diamond width = CellSize (64), diamond height = CellSize/2 (32).
+        /// Uses a pre-built diamond sprite (CellSize × CellSize/2) — no rotation or
+        /// Y-scaling needed, so the border renders as clean flat diamond edges.
+        /// The sprite has white fill+border; fillColor tints the whole image,
+        /// and borderColor is blended into the border region via a child overlay.
         /// </summary>
         private static GameObject CreateIsoDiamondCell(Transform parent, int gridX, int gridY,
             Color fillColor, Color borderColor)
         {
-            // Cell center in local space (GridToLocalCenter with size 1x1 = center of that cell)
             var cellCenter = GridToLocalCenter(new Vector2Int(gridX, gridY), Vector2Int.one);
 
             var cellGO = new GameObject($"IsoCell_{gridX}_{gridY}");
@@ -10068,17 +10171,41 @@ namespace AshenThrone.Empire
             var rect = cellGO.AddComponent<RectTransform>();
             rect.anchoredPosition = cellCenter;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(IsoDiamondSide, IsoDiamondSide);
-            rect.localRotation = Quaternion.Euler(0, 0, 45f);
-            rect.localScale = new Vector3(1f, 0.5f, 1f);
+            // Diamond sprite is already the correct iso shape — no rotation needed
+            rect.sizeDelta = new Vector2(CellSize, CellSize * 0.5f);
 
             var img = cellGO.AddComponent<Image>();
-            img.color = fillColor;
+            var diamondSpr = GetDiamondCellSprite();
+            if (diamondSpr != null)
+            {
+                img.sprite = diamondSpr;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = false;
+            }
+            // Blend fill and border: the sprite has white interior (0.5 alpha)
+            // and white border (1.0 alpha). Tinting with borderColor makes border
+            // prominent while fill stays subtle.
+            img.color = borderColor;
             img.raycastTarget = false;
 
-            var outline = cellGO.AddComponent<Outline>();
-            outline.effectColor = borderColor;
-            outline.effectDistance = new Vector2(0.8f, -0.8f);
+            // Fill overlay: full diamond tinted with fillColor, drawn behind border
+            var fillGO = new GameObject("Fill");
+            fillGO.transform.SetParent(cellGO.transform, false);
+            fillGO.transform.SetAsFirstSibling();
+            var fillRect = fillGO.AddComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = new Vector2(1f, 0.5f); // Inset slightly to not cover border
+            fillRect.offsetMax = new Vector2(-1f, -0.5f);
+            var fillImg = fillGO.AddComponent<Image>();
+            if (diamondSpr != null)
+            {
+                fillImg.sprite = diamondSpr;
+                fillImg.type = Image.Type.Simple;
+                fillImg.preserveAspect = false;
+            }
+            fillImg.color = fillColor;
+            fillImg.raycastTarget = false;
 
             return cellGO;
         }
@@ -10637,13 +10764,15 @@ namespace AshenThrone.Empire
                     Color fill, border;
                     if (occupied)
                     {
-                        fill = new Color(0.8f, 0.2f, 0.15f, 0.07f);
-                        border = new Color(0.7f, 0.25f, 0.2f, 0.18f);
+                        // Dark fantasy: occupied cells glow red-purple
+                        fill = new Color(0.70f, 0.12f, 0.20f, 0.12f);
+                        border = new Color(0.80f, 0.15f, 0.25f, 0.30f);
                     }
                     else
                     {
-                        fill = new Color(0.2f, 0.65f, 0.3f, 0.05f);
-                        border = new Color(0.3f, 0.75f, 0.4f, 0.15f);
+                        // Dark fantasy: empty cells show faint purple grid
+                        fill = new Color(0.25f, 0.15f, 0.45f, 0.08f);
+                        border = new Color(0.40f, 0.25f, 0.65f, 0.22f);
                     }
 
                     var cellGO = CreateIsoDiamondCell(buildingContainer, gx, gy, fill, border);
