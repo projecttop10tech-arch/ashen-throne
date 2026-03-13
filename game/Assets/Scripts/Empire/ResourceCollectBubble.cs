@@ -197,6 +197,9 @@ namespace AshenThrone.Empire
             _collecting = true;
             _collectTimer = 0f;
 
+            // P&C: Spawn sparkle particle burst on collect
+            SpawnCollectParticles();
+
             // P&C-style: quick punch scale on collect
             transform.localScale = Vector3.one * 1.4f;
 
@@ -244,6 +247,54 @@ namespace AshenThrone.Empire
 
             // Publish event for UI feedback
             EventBus.Publish(new ResourceCollectedEvent(ResourceType, Amount, BuildingInstanceId));
+        }
+
+        /// <summary>P&C: Burst of small sparkle particles radiating outward on collect.</summary>
+        private void SpawnCollectParticles()
+        {
+            Color particleColor = GetBubbleColor(ResourceType);
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            int count = 6;
+            for (int i = 0; i < count; i++)
+            {
+                var sparkle = new GameObject($"Sparkle_{i}");
+                sparkle.transform.SetParent(canvas.transform, false);
+                var sRect = sparkle.AddComponent<RectTransform>();
+                sRect.sizeDelta = new Vector2(8, 8);
+                sRect.anchoredPosition = _rect.anchoredPosition;
+                var sImg = sparkle.AddComponent<Image>();
+                sImg.color = new Color(particleColor.r, particleColor.g, particleColor.b, 0.9f);
+                sImg.raycastTarget = false;
+                var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                if (radialSpr != null) sImg.sprite = radialSpr;
+
+                // Random outward direction
+                float angle = (i / (float)count) * Mathf.PI * 2f + Random.Range(-0.3f, 0.3f);
+                float speed = Random.Range(80f, 160f);
+                Vector2 velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
+
+                var cg = sparkle.AddComponent<CanvasGroup>();
+                StartCoroutine(AnimateSparkle(sparkle, sRect, cg, velocity));
+            }
+        }
+
+        private System.Collections.IEnumerator AnimateSparkle(GameObject go, RectTransform rect, CanvasGroup cg, Vector2 velocity)
+        {
+            float duration = 0.4f;
+            float elapsed = 0f;
+            Vector2 startPos = rect.anchoredPosition;
+            while (elapsed < duration && go != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                rect.anchoredPosition = startPos + velocity * t;
+                rect.localScale = Vector3.one * (1f - t * 0.6f); // shrink
+                cg.alpha = 1f - t; // fade
+                yield return null;
+            }
+            if (go != null) Destroy(go);
         }
 
         private static Color GetBubbleTextColor(ResourceType type) => type switch

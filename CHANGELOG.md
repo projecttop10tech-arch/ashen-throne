@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.01.0] — 2026-03-13 (Ralph Loop Iteration 96: Progress Bar, Collect Particles, Empty Slots)
+
+### ADDED
+- **Upgrade progress bar** — When a building is upgrading, the detail panel now shows a live amber/gold progress bar between the level text and separator. Bar fill updates every 0.5s via the timer coroutine. Turns green and fills to 100% on completion. Shows percentage text overlay.
+- **Resource collect particle burst** — Tapping a resource bubble now spawns 6 sparkle particles that radiate outward with the resource's color, shrinking and fading over 0.4s. Adds satisfying visual feedback matching P&C's collect effect.
+- **Empty building slot indicators** — 6 designated open plots on the city grid now show semi-transparent "+" markers with gold outlines. Tapping opens the build selector at that position. Slots at grid corners and gaps in existing layout. Matches P&C's empty plot markers.
+
+---
+
 ## [1.00.0] — 2026-03-13 (Ralph Loop Iteration 95: Full-Screen Detail Panel, Alliance Help, Building Bonuses)
 
 ### CHANGED

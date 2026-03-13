@@ -249,6 +249,8 @@ namespace AshenThrone.Empire
             }
             // P&C: Sort buildings by isometric depth (higher grid Y = closer to camera = higher sibling index)
             SortBuildingsByDepth();
+            // P&C: Empty building slot indicators ("+" markers on open plots)
+            CreateEmptyBuildSlotIndicators();
             RefreshInstanceCountBadges();
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
@@ -4546,11 +4548,63 @@ namespace AshenThrone.Empire
             lvlOutline.effectColor = new Color(0, 0, 0, 0.8f);
             lvlOutline.effectDistance = new Vector2(0.8f, -0.8f);
 
+            Image progressFill = null; // reference for live update coroutine
             if (isUpgrading)
             {
                 string timerStr = FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
                 lvlText.text = $"Level {evt.Tier}  \u2692 Upgrading: {timerStr}";
                 lvlText.color = new Color(0.90f, 0.75f, 0.30f);
+
+                // P&C: Upgrade progress bar (below level text, above separator)
+                float elapsed = (float)(System.DateTime.Now - System.DateTime.Now.AddSeconds(-upgradeRemaining)).TotalSeconds;
+                float totalDuration = upgradeRemaining; // approximate — refine in coroutine
+                // Get actual total from start time
+                if (popupBm != null)
+                {
+                    foreach (var qe in popupBm.BuildQueue)
+                    {
+                        if (qe.PlacedId == evt.InstanceId)
+                        {
+                            elapsed = (float)(System.DateTime.Now - qe.StartTime).TotalSeconds;
+                            totalDuration = elapsed + qe.RemainingSeconds;
+                            break;
+                        }
+                    }
+                }
+                float progress = totalDuration > 0 ? Mathf.Clamp01(elapsed / totalDuration) : 0f;
+
+                // Progress bar background
+                var barBgGO = new GameObject("ProgressBarBg");
+                barBgGO.transform.SetParent(popup.transform, false);
+                var barBgRect = barBgGO.AddComponent<RectTransform>();
+                barBgRect.anchorMin = new Vector2(0.05f, 0.49f);
+                barBgRect.anchorMax = new Vector2(0.95f, 0.505f);
+                barBgRect.offsetMin = Vector2.zero;
+                barBgRect.offsetMax = Vector2.zero;
+                var barBgImg = barBgGO.AddComponent<Image>();
+                barBgImg.color = new Color(0.08f, 0.06f, 0.14f, 0.90f);
+                barBgImg.raycastTarget = false;
+                var barBgOutline = barBgGO.AddComponent<Outline>();
+                barBgOutline.effectColor = new Color(0.40f, 0.30f, 0.12f, 0.50f);
+                barBgOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+                // Progress bar fill (amber/gold gradient)
+                var barFillGO = new GameObject("ProgressBarFill");
+                barFillGO.transform.SetParent(barBgGO.transform, false);
+                var barFillRect = barFillGO.AddComponent<RectTransform>();
+                barFillRect.anchorMin = Vector2.zero;
+                barFillRect.anchorMax = new Vector2(progress, 1f);
+                barFillRect.offsetMin = Vector2.zero;
+                barFillRect.offsetMax = Vector2.zero;
+                progressFill = barFillGO.AddComponent<Image>();
+                progressFill.color = new Color(0.85f, 0.65f, 0.15f, 0.95f);
+                progressFill.raycastTarget = false;
+
+                // Progress percentage text
+                AddInfoPanelText(popup.transform, "ProgressPct",
+                    $"{Mathf.RoundToInt(progress * 100)}%", 8, FontStyle.Bold,
+                    new Color(0.95f, 0.88f, 0.55f),
+                    new Vector2(0.40f, 0.49f), new Vector2(0.60f, 0.505f), TextAnchor.MiddleCenter);
             }
             else
             {
@@ -4801,7 +4855,7 @@ namespace AshenThrone.Empire
             if (isUpgrading)
             {
                 string timerInstanceId = evt.InstanceId;
-                StartCoroutine(UpdatePopupTimer(lvlText, timerInstanceId, popup));
+                StartCoroutine(UpdatePopupTimer(lvlText, timerInstanceId, popup, progressFill));
             }
 
             // P&C: Slide-up animation
@@ -4998,29 +5052,48 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>P&C: Live countdown in popup while building is upgrading.</summary>
-        private IEnumerator UpdatePopupTimer(Text timerText, string instanceId, GameObject popup)
+        private IEnumerator UpdatePopupTimer(Text timerText, string instanceId, GameObject popup, Image progressFill = null)
         {
             while (timerText != null && popup != null)
             {
                 if (ServiceLocator.TryGet<BuildingManager>(out var bm))
                 {
                     float remaining = -1f;
+                    float elapsed = 0f;
+                    float total = 1f;
                     foreach (var qe in bm.BuildQueue)
                     {
                         if (qe.PlacedId == instanceId)
                         {
                             remaining = qe.RemainingSeconds;
+                            elapsed = (float)(System.DateTime.Now - qe.StartTime).TotalSeconds;
+                            total = elapsed + remaining;
                             break;
                         }
                     }
                     if (remaining < 0)
                     {
-                        // Upgrade finished while popup was open
                         timerText.text = "\u2714 Complete!";
                         timerText.color = new Color(0.3f, 1f, 0.4f);
+                        // Fill progress bar to 100%
+                        if (progressFill != null)
+                        {
+                            var fillRect = progressFill.GetComponent<RectTransform>();
+                            if (fillRect != null) fillRect.anchorMax = new Vector2(1f, 1f);
+                            progressFill.color = new Color(0.40f, 0.90f, 0.40f, 0.95f);
+                        }
                         yield break;
                     }
                     timerText.text = "\u2692 " + FormatTimeRemaining(Mathf.RoundToInt(remaining));
+
+                    // P&C: Update progress bar fill
+                    if (progressFill != null)
+                    {
+                        float progress = total > 0 ? Mathf.Clamp01(elapsed / total) : 0f;
+                        var fillRect = progressFill.GetComponent<RectTransform>();
+                        if (fillRect != null)
+                            fillRect.anchorMax = new Vector2(progress, 1f);
+                    }
                 }
                 yield return new WaitForSeconds(0.5f);
             }
@@ -7345,6 +7418,85 @@ namespace AshenThrone.Empire
         /// that unlock at the next stronghold level. Gives the player a preview
         /// of what they'll gain from upgrading their stronghold.
         /// </summary>
+        /// <summary>P&C: Predefined empty building plots where player can build new structures.</summary>
+        private static readonly Vector2Int[] EmptyBuildSlotPositions = new[]
+        {
+            new Vector2Int(26, 28), // N gap between military
+            new Vector2Int(16, 10), // S outer resource area
+            new Vector2Int(30, 10), // SE outer area
+            new Vector2Int(38, 28), // NE corner
+            new Vector2Int(7, 28),  // NW corner
+            new Vector2Int(7, 14),  // SW corner
+        };
+
+        /// <summary>P&C: Create "+" markers on empty building plots to show buildable areas.</summary>
+        private void CreateEmptyBuildSlotIndicators()
+        {
+            if (buildingContainer == null) return;
+
+            foreach (var slotPos in EmptyBuildSlotPositions)
+            {
+                // Skip if this position already has a building
+                bool occupied = false;
+                foreach (var p in _placements)
+                {
+                    if (p.GridOrigin == slotPos) { occupied = true; break; }
+                }
+                if (occupied) continue;
+
+                // Create isometric position
+                float screenX = (slotPos.x - slotPos.y) * HalfW;
+                float screenY = (slotPos.x + slotPos.y) * HalfH + IsoCenterY;
+
+                var slotGO = new GameObject($"EmptySlot_{slotPos.x}_{slotPos.y}");
+                slotGO.transform.SetParent(buildingContainer, false);
+                var slotRect = slotGO.AddComponent<RectTransform>();
+                slotRect.anchoredPosition = new Vector2(screenX, screenY);
+                slotRect.sizeDelta = new Vector2(CellSize * 1.5f, CellSize * 1.5f);
+                slotRect.pivot = new Vector2(0.5f, 0.3f);
+
+                // Semi-transparent diamond outline background
+                var bgImg = slotGO.AddComponent<Image>();
+                bgImg.color = new Color(0.30f, 0.25f, 0.45f, 0.25f);
+                bgImg.raycastTarget = true;
+                var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                if (radialSpr != null) { bgImg.sprite = radialSpr; bgImg.type = Image.Type.Simple; }
+
+                // Dashed gold outline
+                var outline = slotGO.AddComponent<Outline>();
+                outline.effectColor = new Color(0.70f, 0.55f, 0.20f, 0.35f);
+                outline.effectDistance = new Vector2(1f, -1f);
+
+                // "+" symbol
+                var plusGO = new GameObject("Plus");
+                plusGO.transform.SetParent(slotGO.transform, false);
+                var plusRect = plusGO.AddComponent<RectTransform>();
+                plusRect.anchorMin = new Vector2(0.2f, 0.2f);
+                plusRect.anchorMax = new Vector2(0.8f, 0.8f);
+                plusRect.offsetMin = Vector2.zero;
+                plusRect.offsetMax = Vector2.zero;
+                var plusText = plusGO.AddComponent<Text>();
+                plusText.text = "+";
+                plusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                plusText.fontSize = 20;
+                plusText.fontStyle = FontStyle.Bold;
+                plusText.alignment = TextAnchor.MiddleCenter;
+                plusText.color = new Color(0.80f, 0.65f, 0.25f, 0.50f);
+                plusText.raycastTarget = false;
+                var plusShadow = plusGO.AddComponent<Shadow>();
+                plusShadow.effectColor = new Color(0, 0, 0, 0.6f);
+                plusShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+                // Tap handler — opens build selector at this grid position
+                var btn = slotGO.AddComponent<Button>();
+                btn.targetGraphic = bgImg;
+                var capturedPos = slotPos;
+                btn.onClick.AddListener(() => {
+                    EventBus.Publish(new EmptyCellTappedEvent(capturedPos));
+                });
+            }
+        }
+
         private void CreateBuildingUnlockPreviews()
         {
             if (buildingContainer == null) return;
