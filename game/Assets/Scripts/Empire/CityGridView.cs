@@ -4623,6 +4623,56 @@ namespace AshenThrone.Empire
                     }));
             }
 
+            // P&C: Context-specific action based on building type
+            string ctxBid = evt.BuildingId;
+            string ctxIid = evt.InstanceId;
+            int ctxTier = evt.Tier;
+            switch (evt.BuildingId)
+            {
+                case "barracks":
+                case "training_ground":
+                    actions.Add(("\u2694", "Train", new Color(0.60f, 0.25f, 0.15f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+                case "academy":
+                case "library":
+                case "archive":
+                case "observatory":
+                case "laboratory":
+                    actions.Add(("\u2697", "Research", new Color(0.25f, 0.40f, 0.70f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+                case "forge":
+                case "armory":
+                    actions.Add(("\u2692", "Craft", new Color(0.55f, 0.40f, 0.20f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+                case "hero_shrine":
+                    actions.Add(("\u2605", "Heroes", new Color(0.55f, 0.35f, 0.65f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+                case "marketplace":
+                    actions.Add(("\u2696", "Trade", new Color(0.30f, 0.55f, 0.30f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+                case "embassy":
+                    actions.Add(("\u2709", "Diplomacy", new Color(0.30f, 0.45f, 0.60f, 0.95f), () => {
+                        DismissInfoPopup();
+                        ShowBuildingInfoPanel(ctxBid, ctxIid, ctxTier);
+                    }));
+                    break;
+            }
+
             // Info
             actions.Add(("\u2139", "Info", new Color(0.15f, 0.30f, 0.60f, 0.95f), () => {
                 DismissInfoPopup();

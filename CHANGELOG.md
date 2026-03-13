@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.99.0] — 2026-03-12 (Ralph Loop Iteration 94: Context Actions, Static Bubbles)
+
+### CHANGED
+- **Context-specific building action buttons** — Building detail panel now shows type-appropriate actions: "Train" for barracks/training grounds, "Research" for academy/library/observatory/laboratory, "Craft" for forge/armory, "Heroes" for hero shrine, "Trade" for marketplace, "Diplomacy" for embassy. Each has a distinct icon and color. Matches P&C's building-type-specific UI.
+- **Resource bubbles now static** — Removed bobbing and pulsing from resource indicators. Icons appear as static markers above production buildings, matching P&C style. Fly-to-bar animation preserved on collect.
+
+---
+
 ## [0.98.0] — 2026-03-12 (Ralph Loop Iteration 93: Static Resource Icons)
 
 ### CHANGED
