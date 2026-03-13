@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.12.0] — 2026-03-13 (Empire: Brightness, Production Labels, Enhanced Badges)
+
+### ADDED
+- **City brightness overhaul** — Warm terrain tint `Color(1.0, 0.95, 0.88)` with radial glow overlay behind buildings for P&C-style bright, inviting look.
+- **Production rate labels** — "+XXX/hr" text on resource buildings (grain farm, iron mine, stone quarry, arcane tower) with resource-colored borders.
+- **Enhanced level badges** — Larger min 22×16 badges with 10pt bold font and gold outlines, matching P&C's prominent building levels.
+
+---
+
 ## [1.11.0] — 2026-03-13 (Empire: P&C Queue Panel + Right-Side Events + Timers)
 
 ### ADDED

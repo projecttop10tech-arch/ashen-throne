@@ -251,6 +251,8 @@ namespace AshenThrone.Empire
                 _currentZoom = contentContainer.localScale.x;
                 _targetZoom = _currentZoom;
             }
+            // P&C: Brighten terrain ground to match P&C's warmer city view
+            BrightenCityTerrain();
             // P&C: Sort buildings by isometric depth (higher grid Y = closer to camera = higher sibling index)
             SortBuildingsByDepth();
             // P&C: Empty building slot indicators ("+" markers on open plots)
@@ -297,6 +299,10 @@ namespace AshenThrone.Empire
             CreateSpecialOfferIcons();
             // P&C: "Upgrade [Building] to Lv.X" recommendation banner
             CreateUpgradeRecommendBanner();
+            // P&C: Production rate labels on resource buildings (+150/hr)
+            CreateProductionRateLabels();
+            // P&C: Enhance level badges for better visibility
+            EnhanceLevelBadges();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -20742,6 +20748,175 @@ namespace AshenThrone.Empire
                 }
                 EventBus.Publish(new BuildingTappedEvent(p));
                 break;
+            }
+        }
+    }
+
+    // ====================================================================
+    // P&C: City Brightness + Production Rate Labels
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        /// <summary>P&C: Brighten the terrain to match P&C's warmer, more vibrant city view.</summary>
+        private void BrightenCityTerrain()
+        {
+            if (contentContainer == null) return;
+
+            // Find GroundBG and brighten it
+            var groundBG = contentContainer.Find("GroundBG");
+            if (groundBG != null)
+            {
+                var img = groundBG.GetComponent<Image>();
+                if (img != null)
+                {
+                    // Warm tint: slightly brighter with warm cast
+                    img.color = new Color(1.0f, 0.95f, 0.88f, 1f);
+                }
+            }
+
+            // Find viewport background and make it warmer
+            var viewport = contentContainer.parent;
+            if (viewport != null)
+            {
+                var vpImg = viewport.GetComponent<Image>();
+                if (vpImg != null && vpImg.color.r < 0.1f)
+                {
+                    vpImg.color = new Color(0.08f, 0.06f, 0.12f, 1f); // slightly brighter than pure dark
+                }
+            }
+
+            // Add warm glow overlay above terrain but below buildings
+            var warmGlow = new GameObject("WarmGlow");
+            warmGlow.transform.SetParent(contentContainer, false);
+            warmGlow.transform.SetSiblingIndex(1); // above ground, below buildings
+
+            var glowRect = warmGlow.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(0.15f, 0.15f);
+            glowRect.anchorMax = new Vector2(0.85f, 0.85f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+
+            var glowImg = warmGlow.AddComponent<Image>();
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            if (radialSpr != null) glowImg.sprite = radialSpr;
+            glowImg.color = new Color(1f, 0.85f, 0.55f, 0.08f); // subtle warm glow
+            glowImg.raycastTarget = false;
+        }
+
+        /// <summary>P&C: Add production rate labels on resource buildings (e.g. "+150/hr").</summary>
+        private void CreateProductionRateLabels()
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+
+            // Resource building base production rates per tier
+            var prodRates = new Dictionary<string, int[]>
+            {
+                { "grain_farm",    new[] { 100, 200, 350, 500, 750 } },
+                { "iron_mine",     new[] { 80, 160, 280, 420, 650 } },
+                { "stone_quarry",  new[] { 90, 180, 310, 460, 700 } },
+                { "arcane_tower",  new[] { 50, 100, 180, 280, 450 } },
+            };
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                if (!prodRates.TryGetValue(p.BuildingId, out var rates)) continue;
+
+                // Skip if already has a production label
+                if (p.VisualGO.transform.Find("ProdRateLabel") != null) continue;
+
+                int rateIndex = Mathf.Clamp(p.Tier - 1, 0, rates.Length - 1);
+                int rate = rates[rateIndex];
+
+                var labelGO = new GameObject("ProdRateLabel");
+                labelGO.transform.SetParent(p.VisualGO.transform, false);
+
+                var rect = labelGO.AddComponent<RectTransform>();
+                // Position below the building, above any name label
+                rect.anchorMin = new Vector2(0.10f, -0.06f);
+                rect.anchorMax = new Vector2(0.90f, 0.06f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+
+                // Dark pill background
+                var bg = labelGO.AddComponent<Image>();
+                bg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
+                bg.raycastTarget = false;
+
+                var outline = labelGO.AddComponent<Outline>();
+                outline.effectColor = GetResourceColor(p.BuildingId);
+                outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+                var textGO = new GameObject("Text");
+                textGO.transform.SetParent(labelGO.transform, false);
+                var textRect = textGO.AddComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = new Vector2(2, 0);
+                textRect.offsetMax = new Vector2(-2, 0);
+
+                var text = textGO.AddComponent<Text>();
+                text.text = $"+{rate}/hr";
+                text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                text.fontSize = 7;
+                text.fontStyle = FontStyle.Bold;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.color = GetResourceColor(p.BuildingId);
+                text.raycastTarget = false;
+
+                var shadow = textGO.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0, 0, 0, 0.9f);
+                shadow.effectDistance = new Vector2(0.4f, -0.4f);
+            }
+        }
+
+        private static Color GetResourceColor(string buildingId)
+        {
+            return buildingId switch
+            {
+                "grain_farm" => new Color(0.55f, 0.85f, 0.35f, 0.75f),    // green
+                "iron_mine" => new Color(0.70f, 0.70f, 0.80f, 0.75f),     // silver
+                "stone_quarry" => new Color(0.80f, 0.70f, 0.50f, 0.75f),  // tan
+                "arcane_tower" => new Color(0.70f, 0.45f, 0.90f, 0.75f),  // purple
+                _ => new Color(0.80f, 0.80f, 0.80f, 0.75f),
+            };
+        }
+
+        /// <summary>P&C: Make building level badges larger and more prominent.</summary>
+        private void EnhanceLevelBadges()
+        {
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+                var badgeT = p.VisualGO.transform.Find("LevelBadge");
+                if (badgeT == null) continue;
+
+                var badgeRect = badgeT.GetComponent<RectTransform>();
+                if (badgeRect != null)
+                {
+                    // Make badge slightly larger and more prominent
+                    badgeRect.sizeDelta = new Vector2(
+                        Mathf.Max(badgeRect.sizeDelta.x, 22),
+                        Mathf.Max(badgeRect.sizeDelta.y, 16));
+                }
+
+                // Enhance badge text visibility
+                var badgeText = badgeT.GetComponentInChildren<Text>();
+                if (badgeText != null)
+                {
+                    badgeText.fontSize = Mathf.Max(badgeText.fontSize, 10);
+                    badgeText.fontStyle = FontStyle.Bold;
+                }
+
+                // Add outline if not present
+                var existingOutline = badgeT.GetComponent<Outline>();
+                if (existingOutline == null)
+                {
+                    var outline = badgeT.gameObject.AddComponent<Outline>();
+                    outline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.80f);
+                    outline.effectDistance = new Vector2(1f, -1f);
+                }
             }
         }
     }
