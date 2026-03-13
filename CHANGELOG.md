@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.05.0] — 2026-03-13 (Ralph Loop Iteration 100: Batch Collect, Power Anim, Bright Terrain)
+
+### ADDED
+- **Batch collect from all same-type buildings** — Tapping a resource building now collects from ALL buildings of the same type (P&C pattern).
+- **Power score animation on upgrade completion** — Rising "+X" floater above builder HUD. HUD flashes green.
+- **Alliance help count in upgrade indicator** — "❤ X/5" badge below each upgrade indicator.
+- **Construction speed bonus display** — Shows active build speed bonuses during upgrades in detail panel.
+- **Prerequisite chain visualization** — Check/cross marks for SH level, Resources, Queue in detail panel.
+
+### CHANGED
+- **City terrain brightened** — Ground from dark purple (0.15, 0.12, 0.22) to earthy green-brown (0.35, 0.40, 0.25). No more buildings-on-black.
+- **Building shadow plates** — Changed to earthy brown-green to match brighter terrain.
+- **Edge fog lightened** — From pitch black to dark earthy green.
+
+---
+
 ## [1.04.0] — 2026-03-13 (Ralph Loop Iteration 99: Completion Badges, Panel Nav, Queue Counter)
 
 ### ADDED

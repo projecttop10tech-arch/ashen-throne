@@ -300,20 +300,20 @@ namespace AshenThrone.Editor
             outerRect.offsetMax = Vector2.zero;
             var outerImg = outerBG.AddComponent<Image>();
 
-            // Dark-tinted terrain texture — provides subtle variation without being bright
+            // P&C-style visible terrain — earthy green/brown ground, NOT dark
             var terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
             if (terrainSprite != null)
             {
                 EnsureSpriteImportSettings("Assets/Art/Environments/empire_terrain_bg.png");
                 terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
                 outerImg.sprite = terrainSprite;
-                // P&C-style visible terrain — dark green/brown, clearly visible ground
-                outerImg.color = new Color(0.15f, 0.12f, 0.22f, 1f);
+                // Bright earthy green-brown — clearly visible grass/dirt ground like P&C
+                outerImg.color = new Color(0.35f, 0.40f, 0.25f, 1f);
             }
             else
             {
-                // Fallback: dark fantasy purple terrain
-                outerImg.color = new Color(0.12f, 0.10f, 0.20f, 1f);
+                // Fallback: visible earthy green terrain (not dark/black)
+                outerImg.color = new Color(0.30f, 0.35f, 0.22f, 1f);
             }
             outerImg.raycastTarget = true;
 
@@ -329,7 +329,7 @@ namespace AshenThrone.Editor
 
             CreateEdgeFogTexture();
             var fogSprite = LoadOrCreateSprite("Assets/Art/UI/Production/edge_fog.png");
-            Color fogColor = new Color(0.04f, 0.02f, 0.08f, 0.95f); // deep dark purple
+            Color fogColor = new Color(0.12f, 0.14f, 0.08f, 0.85f); // earthy dark green fog (not black)
 
             // 4 fog panels along each diamond edge, extending outward
             float fogThickness = CellSize * 6f; // thick fog band

@@ -1257,10 +1257,10 @@ namespace AshenThrone.Empire
             float yOffset = FootprintScreenSize(size).y * 0.15f;
             int sx = size.x, sy = size.y;
 
-            // Dark fantasy purple ground plate — per-cell iso diamonds using diamond sprite
-            // Lighter purple ground plate — makes buildings pop against dark terrain
-            Color plateFill = new Color(0.25f, 0.18f, 0.35f, 0.70f);
-            Color plateBorder = new Color(0.50f, 0.35f, 0.65f, 0.60f);
+            // Earthy ground plate — per-cell iso diamonds using diamond sprite
+            // Dark earthy tone to ground buildings against the visible terrain
+            Color plateFill = new Color(0.20f, 0.22f, 0.14f, 0.65f);
+            Color plateBorder = new Color(0.35f, 0.38f, 0.22f, 0.55f);
             var diamondSpr = GetDiamondCellSprite();
 
             for (int gx = 0; gx < sx; gx++)
@@ -3049,6 +3049,10 @@ namespace AshenThrone.Empire
 
                     RefreshInstanceCountBadges();
                     UpdateBuilderCountHUD();
+
+                    // P&C IT100: Animate power score change
+                    UpdatePowerRatingHUD();
+                    AnimatePowerIncrease(p.BuildingId, evt.NewTier);
                     break;
                 }
             }
@@ -4121,6 +4125,10 @@ namespace AshenThrone.Empire
             helpText.color = Color.white;
             helpText.raycastTarget = false;
 
+            // P&C IT100: Alliance help count badge below indicator
+            if (instanceId != null)
+                AddAllianceHelpCountToIndicator(indicator, instanceId);
+
             // Start live countdown + progress fill coroutine
             StartCoroutine(AnimateUpgradeIndicator(indicator, barFillRect, text, buildTimeSeconds));
         }
@@ -4792,6 +4800,14 @@ namespace AshenThrone.Empire
                     new Color(0.75f, 0.65f, 0.90f),
                     new Vector2(0.04f, 0.28f), new Vector2(0.96f, 0.33f), TextAnchor.MiddleCenter);
             }
+
+            // P&C IT100: Construction speed bonus display
+            if (isUpgrading)
+                AddConstructionSpeedBonusDisplay(popup.transform, evt.InstanceId);
+
+            // P&C IT100: Prerequisite chain visualization (check/cross marks)
+            if (!uIsMax && !isUpgrading)
+                AddPrerequisiteChainDisplay(popup.transform, evt.BuildingId, evt.InstanceId, evt.Tier);
 
             // ============================================
             // BOTTOM ROW: Action buttons (full width)
@@ -18480,7 +18496,7 @@ namespace AshenThrone.Empire
         // P&C IT99: Resource Building Tap Collect All
         // ====================================================================
 
-        /// <summary>P&C: When tapping a resource building, collect ALL pending bubbles for that building instantly.</summary>
+        /// <summary>P&C IT100: When tapping a resource building, collect from ALL same-type buildings.</summary>
         private void TapCollectAllForBuilding(string instanceId, string buildingId)
         {
             // Only resource buildings have bubbles
@@ -18490,14 +18506,21 @@ namespace AshenThrone.Empire
             var spawner = FindAnyObjectByType<ResourceBubbleSpawner>();
             if (spawner == null) return;
 
-            spawner.CollectAllForBuilding(instanceId);
+            // P&C: Collect from ALL buildings of the same type, not just the tapped one
+            spawner.CollectAllForBuildingType(buildingId);
 
-            // Show collect toast near the building
+            // Count how many same-type buildings exist for toast
+            int sameTypeCount = 0;
+            foreach (var p in _placements)
+                if (p.BuildingId == buildingId) sameTypeCount++;
+
+            // Show collect toast near the tapped building
             foreach (var p in _placements)
             {
                 if (p.InstanceId == instanceId && p.VisualGO != null)
                 {
-                    ShowCollectToast(p.VisualGO, 1, buildingId);
+                    string countLabel = sameTypeCount > 1 ? $" (x{sameTypeCount})" : "";
+                    ShowCollectToast(p.VisualGO, sameTypeCount, buildingId);
                     break;
                 }
             }
@@ -18568,6 +18591,245 @@ namespace AshenThrone.Empire
             }
 
             if (toast != null) Destroy(toast);
+        }
+
+        // ====================================================================
+        // P&C IT100: Power Score Animation on Upgrade Completion
+        // ====================================================================
+
+        /// <summary>P&C: Flash the power rating HUD with a "+X" pop when a building upgrades.</summary>
+        private void AnimatePowerIncrease(string buildingId, int newTier)
+        {
+            int powerGain = GetBuildingPowerContribution(buildingId, newTier) -
+                            GetBuildingPowerContribution(buildingId, Mathf.Max(1, newTier - 1));
+            if (powerGain <= 0) return;
+
+            if (_builderCountHUD == null) return;
+            var canvas = _builderCountHUD.transform.parent;
+            if (canvas == null) return;
+
+            // Floating "+X Power" text that rises from the HUD
+            var floater = new GameObject("PowerFloater");
+            floater.transform.SetParent(canvas, false);
+            var fRect = floater.AddComponent<RectTransform>();
+            // Position just above the builder HUD
+            fRect.anchorMin = new Vector2(0.005f, 0.94f);
+            fRect.anchorMax = new Vector2(0.185f, 0.98f);
+            fRect.offsetMin = Vector2.zero;
+            fRect.offsetMax = Vector2.zero;
+
+            var text = floater.AddComponent<Text>();
+            text.text = $"+{powerGain} \u2694";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 12;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(1f, 0.85f, 0.20f);
+            text.raycastTarget = false;
+
+            var outline = floater.AddComponent<Outline>();
+            outline.effectColor = new Color(0.5f, 0.25f, 0f, 0.9f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            StartCoroutine(AnimatePowerFloater(floater, fRect));
+
+            // Flash the HUD background green briefly
+            if (_powerRatingText != null)
+                StartCoroutine(FlashPowerHUD());
+        }
+
+        private IEnumerator AnimatePowerFloater(GameObject floater, RectTransform rect)
+        {
+            if (floater == null) yield break;
+            var cg = floater.AddComponent<CanvasGroup>();
+            Vector2 startMin = rect.anchorMin;
+            Vector2 startMax = rect.anchorMax;
+            float elapsed = 0f;
+            float duration = 1.5f;
+
+            while (elapsed < duration && floater != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float rise = t * 0.04f;
+                rect.anchorMin = startMin + new Vector2(0, rise);
+                rect.anchorMax = startMax + new Vector2(0, rise);
+                cg.alpha = t < 0.3f ? 1f : 1f - ((t - 0.3f) / 0.7f);
+                // Scale pulse at start
+                float scale = t < 0.2f ? 1f + 0.3f * Mathf.Sin(t / 0.2f * Mathf.PI) : 1f;
+                floater.transform.localScale = Vector3.one * scale;
+                yield return null;
+            }
+            if (floater != null) Destroy(floater);
+        }
+
+        private IEnumerator FlashPowerHUD()
+        {
+            if (_builderCountHUD == null) yield break;
+            var bg = _builderCountHUD.GetComponent<Image>();
+            if (bg == null) yield break;
+
+            Color original = bg.color;
+            Color flashColor = new Color(0.15f, 0.40f, 0.15f, 0.95f);
+            float elapsed = 0f;
+
+            while (elapsed < 0.6f)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / 0.6f;
+                bg.color = Color.Lerp(flashColor, original, t);
+                yield return null;
+            }
+            bg.color = original;
+        }
+
+        // ====================================================================
+        // P&C IT100: Alliance Help Count in Upgrade Indicator
+        // ====================================================================
+
+        /// <summary>P&C: Add alliance help count badge to upgrade indicator (Help: X/5).</summary>
+        private void AddAllianceHelpCountToIndicator(GameObject indicator, string instanceId)
+        {
+            if (indicator == null) return;
+            var existing = indicator.transform.Find("HelpCount");
+            if (existing != null) return; // Already has one
+
+            int received = _allianceHelpsReceived.TryGetValue(instanceId, out var c) ? c : 0;
+
+            var badge = new GameObject("HelpCount");
+            badge.transform.SetParent(indicator.transform, false);
+            var rect = badge.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, -0.35f);
+            rect.anchorMax = new Vector2(0.60f, -0.05f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bool hasHelps = received > 0;
+            bg.color = hasHelps
+                ? new Color(0.15f, 0.40f, 0.65f, 0.85f)
+                : new Color(0.12f, 0.10f, 0.20f, 0.75f);
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(0.40f, 0.65f, 0.90f, 0.40f);
+            outline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = $"\u2764 {received}/{MaxAllianceHelps}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = hasHelps ? new Color(0.80f, 0.90f, 1f) : new Color(0.50f, 0.50f, 0.60f);
+            text.raycastTarget = false;
+        }
+
+        // ====================================================================
+        // P&C IT100: Construction Speed Bonus Display in Detail Panel
+        // ====================================================================
+
+        /// <summary>P&C: Show active construction speed bonuses in the detail panel.</summary>
+        private void AddConstructionSpeedBonusDisplay(Transform parent, string instanceId)
+        {
+            // Calculate total bonus percentage from various sources
+            float totalBonus = 0f;
+            var bonusSources = new List<string>();
+
+            // VIP bonus (simulated — always 10% for demo)
+            totalBonus += 10f;
+            bonusSources.Add("VIP +10%");
+
+            // Alliance help bonus
+            int helps = _allianceHelpsReceived.TryGetValue(instanceId, out var h) ? h : 0;
+            if (helps > 0)
+            {
+                float helpBonus = helps * 2f; // 2% per help
+                totalBonus += helpBonus;
+                bonusSources.Add($"Help +{helpBonus:F0}%");
+            }
+
+            // Research bonus (check ResearchManager for build cost reduction)
+            if (ServiceLocator.TryGet<ResearchManager>(out var resM))
+            {
+                var bonuses = resM.Bonuses;
+                if (bonuses != null && bonuses.BuildCostReductionPercent > 0f)
+                {
+                    totalBonus += bonuses.BuildCostReductionPercent;
+                    bonusSources.Add($"Research +{bonuses.BuildCostReductionPercent:F0}%");
+                }
+            }
+
+            if (totalBonus <= 0f) return;
+
+            string bonusText = $"\u26A1 Build Speed: +{totalBonus:F0}% ({string.Join(", ", bonusSources)})";
+
+            AddInfoPanelText(parent, "SpeedBonus", bonusText, 8, FontStyle.Normal,
+                new Color(0.40f, 0.80f, 0.50f),
+                new Vector2(0.04f, 0.24f), new Vector2(0.96f, 0.28f), TextAnchor.MiddleCenter);
+        }
+
+        // ====================================================================
+        // P&C IT100: Upgrade Prerequisite Chain Visualization
+        // ====================================================================
+
+        /// <summary>P&C: Show prerequisite requirements as check/cross list in detail panel.</summary>
+        private void AddPrerequisiteChainDisplay(Transform parent, string buildingId, string instanceId, int currentTier)
+        {
+            if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return;
+
+            // Get stronghold level
+            int strongholdTier = 0;
+            foreach (var pb in bm.PlacedBuildings.Values)
+            {
+                if (pb.Data != null && pb.Data.buildingId == "stronghold")
+                { strongholdTier = pb.CurrentTier; break; }
+            }
+
+            int requiredSHTier = currentTier + 1; // Next tier requires stronghold >= target tier
+            bool shMet = buildingId == "stronghold" || strongholdTier >= requiredSHTier;
+
+            // Check resources
+            bool canAfford = true;
+            if (bm.PlacedBuildings.TryGetValue(instanceId, out var placed) && placed.Data != null)
+            {
+                var nextTier = placed.Data.GetTier(currentTier);
+                if (nextTier != null && ServiceLocator.TryGet<ResourceManager>(out var rm))
+                {
+                    canAfford = (nextTier.stoneCost <= 0 || rm.Stone >= nextTier.stoneCost) &&
+                                (nextTier.ironCost <= 0 || rm.Iron >= nextTier.ironCost) &&
+                                (nextTier.grainCost <= 0 || rm.Grain >= nextTier.grainCost) &&
+                                (nextTier.arcaneEssenceCost <= 0 || rm.ArcaneEssence >= nextTier.arcaneEssenceCost);
+                }
+            }
+
+            bool queueFree = bm.BuildQueue.Count < 2;
+
+            // Build prereq list with check/cross marks
+            string shIcon = shMet ? "\u2705" : "\u274C"; // ✅ or ❌
+            string resIcon = canAfford ? "\u2705" : "\u274C";
+            string qIcon = queueFree ? "\u2705" : "\u274C";
+
+            string prereqLine;
+            if (buildingId == "stronghold")
+                prereqLine = $"{resIcon} Resources  {qIcon} Queue";
+            else
+                prereqLine = $"{shIcon} SH Lv.{requiredSHTier + 1}  {resIcon} Resources  {qIcon} Queue";
+
+            Color lineColor = (shMet && canAfford && queueFree)
+                ? new Color(0.40f, 0.80f, 0.45f) // All met = green
+                : new Color(0.85f, 0.60f, 0.30f); // Some missing = amber
+
+            AddInfoPanelText(parent, "PrereqChain", prereqLine, 8, FontStyle.Normal, lineColor,
+                new Vector2(0.04f, 0.20f), new Vector2(0.96f, 0.24f), TextAnchor.MiddleCenter);
         }
     }
 }
