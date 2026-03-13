@@ -187,6 +187,8 @@ namespace AshenThrone.Empire
         private const float UpgradeArrowRefreshInterval = 2f;
         private GameObject _builderCountHUD;
         private Text _builderCountText;
+        // P&C: Active upgrade strip at bottom
+        private GameObject _activeUpgradeStrip;
 
         // P&C: Long-press hold indicator
         private GameObject _holdIndicator;
@@ -255,6 +257,7 @@ namespace AshenThrone.Empire
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
             CreateBuilderCountHUD();
+            CreateActiveUpgradeStrip();
             CreateBuildingQuickNav();
             // P&C: Ambient tint, weather, mini-map, and resource countdown timers
             CreateAmbientTintOverlay();
@@ -4154,6 +4157,10 @@ namespace AshenThrone.Empire
             var existing = building.transform.Find("UpgradeIndicator");
             if (existing != null)
                 Destroy(existing.gameObject);
+            // P&C: Also remove scaffolding overlay
+            var scaffolding = building.transform.Find("Scaffolding");
+            if (scaffolding != null)
+                Destroy(scaffolding.gameObject);
         }
 
         // ====================================================================
@@ -8434,6 +8441,117 @@ namespace AshenThrone.Empire
         // ====================================================================
 
         /// <summary>P&C: Create "Builder 1/2" HUD element near top of screen.</summary>
+        // ====================================================================
+        // P&C: Active upgrade strip — shows currently upgrading buildings as icons at bottom
+        // ====================================================================
+
+        /// <summary>P&C: Horizontal strip showing active upgrade icons + timers at bottom of screen.</summary>
+        private void CreateActiveUpgradeStrip()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            _activeUpgradeStrip = new GameObject("ActiveUpgradeStrip");
+            _activeUpgradeStrip.transform.SetParent(canvas.transform, false);
+            _activeUpgradeStrip.transform.SetAsLastSibling();
+
+            var stripRect = _activeUpgradeStrip.AddComponent<RectTransform>();
+            // Position above nav bar, right side
+            stripRect.anchorMin = new Vector2(0.50f, 0.105f);
+            stripRect.anchorMax = new Vector2(0.99f, 0.145f);
+            stripRect.offsetMin = Vector2.zero;
+            stripRect.offsetMax = Vector2.zero;
+
+            // Start live update coroutine
+            StartCoroutine(UpdateActiveUpgradeStrip());
+        }
+
+        private IEnumerator UpdateActiveUpgradeStrip()
+        {
+            while (_activeUpgradeStrip != null)
+            {
+                // Clear previous children
+                for (int c = _activeUpgradeStrip.transform.childCount - 1; c >= 0; c--)
+                    Destroy(_activeUpgradeStrip.transform.GetChild(c).gameObject);
+
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm) && bm.BuildQueue.Count > 0)
+                {
+                    int count = bm.BuildQueue.Count;
+                    float slotW = Mathf.Min(0.48f, 0.96f / count);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        var entry = bm.BuildQueue[i];
+
+                        // Find building name
+                        string displayName = entry.PlacedId;
+                        foreach (var p in _placements)
+                        {
+                            if (p.InstanceId == entry.PlacedId)
+                            {
+                                displayName = BuildingDisplayNames.TryGetValue(p.BuildingId, out var dn) ? dn : p.BuildingId;
+                                break;
+                            }
+                        }
+
+                        // Slot container
+                        var slotGO = new GameObject($"UpgradeSlot_{i}");
+                        slotGO.transform.SetParent(_activeUpgradeStrip.transform, false);
+                        var slotRect = slotGO.AddComponent<RectTransform>();
+                        float x0 = 0.02f + i * slotW;
+                        slotRect.anchorMin = new Vector2(x0, 0);
+                        slotRect.anchorMax = new Vector2(x0 + slotW - 0.01f, 1);
+                        slotRect.offsetMin = Vector2.zero;
+                        slotRect.offsetMax = Vector2.zero;
+
+                        var slotBg = slotGO.AddComponent<Image>();
+                        slotBg.color = new Color(0.06f, 0.04f, 0.10f, 0.88f);
+                        slotBg.raycastTarget = true;
+                        var slotOutline = slotGO.AddComponent<Outline>();
+                        slotOutline.effectColor = new Color(0.80f, 0.60f, 0.15f, 0.50f);
+                        slotOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+                        // Tap to navigate to building
+                        string capturedId = entry.PlacedId;
+                        var slotBtn = slotGO.AddComponent<Button>();
+                        slotBtn.targetGraphic = slotBg;
+                        slotBtn.onClick.AddListener(() => CenterOnBuilding(capturedId));
+
+                        // Timer text
+                        int secs = Mathf.CeilToInt(entry.RemainingSeconds);
+                        string timeStr = secs >= 3600
+                            ? $"{secs / 3600}h{(secs % 3600) / 60:D2}m"
+                            : secs >= 60
+                                ? $"{secs / 60}m{secs % 60:D2}s"
+                                : $"{secs}s";
+
+                        AddInfoPanelText(slotGO.transform, "Timer",
+                            $"\u2692 {displayName}: {timeStr}", 8, FontStyle.Bold,
+                            new Color(0.95f, 0.85f, 0.40f),
+                            Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+                        // Mini progress bar at bottom of slot
+                        float elapsed = (float)(System.DateTime.Now - entry.StartTime).TotalSeconds;
+                        float total = elapsed + entry.RemainingSeconds;
+                        float progress = total > 0 ? Mathf.Clamp01(elapsed / total) : 0f;
+
+                        var miniBarGO = new GameObject("MiniBar");
+                        miniBarGO.transform.SetParent(slotGO.transform, false);
+                        var miniBarRect = miniBarGO.AddComponent<RectTransform>();
+                        miniBarRect.anchorMin = new Vector2(0, 0);
+                        miniBarRect.anchorMax = new Vector2(progress, 0.12f);
+                        miniBarRect.offsetMin = Vector2.zero;
+                        miniBarRect.offsetMax = Vector2.zero;
+                        var miniBarImg = miniBarGO.AddComponent<Image>();
+                        miniBarImg.color = new Color(0.90f, 0.70f, 0.15f, 0.80f);
+                        miniBarImg.raycastTarget = false;
+                    }
+                }
+                // Refresh every 2 seconds
+                yield return new WaitForSeconds(2f);
+            }
+        }
+
         private void CreateBuilderCountHUD()
         {
             if (_builderCountHUD != null) return;

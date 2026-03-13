@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.02.0] — 2026-03-13 (Ralph Loop Iteration 97: Active Upgrade Strip, Scaffolding Cleanup)
+
+### ADDED
+- **Active upgrade strip HUD** — Horizontal bar above nav shows all currently upgrading buildings with name, timer, and mini progress bar. Updates every 2s. Tapping an entry centers viewport on that building and opens its detail panel. Shows up to 2 queued upgrades side by side.
+- **Scaffolding cleanup in RemoveUpgradeIndicator** — Scaffolding overlay now properly removed when upgrade completes, preventing visual artifacts.
+
+### FIXED
+- **Removed duplicate scaffolding creation** — `CreateUpgradeIndicator` no longer creates its own scaffolding; defers to `AddScaffoldingOverlay` which already handles animated diagonal construction lines with shimmer effect.
+
+---
+
 ## [1.01.0] — 2026-03-13 (Ralph Loop Iteration 96: Progress Bar, Collect Particles, Empty Slots)
 
 ### ADDED
