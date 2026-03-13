@@ -795,7 +795,7 @@ namespace AshenThrone.Empire
             // Builder HUD + Collect All button: always visible (screen-space UI)
         }
 
-        /// <summary>P&C: On double-tap, smoothly zoom in and center on the building.</summary>
+        /// <summary>P&C: On double-tap, open building's primary function (train/research/craft/etc).</summary>
         private void OnDoubleTapZoom(BuildingDoubleTappedEvent evt)
         {
             CityBuildingPlacement target = null;
@@ -803,13 +803,45 @@ namespace AshenThrone.Empire
                 if (p.InstanceId == evt.InstanceId) { target = p; break; }
             if (target?.VisualGO == null || contentContainer == null) return;
 
-            if (_smoothZoomCoroutine != null) StopCoroutine(_smoothZoomCoroutine);
-            _smoothZoomCoroutine = StartCoroutine(SmoothZoomToBuilding(target));
-
             // P&C: Haptic feedback on double-tap
             #if UNITY_IOS || UNITY_ANDROID
             Handheld.Vibrate();
             #endif
+
+            // P&C: Double-tap opens primary function panel directly
+            string bid = evt.BuildingId;
+            string iid = evt.InstanceId;
+            int tier = evt.Tier;
+            DismissInfoPopup();
+
+            switch (bid)
+            {
+                case "barracks":
+                case "training_ground":
+                    ShowTroopTrainingPanel(iid, bid, tier);
+                    return;
+                case "academy":
+                case "library":
+                case "archive":
+                case "observatory":
+                case "laboratory":
+                    ShowResearchQuickPanel(tier);
+                    return;
+                case "forge":
+                case "armory":
+                    ShowCraftingPanel(bid, tier);
+                    return;
+                case "hero_shrine":
+                    ShowBuildingInfoPanel(bid, iid, tier);
+                    return;
+                case "marketplace":
+                    ShowTradePanel(tier);
+                    return;
+            }
+
+            // Default: zoom in and center on building
+            if (_smoothZoomCoroutine != null) StopCoroutine(_smoothZoomCoroutine);
+            _smoothZoomCoroutine = StartCoroutine(SmoothZoomToBuilding(target));
         }
 
         private IEnumerator SmoothZoomToBuilding(CityBuildingPlacement target)
@@ -4706,6 +4738,30 @@ namespace AshenThrone.Empire
                         costX += costW;
                     }
                 }
+            }
+
+            // ============================================
+            // PREREQ + POWER: Upgrade requirements and power contribution
+            // ============================================
+            if (!uIsMax && !isUpgrading)
+            {
+                string blockReason = GetUpgradeBlockReason(evt.InstanceId, evt.Tier);
+                if (blockReason != null)
+                {
+                    AddInfoPanelText(popup.transform, "PrereqWarning",
+                        $"\u26D4 {blockReason}", 9, FontStyle.Bold,
+                        new Color(0.95f, 0.40f, 0.35f),
+                        new Vector2(0.04f, 0.33f), new Vector2(0.96f, 0.37f), TextAnchor.MiddleCenter);
+                }
+            }
+            // Power contribution line
+            int powerContrib = GetBuildingPowerContribution(evt.BuildingId, evt.Tier);
+            if (powerContrib > 0)
+            {
+                AddInfoPanelText(popup.transform, "PowerContrib",
+                    $"\u2694 Power: +{powerContrib}", 9, FontStyle.Normal,
+                    new Color(0.75f, 0.65f, 0.90f),
+                    new Vector2(0.04f, 0.28f), new Vector2(0.96f, 0.33f), TextAnchor.MiddleCenter);
             }
 
             // ============================================

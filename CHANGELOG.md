@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.03.0] — 2026-03-13 (Ralph Loop Iteration 98: Double-Tap Actions, Prereqs, Power Display)
+
+### CHANGED
+- **Double-tap → primary action** — Double-tapping a building now opens its primary function panel directly: barracks/training grounds → troop training, academy/library/etc → research, forge/armory → crafting, marketplace → trade. Other buildings fall back to zoom-in behavior. Matches P&C's double-tap shortcut pattern.
+- **Upgrade prerequisite warning** — Detail panel now shows a red warning line (e.g., "Requires Stronghold Lv.3") when upgrade is blocked by prerequisites. Displayed between cost row and action buttons.
+- **Power contribution display** — Detail panel now shows the building's power contribution (e.g., "Power: +360") in purple text below the cost row. Uses existing `GetBuildingPowerContribution` calculation.
+
+---
+
 ## [1.02.0] — 2026-03-13 (Ralph Loop Iteration 97: Active Upgrade Strip, Scaffolding Cleanup)
 
 ### ADDED
