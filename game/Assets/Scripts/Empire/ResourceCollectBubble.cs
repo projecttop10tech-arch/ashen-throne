@@ -59,7 +59,7 @@ namespace AshenThrone.Empire
 
             // P&C: Colored circular background bubble
             Color bubbleCol = GetBubbleColor(type);
-            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
 
             // Glow ring behind bubble
             var glowGO = new GameObject("Glow");

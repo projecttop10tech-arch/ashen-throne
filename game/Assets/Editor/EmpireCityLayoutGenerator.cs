@@ -796,15 +796,31 @@ namespace AshenThrone.Editor
         {
             var indicatorGO = CreateChild(parent, "ActionIndicator");
 
-            // Small upgrade indicator — subtle green dot with up arrow, top-right
+            // P&C: Circular upgrade indicator with glow — top-right
+            var radialSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/Production/radial_gradient.png");
+
             var upgradeGO = CreateChild(indicatorGO, "UpgradeIcon");
             var upRect = upgradeGO.AddComponent<RectTransform>();
-            upRect.anchorMin = new Vector2(0.82f, 0.85f);
-            upRect.anchorMax = new Vector2(0.98f, 0.98f);
+            upRect.anchorMin = new Vector2(0.78f, 0.82f);
+            upRect.anchorMax = new Vector2(1.02f, 1.02f);
             upRect.offsetMin = Vector2.zero;
             upRect.offsetMax = Vector2.zero;
+
+            // Glow ring behind
+            var upGlow = CreateChild(upgradeGO, "Glow");
+            var upGlowRect = upGlow.AddComponent<RectTransform>();
+            upGlowRect.anchorMin = new Vector2(-0.30f, -0.30f);
+            upGlowRect.anchorMax = new Vector2(1.30f, 1.30f);
+            upGlowRect.offsetMin = Vector2.zero;
+            upGlowRect.offsetMax = Vector2.zero;
+            var upGlowImg = upGlow.AddComponent<Image>();
+            upGlowImg.color = new Color(0.20f, 0.75f, 0.25f, 0.30f);
+            if (radialSpr != null) upGlowImg.sprite = radialSpr;
+            upGlowImg.raycastTarget = false;
+
             var upBg = upgradeGO.AddComponent<Image>();
-            upBg.color = new Color(0.15f, 0.65f, 0.15f, 0.85f);
+            upBg.color = new Color(0.15f, 0.65f, 0.15f, 0.92f);
+            if (radialSpr != null) { upBg.sprite = radialSpr; upBg.type = Image.Type.Simple; }
             upBg.raycastTarget = false;
 
             var upTextGO = CreateChild(upgradeGO, "Arrow");
@@ -814,23 +830,30 @@ namespace AshenThrone.Editor
             upTextRect.offsetMin = Vector2.zero;
             upTextRect.offsetMax = Vector2.zero;
             var upText = upTextGO.AddComponent<Text>();
-            upText.text = "\u2191";
+            upText.text = "\u2B06";
             upText.alignment = TextAnchor.MiddleCenter;
-            upText.fontSize = 12;
+            upText.fontSize = 11;
             upText.fontStyle = FontStyle.Bold;
             upText.color = Color.white;
             upText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             upText.raycastTarget = false;
+            var upTextShadow = upTextGO.AddComponent<Shadow>();
+            upTextShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            upTextShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
+            // P&C: Timer pill with gold border for construction
             var timerGO = CreateChild(indicatorGO, "TimerGroup");
             var tmRect = timerGO.AddComponent<RectTransform>();
-            tmRect.anchorMin = new Vector2(0.1f, 0.85f);
-            tmRect.anchorMax = new Vector2(0.9f, 1f);
+            tmRect.anchorMin = new Vector2(0.05f, 0.88f);
+            tmRect.anchorMax = new Vector2(0.95f, 1.02f);
             tmRect.offsetMin = Vector2.zero;
             tmRect.offsetMax = Vector2.zero;
             var tmBg = timerGO.AddComponent<Image>();
-            tmBg.color = new Color(0.04f, 0.03f, 0.08f, 0.85f); // dark pill like P&C
+            tmBg.color = new Color(0.06f, 0.04f, 0.12f, 0.90f);
             tmBg.raycastTarget = false;
+            var tmOutline = timerGO.AddComponent<Outline>();
+            tmOutline.effectColor = new Color(0.85f, 0.65f, 0.18f, 0.65f);
+            tmOutline.effectDistance = new Vector2(0.8f, -0.8f);
             timerGO.SetActive(false);
 
             var tmTextGO = CreateChild(timerGO, "TimerText");
@@ -847,14 +870,28 @@ namespace AshenThrone.Editor
             tmText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             tmText.raycastTarget = false;
 
+            // P&C: Circular collect indicator with glow
             var collectGO = CreateChild(indicatorGO, "CollectIcon");
             var colRect = collectGO.AddComponent<RectTransform>();
-            colRect.anchorMin = new Vector2(0.82f, 0.85f);
-            colRect.anchorMax = new Vector2(0.98f, 0.98f);
+            colRect.anchorMin = new Vector2(0.78f, 0.82f);
+            colRect.anchorMax = new Vector2(1.02f, 1.02f);
             colRect.offsetMin = Vector2.zero;
             colRect.offsetMax = Vector2.zero;
+
+            var colGlow = CreateChild(collectGO, "Glow");
+            var colGlowRect = colGlow.AddComponent<RectTransform>();
+            colGlowRect.anchorMin = new Vector2(-0.30f, -0.30f);
+            colGlowRect.anchorMax = new Vector2(1.30f, 1.30f);
+            colGlowRect.offsetMin = Vector2.zero;
+            colGlowRect.offsetMax = Vector2.zero;
+            var colGlowImg = colGlow.AddComponent<Image>();
+            colGlowImg.color = new Color(0.85f, 0.65f, 0.15f, 0.30f);
+            if (radialSpr != null) colGlowImg.sprite = radialSpr;
+            colGlowImg.raycastTarget = false;
+
             var colBg = collectGO.AddComponent<Image>();
-            colBg.color = new Color(0.20f, 0.65f, 0.25f, 0.92f); // green "ready" badge
+            colBg.color = new Color(0.80f, 0.60f, 0.15f, 0.92f); // gold "ready" badge
+            if (radialSpr != null) { colBg.sprite = radialSpr; colBg.type = Image.Type.Simple; }
             colBg.raycastTarget = false;
             collectGO.SetActive(false);
 
@@ -867,11 +904,14 @@ namespace AshenThrone.Editor
             var colText = colTextGO.AddComponent<Text>();
             colText.text = "!";
             colText.alignment = TextAnchor.MiddleCenter;
-            colText.fontSize = 16;
+            colText.fontSize = 14;
             colText.fontStyle = FontStyle.Bold;
             colText.color = Color.white;
             colText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             colText.raycastTarget = false;
+            var colShadow = colTextGO.AddComponent<Shadow>();
+            colShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            colShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
             var indicator = indicatorGO.AddComponent<BuildingActionIndicator>();
             var indSO = new SerializedObject(indicator);

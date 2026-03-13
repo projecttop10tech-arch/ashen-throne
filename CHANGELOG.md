@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.93.0] — 2026-03-12 (Ralph Loop Iteration 88: Circular Event Icons, Action Indicator Polish)
+
+### FIXED
+- **Event icons render as circles, not squares** — `radial_gradient.png` was in `Assets/Art/UI/Production/` but not in a `Resources/` folder. All `Resources.Load<Sprite>` calls returned null, causing Image components to render as flat colored rectangles. Fixed by copying sprite to `Assets/Resources/UI/Production/` and standardizing all load paths to `"UI/Production/radial_gradient"`.
+
+### CHANGED
+- **Action indicators now circular with glow** — Building upgrade and collect indicators upgraded from flat colored rectangles to circular sprites using radial_gradient. Added glow ring behind each indicator (green glow for upgrade, gold glow for collect). Timer pill now has gold border.
+- **Standardized Resources.Load paths** — Fixed 5 inconsistent `"Art/UI/Production/radial_gradient"` paths to `"UI/Production/radial_gradient"` across CityGridView.cs and ResourceCollectBubble.cs.
+
+---
+
 ## [0.92.0] — 2026-03-12 (Ralph Loop Iteration 87: Bigger Buildings, Interaction Review)
 
 ### CHANGED

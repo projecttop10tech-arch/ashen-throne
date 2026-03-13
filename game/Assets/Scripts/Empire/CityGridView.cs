@@ -4610,7 +4610,7 @@ namespace AshenThrone.Empire
             var bg = btnGO.AddComponent<Image>();
             bg.color = bgColor;
             bg.raycastTarget = true;
-            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             if (radialSpr != null) { bg.sprite = radialSpr; bg.type = Image.Type.Simple; }
 
             // Gold ring border
@@ -8143,7 +8143,7 @@ namespace AshenThrone.Empire
             float xMin = 1f - iconW - 0.005f;
             float xMax = 1f - 0.005f;
 
-            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
 
             for (int i = 0; i < categories.Length; i++)
             {
@@ -14670,7 +14670,7 @@ namespace AshenThrone.Empire
                 glowImg.raycastTarget = false;
 
                 // Load radial gradient if available
-                var radialSprite = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+                var radialSprite = Resources.Load<Sprite>("UI/Production/radial_gradient");
                 if (radialSprite != null) glowImg.sprite = radialSprite;
 
                 _nightLightGlows.Add(glow);
@@ -16410,7 +16410,7 @@ namespace AshenThrone.Empire
             var glowImg = glow.AddComponent<Image>();
             glowImg.color = new Color(borderColor.r, borderColor.g, borderColor.b, 0.25f);
             glowImg.raycastTarget = false;
-            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
             if (radialSpr != null) glowImg.sprite = radialSpr;
 
             // Main circular bg
