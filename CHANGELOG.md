@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.06.0] — 2026-03-13 (Ralph Loop Iteration 101: Reward Screen, Advisor Arrow, Camera Polish)
+
+### ADDED
+- **Upgrade reward summary screen** — Full-screen P&C-style celebration after upgrade completes. Shows building sprite with scale-in animation, "UPGRADE COMPLETE" header, stat delta rows (Power, Production, Troop Cap, Research Speed), stronghold unlock reveals, gold separator, and "Continue" button. Replaces quick banner as primary feedback.
+- **Recommended upgrade advisor arrow** — Pulsing green arrow + label above the building the advisor recommends upgrading next. Bobs up/down with alpha pulse. Refreshes after any upgrade starts or completes.
+
+### CHANGED
+- **Camera soft-center strength** — Increased from 60% to 75% toward center on building tap, with duration 0.25s to 0.30s. Smoother, more P&C-like viewport tracking.
+
+---
+
 ## [1.05.0] — 2026-03-13 (Ralph Loop Iteration 100: Batch Collect, Power Anim, Bright Terrain)
 
 ### ADDED

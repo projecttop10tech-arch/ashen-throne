@@ -196,8 +196,8 @@ namespace AshenThrone.Empire
 
         // P&C: Soft-center on single tap
         private Coroutine _softCenterCoroutine;
-        private const float SoftCenterDuration = 0.25f;
-        private const float SoftCenterStrength = 0.6f; // 60% toward center (subtle)
+        private const float SoftCenterDuration = 0.30f;
+        private const float SoftCenterStrength = 0.75f; // 75% toward center (P&C-style smooth pan)
 
         // P&C: Audio feedback
         private AudioClip _sfxTap;
@@ -284,6 +284,8 @@ namespace AshenThrone.Empire
             CreateGiftsIcon();        // slot 3
             // P&C: City prosperity badge
             UpdateProsperityBadge();
+            // P&C IT101: Recommended upgrade advisor arrow
+            RefreshAdvisorArrow();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -2528,6 +2530,8 @@ namespace AshenThrone.Empire
                     // Remove upgrade arrow since building is now upgrading
                     var arrow = p.VisualGO.transform.Find("UpgradeArrow");
                     if (arrow != null) Destroy(arrow.gameObject);
+                    // P&C IT101: Refresh advisor arrow (queue changed)
+                    RefreshAdvisorArrow();
                     break;
                 }
             }
@@ -3053,6 +3057,14 @@ namespace AshenThrone.Empire
                     // P&C IT100: Animate power score change
                     UpdatePowerRatingHUD();
                     AnimatePowerIncrease(p.BuildingId, evt.NewTier);
+
+                    // P&C IT101: Full-screen reward summary screen
+                    int oldTier = evt.NewTier - 1;
+                    if (oldTier < 1) oldTier = 1;
+                    ShowUpgradeRewardScreen(p.BuildingId, p.InstanceId, oldTier, evt.NewTier);
+
+                    // P&C IT101: Refresh advisor arrow (may point to different building now)
+                    RefreshAdvisorArrow();
                     break;
                 }
             }
@@ -18830,6 +18842,471 @@ namespace AshenThrone.Empire
 
             AddInfoPanelText(parent, "PrereqChain", prereqLine, 8, FontStyle.Normal, lineColor,
                 new Vector2(0.04f, 0.20f), new Vector2(0.96f, 0.24f), TextAnchor.MiddleCenter);
+        }
+
+        // ====================================================================
+        // P&C IT101: Full-screen Upgrade Reward Summary Screen
+        // ====================================================================
+
+        /// <summary>
+        /// P&C-style full-screen reward summary after upgrade completes.
+        /// Shows building sprite, level change, stat deltas, unlocks, and Continue button.
+        /// </summary>
+        private void ShowUpgradeRewardScreen(string buildingId, string instanceId, int oldTier, int newTier)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // Full-screen dark overlay
+            var screen = new GameObject("UpgradeRewardScreen");
+            screen.transform.SetParent(canvas.transform, false);
+            screen.transform.SetAsLastSibling();
+            var screenRect = screen.AddComponent<RectTransform>();
+            screenRect.anchorMin = Vector2.zero;
+            screenRect.anchorMax = Vector2.one;
+            screenRect.offsetMin = Vector2.zero;
+            screenRect.offsetMax = Vector2.zero;
+            var screenBg = screen.AddComponent<Image>();
+            screenBg.color = new Color(0.02f, 0.01f, 0.05f, 0f); // Start transparent
+            screenBg.raycastTarget = true;
+            var screenCG = screen.AddComponent<CanvasGroup>();
+            screenCG.alpha = 0f;
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            string displayName = BuildingDisplayNames.TryGetValue(buildingId, out var dn) ? dn : buildingId;
+
+            // --- Radial glow behind building ---
+            var glowGO = new GameObject("Glow");
+            glowGO.transform.SetParent(screen.transform, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(0.15f, 0.45f);
+            glowRect.anchorMax = new Vector2(0.85f, 0.85f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.raycastTarget = false;
+            glowImg.color = new Color(1f, 0.85f, 0.30f, 0.15f);
+            var glowSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (glowSpr == null)
+                glowSpr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (glowSpr != null) glowImg.sprite = glowSpr;
+
+            // --- "UPGRADE COMPLETE" header ---
+            var headerGO = new GameObject("Header");
+            headerGO.transform.SetParent(screen.transform, false);
+            var headerRect = headerGO.AddComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0.05f, 0.86f);
+            headerRect.anchorMax = new Vector2(0.95f, 0.94f);
+            headerRect.offsetMin = Vector2.zero;
+            headerRect.offsetMax = Vector2.zero;
+            var headerText = headerGO.AddComponent<Text>();
+            headerText.text = "UPGRADE COMPLETE";
+            headerText.font = font;
+            headerText.fontSize = 22;
+            headerText.fontStyle = FontStyle.Bold;
+            headerText.alignment = TextAnchor.MiddleCenter;
+            headerText.color = new Color(1f, 0.90f, 0.35f);
+            headerText.raycastTarget = false;
+            var headerOutline = headerGO.AddComponent<Outline>();
+            headerOutline.effectColor = new Color(0.50f, 0.30f, 0.05f, 0.9f);
+            headerOutline.effectDistance = new Vector2(2f, -2f);
+
+            // --- Building sprite ---
+            Sprite bldSprite = LoadBuildingSprite(buildingId, newTier);
+            if (bldSprite != null)
+            {
+                var sprGO = new GameObject("BuildingSprite");
+                sprGO.transform.SetParent(screen.transform, false);
+                var sprRect = sprGO.AddComponent<RectTransform>();
+                sprRect.anchorMin = new Vector2(0.28f, 0.56f);
+                sprRect.anchorMax = new Vector2(0.72f, 0.86f);
+                sprRect.offsetMin = Vector2.zero;
+                sprRect.offsetMax = Vector2.zero;
+                var sprImg = sprGO.AddComponent<Image>();
+                sprImg.sprite = bldSprite;
+                sprImg.preserveAspect = true;
+                sprImg.raycastTarget = false;
+            }
+
+            // --- Building name + level change ---
+            var nameGO = new GameObject("NameLevel");
+            nameGO.transform.SetParent(screen.transform, false);
+            var nameRect = nameGO.AddComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0.05f, 0.50f);
+            nameRect.anchorMax = new Vector2(0.95f, 0.58f);
+            nameRect.offsetMin = Vector2.zero;
+            nameRect.offsetMax = Vector2.zero;
+            var nameText = nameGO.AddComponent<Text>();
+            string starOld = oldTier > 1 ? $"\u2605" : "";
+            string starNew = newTier > 1 ? $"\u2605" : "";
+            nameText.text = $"{displayName}  {starOld}Lv.{oldTier} \u2192 {starNew}Lv.{newTier}";
+            nameText.font = font;
+            nameText.fontSize = 16;
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.alignment = TextAnchor.MiddleCenter;
+            nameText.color = Color.white;
+            nameText.raycastTarget = false;
+            var nameShadow = nameGO.AddComponent<Shadow>();
+            nameShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            nameShadow.effectDistance = new Vector2(1f, -1f);
+
+            // --- Stat delta rows ---
+            int oldPower = GetBuildingPowerContribution(buildingId, oldTier);
+            int newPower = GetBuildingPowerContribution(buildingId, newTier);
+            int deltaPower = newPower - oldPower;
+
+            float rowY = 0.46f;
+            float rowH = 0.055f;
+
+            // Power row (always shown)
+            CreateRewardStatRow(screen.transform, font, "\u2694 Power", $"{oldPower:N0}", $"{newPower:N0}",
+                $"+{deltaPower:N0}", new Color(0.95f, 0.70f, 0.35f), rowY);
+            rowY -= rowH;
+
+            // Production rate (resource buildings)
+            if (buildingId == "grain_farm" || buildingId == "iron_mine" ||
+                buildingId == "stone_quarry" || buildingId == "arcane_tower")
+            {
+                int oldRate = (oldTier + 1) * 250;
+                int newRate = (newTier + 1) * 250;
+                string resName = buildingId switch
+                {
+                    "grain_farm" => "Grain",
+                    "iron_mine" => "Iron",
+                    "stone_quarry" => "Stone",
+                    _ => "Arcane"
+                };
+                Color resColor = buildingId switch
+                {
+                    "grain_farm" => new Color(1f, 0.92f, 0.45f),
+                    "iron_mine" => new Color(0.78f, 0.80f, 0.90f),
+                    "stone_quarry" => new Color(0.85f, 0.82f, 0.76f),
+                    _ => new Color(0.80f, 0.55f, 1f)
+                };
+                CreateRewardStatRow(screen.transform, font, $"\u2609 {resName}/hr", $"{oldRate}", $"{newRate}",
+                    $"+{newRate - oldRate}", resColor, rowY);
+                rowY -= rowH;
+            }
+
+            // Troop capacity (barracks/training)
+            if (buildingId == "barracks")
+            {
+                int oldCap = (oldTier + 1) * 500;
+                int newCap = (newTier + 1) * 500;
+                CreateRewardStatRow(screen.transform, font, "\u2694 Troop Cap", $"{oldCap}", $"{newCap}",
+                    $"+{newCap - oldCap}", new Color(0.80f, 0.35f, 0.35f), rowY);
+                rowY -= rowH;
+            }
+            else if (buildingId == "training_ground")
+            {
+                int oldCap = (oldTier + 1) * 300;
+                int newCap = (newTier + 1) * 300;
+                CreateRewardStatRow(screen.transform, font, "\u2694 Drill Cap", $"{oldCap}", $"{newCap}",
+                    $"+{newCap - oldCap}", new Color(0.80f, 0.55f, 0.35f), rowY);
+                rowY -= rowH;
+            }
+
+            // Research speed (academy/library)
+            if (buildingId == "academy" || buildingId == "library")
+            {
+                int oldPct = oldTier * 10;
+                int newPct = newTier * 10;
+                CreateRewardStatRow(screen.transform, font, "\u2609 Research Spd", $"+{oldPct}%", $"+{newPct}%",
+                    $"+{newPct - oldPct}%", new Color(0.45f, 0.75f, 0.95f), rowY);
+                rowY -= rowH;
+            }
+
+            // --- Unlocks section (stronghold only) ---
+            if (buildingId == "stronghold")
+            {
+                rowY -= 0.01f;
+                var unlockHeader = new GameObject("UnlockHeader");
+                unlockHeader.transform.SetParent(screen.transform, false);
+                var uhRect = unlockHeader.AddComponent<RectTransform>();
+                uhRect.anchorMin = new Vector2(0.10f, rowY - 0.03f);
+                uhRect.anchorMax = new Vector2(0.90f, rowY);
+                uhRect.offsetMin = Vector2.zero;
+                uhRect.offsetMax = Vector2.zero;
+                var uhText = unlockHeader.AddComponent<Text>();
+                uhText.text = "NEW UNLOCKS";
+                uhText.font = font;
+                uhText.fontSize = 12;
+                uhText.fontStyle = FontStyle.Bold;
+                uhText.alignment = TextAnchor.MiddleCenter;
+                uhText.color = new Color(0.45f, 0.90f, 0.50f);
+                uhText.raycastTarget = false;
+                rowY -= 0.04f;
+
+                // Find buildings that unlock at this new stronghold level
+                string[] allBuildingTypes = { "grain_farm", "iron_mine", "stone_quarry", "barracks",
+                    "wall", "watch_tower", "marketplace", "academy", "training_ground", "forge",
+                    "arcane_tower", "guild_hall", "armory", "laboratory", "embassy", "enchanting_tower",
+                    "library", "hero_shrine", "observatory", "archive" };
+
+                foreach (var bt in allBuildingTypes)
+                {
+                    int unlockLevel = GetBuildingUnlockLevel(bt);
+                    if (unlockLevel == newTier)
+                    {
+                        string bName = BuildingDisplayNames.TryGetValue(bt, out var n) ? n : bt;
+                        var unlockGO = new GameObject($"Unlock_{bt}");
+                        unlockGO.transform.SetParent(screen.transform, false);
+                        var uRect = unlockGO.AddComponent<RectTransform>();
+                        uRect.anchorMin = new Vector2(0.15f, rowY - 0.03f);
+                        uRect.anchorMax = new Vector2(0.85f, rowY);
+                        uRect.offsetMin = Vector2.zero;
+                        uRect.offsetMax = Vector2.zero;
+                        var uText = unlockGO.AddComponent<Text>();
+                        uText.text = $"\u2728 {bName}";
+                        uText.font = font;
+                        uText.fontSize = 11;
+                        uText.alignment = TextAnchor.MiddleCenter;
+                        uText.color = new Color(0.80f, 0.95f, 0.80f);
+                        uText.raycastTarget = false;
+                        rowY -= 0.035f;
+                    }
+                }
+            }
+
+            // --- Gold separator line ---
+            var sepGO = new GameObject("Separator");
+            sepGO.transform.SetParent(screen.transform, false);
+            var sepRect = sepGO.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.15f, rowY - 0.003f);
+            sepRect.anchorMax = new Vector2(0.85f, rowY);
+            sepRect.offsetMin = Vector2.zero;
+            sepRect.offsetMax = Vector2.zero;
+            var sepImg = sepGO.AddComponent<Image>();
+            sepImg.color = new Color(0.85f, 0.65f, 0.15f, 0.40f);
+            sepImg.raycastTarget = false;
+
+            // --- Continue button ---
+            float btnY = Mathf.Max(rowY - 0.06f, 0.04f);
+            var btnGO = new GameObject("ContinueBtn");
+            btnGO.transform.SetParent(screen.transform, false);
+            var btnRect = btnGO.AddComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.25f, btnY);
+            btnRect.anchorMax = new Vector2(0.75f, btnY + 0.06f);
+            btnRect.offsetMin = Vector2.zero;
+            btnRect.offsetMax = Vector2.zero;
+            var btnBg = btnGO.AddComponent<Image>();
+            btnBg.color = new Color(0.20f, 0.55f, 0.25f, 0.95f);
+            btnBg.raycastTarget = true;
+            var btnOutline = btnGO.AddComponent<Outline>();
+            btnOutline.effectColor = new Color(0.45f, 0.85f, 0.50f, 0.6f);
+            btnOutline.effectDistance = new Vector2(1f, -1f);
+            var btn = btnGO.AddComponent<Button>();
+            btn.targetGraphic = btnBg;
+            btn.onClick.AddListener(() =>
+            {
+                if (screen != null) Destroy(screen);
+            });
+
+            var btnTextGO = new GameObject("Text");
+            btnTextGO.transform.SetParent(btnGO.transform, false);
+            var btnTextRect = btnTextGO.AddComponent<RectTransform>();
+            btnTextRect.anchorMin = Vector2.zero;
+            btnTextRect.anchorMax = Vector2.one;
+            btnTextRect.offsetMin = Vector2.zero;
+            btnTextRect.offsetMax = Vector2.zero;
+            var btnText = btnTextGO.AddComponent<Text>();
+            btnText.text = "Continue";
+            btnText.font = font;
+            btnText.fontSize = 16;
+            btnText.fontStyle = FontStyle.Bold;
+            btnText.alignment = TextAnchor.MiddleCenter;
+            btnText.color = Color.white;
+            btnText.raycastTarget = false;
+
+            // Animate fade-in
+            StartCoroutine(AnimateRewardScreenIn(screen, screenBg, screenCG));
+        }
+
+        /// <summary>Helper: creates a stat delta row in the reward screen.</summary>
+        private void CreateRewardStatRow(Transform parent, Font font, string label,
+            string oldVal, string newVal, string delta, Color accentColor, float yCenter)
+        {
+            float rowH = 0.04f;
+            float yMin = yCenter - rowH * 0.5f;
+            float yMax = yCenter + rowH * 0.5f;
+
+            // Row background
+            var rowBG = new GameObject($"StatRow_{label}");
+            rowBG.transform.SetParent(parent, false);
+            var rowRect = rowBG.AddComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0.08f, yMin);
+            rowRect.anchorMax = new Vector2(0.92f, yMax);
+            rowRect.offsetMin = Vector2.zero;
+            rowRect.offsetMax = Vector2.zero;
+            var rowImg = rowBG.AddComponent<Image>();
+            rowImg.color = new Color(0.08f, 0.06f, 0.14f, 0.70f);
+            rowImg.raycastTarget = false;
+
+            // Label (left)
+            AddInfoPanelText(rowBG.transform, "Label", label, 11, FontStyle.Bold,
+                new Color(0.80f, 0.78f, 0.72f),
+                new Vector2(0.02f, 0f), new Vector2(0.35f, 1f), TextAnchor.MiddleLeft);
+
+            // Old value (center-left, dimmed)
+            AddInfoPanelText(rowBG.transform, "OldVal", oldVal, 11, FontStyle.Normal,
+                new Color(0.55f, 0.52f, 0.48f),
+                new Vector2(0.36f, 0f), new Vector2(0.52f, 1f), TextAnchor.MiddleRight);
+
+            // Arrow
+            AddInfoPanelText(rowBG.transform, "Arrow", "\u2192", 11, FontStyle.Normal,
+                new Color(0.65f, 0.60f, 0.50f),
+                new Vector2(0.53f, 0f), new Vector2(0.58f, 1f), TextAnchor.MiddleCenter);
+
+            // New value (center-right, bright)
+            AddInfoPanelText(rowBG.transform, "NewVal", newVal, 12, FontStyle.Bold,
+                Color.white,
+                new Vector2(0.59f, 0f), new Vector2(0.75f, 1f), TextAnchor.MiddleLeft);
+
+            // Delta (right, accent color)
+            AddInfoPanelText(rowBG.transform, "Delta", delta, 12, FontStyle.Bold,
+                accentColor,
+                new Vector2(0.76f, 0f), new Vector2(0.98f, 1f), TextAnchor.MiddleRight);
+        }
+
+        /// <summary>Animate the reward screen fading in + building sprite scaling up.</summary>
+        private IEnumerator AnimateRewardScreenIn(GameObject screen, Image bg, CanvasGroup cg)
+        {
+            float duration = 0.4f;
+            float elapsed = 0f;
+            while (elapsed < duration && screen != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float ease = 1f - (1f - t) * (1f - t); // ease-out quadratic
+                cg.alpha = ease;
+                bg.color = new Color(0.02f, 0.01f, 0.05f, 0.92f * ease);
+
+                // Scale the building sprite from 0.6 to 1.0
+                var spriteTransform = screen.transform.Find("BuildingSprite");
+                if (spriteTransform != null)
+                    spriteTransform.localScale = Vector3.one * Mathf.Lerp(0.6f, 1f, ease);
+
+                yield return null;
+            }
+            if (cg != null)
+            {
+                cg.alpha = 1f;
+                bg.color = new Color(0.02f, 0.01f, 0.05f, 0.92f);
+            }
+        }
+
+        // ====================================================================
+        // P&C IT101: Recommended Upgrade Advisor Arrow on World Buildings
+        // ====================================================================
+
+        private GameObject _advisorArrowGO;
+
+        /// <summary>
+        /// P&C-style pulsing green "Recommended" arrow above the building the advisor
+        /// suggests upgrading next. Refreshes after any upgrade completes or queue changes.
+        /// </summary>
+        private void RefreshAdvisorArrow()
+        {
+            // Clean up old arrow
+            if (_advisorArrowGO != null) Destroy(_advisorArrowGO);
+            _advisorArrowGO = null;
+
+            if (buildingContainer == null) return;
+
+            var suggestion = GetUpgradeAdvisorSuggestion();
+            if (!suggestion.HasValue) return;
+
+            var sug = suggestion.Value;
+
+            // Find the building visual
+            CityBuildingPlacement target = null;
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == sug.InstanceId) { target = p; break; }
+            }
+            if (target?.VisualGO == null) return;
+
+            var building = target.VisualGO;
+            var buildingRect = building.GetComponent<RectTransform>();
+            if (buildingRect == null) return;
+
+            // Create advisor arrow container as sibling of building (in buildingContainer)
+            _advisorArrowGO = new GameObject("AdvisorArrow");
+            _advisorArrowGO.transform.SetParent(building.transform, false);
+            _advisorArrowGO.transform.SetAsLastSibling();
+
+            // Arrow pointing down (triangle using rotated square)
+            var arrowGO = new GameObject("Arrow");
+            arrowGO.transform.SetParent(_advisorArrowGO.transform, false);
+            var arrowRect = arrowGO.AddComponent<RectTransform>();
+            arrowRect.anchorMin = new Vector2(0.40f, 1.05f);
+            arrowRect.anchorMax = new Vector2(0.60f, 1.25f);
+            arrowRect.offsetMin = Vector2.zero;
+            arrowRect.offsetMax = Vector2.zero;
+            arrowRect.localRotation = Quaternion.Euler(0, 0, 45f);
+            var arrowImg = arrowGO.AddComponent<Image>();
+            arrowImg.color = new Color(0.30f, 0.85f, 0.40f, 0.90f);
+            arrowImg.raycastTarget = false;
+
+            // "Recommended" pill label above arrow
+            var pillGO = new GameObject("RecommendedPill");
+            pillGO.transform.SetParent(_advisorArrowGO.transform, false);
+            var pillRect = pillGO.AddComponent<RectTransform>();
+            pillRect.anchorMin = new Vector2(0.05f, 1.25f);
+            pillRect.anchorMax = new Vector2(0.95f, 1.45f);
+            pillRect.offsetMin = Vector2.zero;
+            pillRect.offsetMax = Vector2.zero;
+            var pillBg = pillGO.AddComponent<Image>();
+            pillBg.color = new Color(0.15f, 0.45f, 0.20f, 0.90f);
+            pillBg.raycastTarget = false;
+            var pillOutline = pillGO.AddComponent<Outline>();
+            pillOutline.effectColor = new Color(0.40f, 0.90f, 0.45f, 0.50f);
+            pillOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var pillTextGO = new GameObject("Text");
+            pillTextGO.transform.SetParent(pillGO.transform, false);
+            var ptRect = pillTextGO.AddComponent<RectTransform>();
+            ptRect.anchorMin = Vector2.zero;
+            ptRect.anchorMax = Vector2.one;
+            ptRect.offsetMin = Vector2.zero;
+            ptRect.offsetMax = Vector2.zero;
+            var pillText = pillTextGO.AddComponent<Text>();
+            string sugName = BuildingDisplayNames.TryGetValue(sug.BuildingId, out var n) ? n : sug.BuildingId;
+            pillText.text = $"\u2728 {sugName}";
+            pillText.font = font;
+            pillText.fontSize = 8;
+            pillText.fontStyle = FontStyle.Bold;
+            pillText.alignment = TextAnchor.MiddleCenter;
+            pillText.color = new Color(0.80f, 1f, 0.80f);
+            pillText.raycastTarget = false;
+
+            // Animate: pulse up/down + glow
+            StartCoroutine(AnimateAdvisorArrow(_advisorArrowGO, arrowImg));
+        }
+
+        /// <summary>Infinite pulse animation for the advisor arrow.</summary>
+        private IEnumerator AnimateAdvisorArrow(GameObject container, Image arrowImg)
+        {
+            float elapsed = 0f;
+            while (container != null)
+            {
+                elapsed += Time.deltaTime;
+                // Bob up and down
+                float bob = Mathf.Sin(elapsed * 3f) * 3f;
+                container.transform.localPosition = new Vector3(0, bob, 0);
+
+                // Pulse alpha on arrow
+                if (arrowImg != null)
+                {
+                    float pulse = 0.70f + 0.25f * Mathf.Sin(elapsed * 4f);
+                    arrowImg.color = new Color(0.30f, 0.85f, 0.40f, pulse);
+                }
+
+                yield return null;
+            }
         }
     }
 }
