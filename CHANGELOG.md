@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.04.0] — 2026-03-13 (Ralph Loop Iteration 99: Completion Badges, Panel Nav, Queue Counter)
+
+### ADDED
+- **Upgrade completion countdown badges** — Buildings within 5 minutes of completing upgrade now show a pulsing red badge at the indicator's top-right corner. Pulse rate increases as completion approaches. Badge shows countdown timer (e.g., "3:42" or "28s").
+- **Detail panel navigation arrows** — Left/right arrow buttons on the detail panel edges allow cycling through all placed buildings in grid order. Shows "X / N" counter at top. Dismisses current panel and opens next building's detail panel.
+- **Tap-to-collect-all on resource buildings** — Tapping any resource building (farm, mine, quarry, arcane tower) auto-collects all pending resource bubbles for that building. Shows a floating "+collected" toast with resource icon that animates upward and fades.
+- **Queue slot counter in upgrade strip** — The active upgrade strip now shows a "⚒ X/2" counter pill on the left side, colored green when slots are available and red when full.
+- **Boost timer badge system** — New `CreateBoostTimerBadge` method supports timed boost indicators (VIP gold, alliance blue, item green) on buildings. Shows countdown timer with icon, pulses red when < 60s remaining, auto-destroys on expiry.
+
+---
+
 ## [1.03.0] — 2026-03-13 (Ralph Loop Iteration 98: Double-Tap Actions, Prereqs, Power Display)
 
 ### CHANGED

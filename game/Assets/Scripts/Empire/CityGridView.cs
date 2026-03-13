@@ -4157,6 +4157,35 @@ namespace AshenThrone.Empire
                 pulsePhase += Time.deltaTime * 2.5f;
                 cg.alpha = 0.75f + 0.25f * Mathf.Sin(pulsePhase);
 
+                // P&C: Completion soon badge (< 5 min remaining) — urgent pulsing red timer
+                if (remaining <= 300f && remaining > 0f)
+                {
+                    var csb = indicator.transform.Find("CompletionSoonBadge");
+                    if (csb == null)
+                    {
+                        CreateCompletionSoonBadge(indicator);
+                    }
+                    else
+                    {
+                        // Update the countdown text on the badge
+                        var csbText = csb.GetComponentInChildren<Text>();
+                        if (csbText != null)
+                        {
+                            int csbSecs = Mathf.CeilToInt(remaining);
+                            csbText.text = csbSecs >= 60 ? $"{csbSecs / 60}:{csbSecs % 60:D2}" : $"{csbSecs}s";
+                        }
+                        // Pulse badge urgency (faster as it gets closer)
+                        float urgency = 1f - (remaining / 300f); // 0..1
+                        float pulseRate = 3f + urgency * 5f;
+                        var csbImg = csb.GetComponent<Image>();
+                        if (csbImg != null)
+                            csbImg.color = Color.Lerp(
+                                new Color(0.90f, 0.20f, 0.15f, 0.85f),
+                                new Color(1f, 0.40f, 0.10f, 1f),
+                                0.5f + 0.5f * Mathf.Sin(Time.time * pulseRate));
+                    }
+                }
+
                 yield return null;
             }
 
@@ -4920,6 +4949,9 @@ namespace AshenThrone.Empire
                 string timerInstanceId = evt.InstanceId;
                 StartCoroutine(UpdatePopupTimer(lvlText, timerInstanceId, popup, progressFill));
             }
+
+            // P&C IT99: Navigation arrows for cycling between buildings
+            AddDetailPanelNavigation(popup, evt.InstanceId);
 
             // P&C: Slide-up animation
             var cg = popup.AddComponent<CanvasGroup>();
@@ -8512,8 +8544,8 @@ namespace AshenThrone.Empire
             _activeUpgradeStrip.transform.SetAsLastSibling();
 
             var stripRect = _activeUpgradeStrip.AddComponent<RectTransform>();
-            // Position above nav bar, right side
-            stripRect.anchorMin = new Vector2(0.50f, 0.105f);
+            // Position above nav bar — leave left 18% for queue counter
+            stripRect.anchorMin = new Vector2(0.42f, 0.105f);
             stripRect.anchorMax = new Vector2(0.99f, 0.145f);
             stripRect.offsetMin = Vector2.zero;
             stripRect.offsetMax = Vector2.zero;
@@ -8530,10 +8562,16 @@ namespace AshenThrone.Empire
                 for (int c = _activeUpgradeStrip.transform.childCount - 1; c >= 0; c--)
                     Destroy(_activeUpgradeStrip.transform.GetChild(c).gameObject);
 
-                if (ServiceLocator.TryGet<BuildingManager>(out var bm) && bm.BuildQueue.Count > 0)
+                // P&C IT99: Queue slot counter (always shown when strip exists)
+                int queueCount = 0;
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+                    queueCount = bm.BuildQueue.Count;
+                CreateQueueSlotCounter(_activeUpgradeStrip, queueCount);
+
+                if (bm != null && queueCount > 0)
                 {
-                    int count = bm.BuildQueue.Count;
-                    float slotW = Mathf.Min(0.48f, 0.96f / count);
+                    int count = queueCount;
+                    float slotW = Mathf.Min(0.48f, 0.80f / count);
 
                     for (int i = 0; i < count; i++)
                     {
@@ -8554,7 +8592,7 @@ namespace AshenThrone.Empire
                         var slotGO = new GameObject($"UpgradeSlot_{i}");
                         slotGO.transform.SetParent(_activeUpgradeStrip.transform, false);
                         var slotRect = slotGO.AddComponent<RectTransform>();
-                        float x0 = 0.02f + i * slotW;
+                        float x0 = 0.20f + i * slotW; // Start after queue counter
                         slotRect.anchorMin = new Vector2(x0, 0);
                         slotRect.anchorMax = new Vector2(x0 + slotW - 0.01f, 1);
                         slotRect.offsetMin = Vector2.zero;
@@ -10506,6 +10544,9 @@ namespace AshenThrone.Empire
             // P&C: Soft-center viewport on tapped building
             if (tapped.VisualGO != null)
                 SoftCenterOnBuilding(tapped);
+
+            // P&C IT99: Auto-collect all resource bubbles on tap
+            TapCollectAllForBuilding(tapped.InstanceId, tapped.BuildingId);
 
             // Publish tap event for UI systems
             EventBus.Publish(new BuildingTappedEvent(tapped));
@@ -18121,6 +18162,412 @@ namespace AshenThrone.Empire
         {
             if (_resourceRushCooldown > 0f)
                 _resourceRushCooldown -= Time.deltaTime;
+        }
+
+        // ====================================================================
+        // P&C IT99: Completion Soon Badge (red pulsing timer on buildings near done)
+        // ====================================================================
+
+        /// <summary>P&C: Red pulsing countdown badge on buildings within 5 min of upgrade completion.</summary>
+        private void CreateCompletionSoonBadge(GameObject indicator)
+        {
+            var badge = new GameObject("CompletionSoonBadge");
+            badge.transform.SetParent(indicator.transform, false);
+
+            var rect = badge.AddComponent<RectTransform>();
+            // Position at top-right corner, slightly outside indicator bounds
+            rect.anchorMin = new Vector2(0.70f, 0.75f);
+            rect.anchorMax = new Vector2(1.15f, 1.20f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            bg.color = new Color(0.90f, 0.20f, 0.15f, 0.85f);
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.50f, 0.20f, 0.6f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Clock icon + countdown text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = "Soon";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.6f, -0.6f);
+        }
+
+        // ====================================================================
+        // P&C IT99: Detail Panel Navigation Arrows (swipe between buildings)
+        // ====================================================================
+
+        /// <summary>P&C: Add left/right navigation arrows to detail panel for cycling between buildings.</summary>
+        private void AddDetailPanelNavigation(GameObject popup, string currentInstanceId)
+        {
+            // Build sorted list of all placed buildings (by grid position for consistent order)
+            var sortedPlacements = new List<CityBuildingPlacement>(_placements);
+            sortedPlacements.Sort((a, b) =>
+            {
+                int cmp = a.GridOrigin.y.CompareTo(b.GridOrigin.y);
+                return cmp != 0 ? cmp : a.GridOrigin.x.CompareTo(b.GridOrigin.x);
+            });
+
+            int currentIdx = -1;
+            for (int i = 0; i < sortedPlacements.Count; i++)
+            {
+                if (sortedPlacements[i].InstanceId == currentInstanceId)
+                { currentIdx = i; break; }
+            }
+            if (currentIdx < 0 || sortedPlacements.Count < 2) return;
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // Left arrow (previous building)
+            {
+                var arrowGO = new GameObject("NavArrowLeft");
+                arrowGO.transform.SetParent(popup.transform, false);
+                var arrowRect = arrowGO.AddComponent<RectTransform>();
+                arrowRect.anchorMin = new Vector2(0.00f, 0.44f);
+                arrowRect.anchorMax = new Vector2(0.06f, 0.58f);
+                arrowRect.offsetMin = Vector2.zero;
+                arrowRect.offsetMax = Vector2.zero;
+
+                var arrowBg = arrowGO.AddComponent<Image>();
+                arrowBg.color = new Color(0.15f, 0.12f, 0.25f, 0.85f);
+                arrowBg.raycastTarget = true;
+                var arrowOutline = arrowGO.AddComponent<Outline>();
+                arrowOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.5f);
+                arrowOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+                var btn = arrowGO.AddComponent<Button>();
+                btn.targetGraphic = arrowBg;
+                int prevIdx = (currentIdx - 1 + sortedPlacements.Count) % sortedPlacements.Count;
+                var prevPlacement = sortedPlacements[prevIdx];
+                btn.onClick.AddListener(() => NavigateToBuilding(prevPlacement));
+
+                AddInfoPanelText(arrowGO.transform, "Arrow", "\u25C0", 14, FontStyle.Bold,
+                    new Color(0.90f, 0.80f, 0.35f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // Right arrow (next building)
+            {
+                var arrowGO = new GameObject("NavArrowRight");
+                arrowGO.transform.SetParent(popup.transform, false);
+                var arrowRect = arrowGO.AddComponent<RectTransform>();
+                arrowRect.anchorMin = new Vector2(0.94f, 0.44f);
+                arrowRect.anchorMax = new Vector2(1.00f, 0.58f);
+                arrowRect.offsetMin = Vector2.zero;
+                arrowRect.offsetMax = Vector2.zero;
+
+                var arrowBg = arrowGO.AddComponent<Image>();
+                arrowBg.color = new Color(0.15f, 0.12f, 0.25f, 0.85f);
+                arrowBg.raycastTarget = true;
+                var arrowOutline = arrowGO.AddComponent<Outline>();
+                arrowOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.5f);
+                arrowOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
+                var btn = arrowGO.AddComponent<Button>();
+                btn.targetGraphic = arrowBg;
+                int nextIdx = (currentIdx + 1) % sortedPlacements.Count;
+                var nextPlacement = sortedPlacements[nextIdx];
+                btn.onClick.AddListener(() => NavigateToBuilding(nextPlacement));
+
+                AddInfoPanelText(arrowGO.transform, "Arrow", "\u25B6", 14, FontStyle.Bold,
+                    new Color(0.90f, 0.80f, 0.35f),
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+
+            // Building counter label (e.g., "3 / 41")
+            AddInfoPanelText(popup.transform, "NavCounter",
+                $"{currentIdx + 1} / {sortedPlacements.Count}",
+                9, FontStyle.Normal, new Color(0.60f, 0.55f, 0.70f),
+                new Vector2(0.40f, 0.93f), new Vector2(0.60f, 0.98f), TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>P&C: Navigate detail panel to another building (dismiss current + open new).</summary>
+        private void NavigateToBuilding(CityBuildingPlacement placement)
+        {
+            if (placement == null || placement.VisualGO == null) return;
+
+            DismissInfoPopup();
+
+            // Publish tap event to re-open the detail panel for the target building
+            EventBus.Publish(new BuildingTappedEvent(placement));
+        }
+
+        // ====================================================================
+        // P&C IT99: Queue Slot Counter for Upgrade Strip
+        // ====================================================================
+
+        private const int MaxFreeQueueSlots = 2;
+
+        /// <summary>P&C: Create queue slot counter label in the upgrade strip area.</summary>
+        private void CreateQueueSlotCounter(GameObject strip, int usedSlots)
+        {
+            var counterGO = new GameObject("QueueSlotCounter");
+            counterGO.transform.SetParent(strip.transform, false);
+            var rect = counterGO.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.00f, 0f);
+            rect.anchorMax = new Vector2(0.18f, 1f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Background pill
+            var bg = counterGO.AddComponent<Image>();
+            bool isFull = usedSlots >= MaxFreeQueueSlots;
+            bg.color = isFull
+                ? new Color(0.50f, 0.15f, 0.10f, 0.85f)  // Red when full
+                : new Color(0.10f, 0.35f, 0.15f, 0.85f);  // Green when free
+            bg.raycastTarget = false;
+
+            var outline = counterGO.AddComponent<Outline>();
+            outline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.40f);
+            outline.effectDistance = new Vector2(0.6f, -0.6f);
+
+            // Text
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(counterGO.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = $"\u2692 {usedSlots}/{MaxFreeQueueSlots}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 8;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.5f, -0.5f);
+        }
+
+        // ====================================================================
+        // P&C IT99: Boost Timer Badge on Buildings
+        // ====================================================================
+
+        /// <summary>P&C: Show a green boost timer badge on buildings with active VIP/alliance boosts.</summary>
+        private void CreateBoostTimerBadge(GameObject building, string boostType, float remainingSeconds)
+        {
+            // Remove existing boost badge if present
+            var existing = building.transform.Find("BoostTimerBadge");
+            if (existing != null) Destroy(existing.gameObject);
+
+            if (remainingSeconds <= 0f) return;
+
+            var badge = new GameObject("BoostTimerBadge");
+            badge.transform.SetParent(building.transform, false);
+
+            var rect = badge.AddComponent<RectTransform>();
+            // Position at bottom-left corner of building
+            rect.anchorMin = new Vector2(-0.05f, -0.05f);
+            rect.anchorMax = new Vector2(0.40f, 0.12f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = badge.AddComponent<Image>();
+            Color badgeColor = boostType switch
+            {
+                "vip" => new Color(0.80f, 0.60f, 0.10f, 0.90f),     // Gold for VIP
+                "alliance" => new Color(0.20f, 0.55f, 0.80f, 0.90f), // Blue for alliance
+                "item" => new Color(0.20f, 0.70f, 0.30f, 0.90f),     // Green for item boost
+                _ => new Color(0.30f, 0.65f, 0.30f, 0.90f)
+            };
+            bg.color = badgeColor;
+            bg.raycastTarget = false;
+
+            var outline = badge.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 1f, 1f, 0.30f);
+            outline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Timer text
+            int secs = Mathf.CeilToInt(remainingSeconds);
+            string timeStr = secs >= 3600
+                ? $"{secs / 3600}h{(secs % 3600) / 60:D2}m"
+                : secs >= 60 ? $"{secs / 60}m" : $"{secs}s";
+
+            string icon = boostType switch
+            {
+                "vip" => "\u2B50",      // ⭐
+                "alliance" => "\u2764", // ❤
+                "item" => "\u26A1",     // ⚡
+                _ => "\u2191"           // ↑
+            };
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(badge.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var text = textGO.AddComponent<Text>();
+            text.text = $"{icon}{timeStr}";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 7;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            var textOutline = textGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            textOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Start fade-out coroutine to auto-destroy when boost expires
+            StartCoroutine(AnimateBoostBadge(badge, bg, remainingSeconds));
+        }
+
+        private IEnumerator AnimateBoostBadge(GameObject badge, Image bg, float totalSeconds)
+        {
+            float remaining = totalSeconds;
+            Color baseColor = bg.color;
+
+            while (badge != null && remaining > 0f)
+            {
+                remaining -= Time.deltaTime;
+
+                // Update timer text
+                var text = badge.GetComponentInChildren<Text>();
+                if (text != null)
+                {
+                    int secs = Mathf.CeilToInt(remaining);
+                    string timeStr = secs >= 3600
+                        ? $"{secs / 3600}h{(secs % 3600) / 60:D2}m"
+                        : secs >= 60 ? $"{secs / 60}m" : $"{secs}s";
+                    // Keep the icon (first char) and update time
+                    string currentText = text.text;
+                    string icon = currentText.Length > 0 ? currentText.Substring(0, 1) : "";
+                    text.text = $"{icon}{timeStr}";
+                }
+
+                // Gentle pulse when < 60s remaining
+                if (remaining < 60f)
+                {
+                    float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 4f);
+                    bg.color = Color.Lerp(baseColor, new Color(1f, 0.3f, 0.2f, 0.95f), pulse * 0.4f);
+                }
+
+                yield return null;
+            }
+
+            if (badge != null) Destroy(badge);
+        }
+
+        // ====================================================================
+        // P&C IT99: Resource Building Tap Collect All
+        // ====================================================================
+
+        /// <summary>P&C: When tapping a resource building, collect ALL pending bubbles for that building instantly.</summary>
+        private void TapCollectAllForBuilding(string instanceId, string buildingId)
+        {
+            // Only resource buildings have bubbles
+            if (buildingId != "grain_farm" && buildingId != "iron_mine" &&
+                buildingId != "stone_quarry" && buildingId != "arcane_tower") return;
+
+            var spawner = FindAnyObjectByType<ResourceBubbleSpawner>();
+            if (spawner == null) return;
+
+            spawner.CollectAllForBuilding(instanceId);
+
+            // Show collect toast near the building
+            foreach (var p in _placements)
+            {
+                if (p.InstanceId == instanceId && p.VisualGO != null)
+                {
+                    ShowCollectToast(p.VisualGO, 1, buildingId);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>P&C: Small toast showing collected resource count near building.</summary>
+        private void ShowCollectToast(GameObject building, int count, string buildingId)
+        {
+            string resIcon = buildingId switch
+            {
+                "grain_farm" => "\uD83C\uDF3E",    // 🌾
+                "iron_mine" => "\u2692",            // ⚒
+                "stone_quarry" => "\u26F0",         // ⛰
+                "arcane_tower" => "\u2728",         // ✨
+                _ => "\u25CF"
+            };
+
+            Color toastColor = buildingId switch
+            {
+                "grain_farm" => new Color(0.35f, 0.70f, 0.20f, 0.90f),
+                "iron_mine" => new Color(0.55f, 0.55f, 0.65f, 0.90f),
+                "stone_quarry" => new Color(0.60f, 0.50f, 0.35f, 0.90f),
+                "arcane_tower" => new Color(0.55f, 0.35f, 0.80f, 0.90f),
+                _ => new Color(0.50f, 0.50f, 0.50f, 0.90f)
+            };
+
+            var toast = new GameObject("CollectToast");
+            toast.transform.SetParent(building.transform, false);
+
+            var rect = toast.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.15f, 0.85f);
+            rect.anchorMax = new Vector2(0.85f, 1.10f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = toast.AddComponent<Image>();
+            bg.color = toastColor;
+            bg.raycastTarget = false;
+
+            var outline = toast.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 1f, 1f, 0.30f);
+            outline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            AddInfoPanelText(toast.transform, "Text", $"+{count} {resIcon}",
+                9, FontStyle.Bold, Color.white,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+
+            StartCoroutine(AnimateCollectToast(toast));
+        }
+
+        private IEnumerator AnimateCollectToast(GameObject toast)
+        {
+            if (toast == null) yield break;
+            var rect = toast.GetComponent<RectTransform>();
+            var cg = toast.AddComponent<CanvasGroup>();
+            float elapsed = 0f;
+            float duration = 1.2f;
+            Vector2 startPos = rect.anchoredPosition;
+
+            while (elapsed < duration && toast != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Float upward and fade out
+                rect.anchoredPosition = startPos + new Vector2(0, t * 30f);
+                cg.alpha = 1f - Mathf.Pow(t, 2);
+                yield return null;
+            }
+
+            if (toast != null) Destroy(toast);
         }
     }
 }
