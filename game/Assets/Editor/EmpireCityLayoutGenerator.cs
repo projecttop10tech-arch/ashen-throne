@@ -172,7 +172,7 @@ namespace AshenThrone.Editor
             viewport.AddComponent<RectMask2D>();
             // Viewport background — dark green to match P&C terrain (catches any gaps)
             var vpBg = viewport.AddComponent<Image>();
-            vpBg.color = new Color(0.14f, 0.20f, 0.10f, 1f);
+            vpBg.color = new Color(0.04f, 0.03f, 0.06f, 1f); // dark purple-black matching terrain art edges
             vpBg.raycastTarget = false;
             // Place CityViewport right after Background (index 1) so Background is behind
             // and all UI overlays (nav bar, info panel, etc.) are on top
@@ -191,7 +191,7 @@ namespace AshenThrone.Editor
             // P&C-style default zoom — overview showing most of the city at once
             // Content is ~3200x2140. At 0.55x on 1080x1920 screen ≈ 1760x1177 visible content
             // This persists in the scene — CityGridView reads it at Start()
-            contentRect.localScale = Vector3.one * 0.55f;
+            contentRect.localScale = Vector3.one * 1.0f;
 
             var scroll = viewport.AddComponent<ScrollRect>();
             scroll.content = contentRect;
@@ -214,22 +214,22 @@ namespace AshenThrone.Editor
             outerRect.offsetMax = Vector2.zero;
             var outerImg = outerBG.AddComponent<Image>();
 
-            // P&C-style terrain — medium-dark textured ground (NOT bright green, NOT black)
-            // Matches the dark forest green tone from the P&C reference screenshot
-            CreateGrassTexture(); // Regenerate with P&C-matching dark-green values
-            AssetDatabase.Refresh();
-            EnsureSpriteImportSettings("Assets/Art/Environments/tile_grass.png");
-            var grassSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/tile_grass.png");
-            if (grassSprite != null)
+            // Use AI-generated terrain art — rich dark fantasy background with arcane paths,
+            // glowing lanterns, atmospheric fog. MUCH better than procedural noise.
+            string terrainPath = "Assets/Art/Environments/empire_terrain_bg.png";
+            EnsureSpriteImportSettings(terrainPath);
+            var terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>(terrainPath);
+            if (terrainSprite != null)
             {
-                outerImg.sprite = grassSprite;
-                outerImg.type = Image.Type.Tiled;
-                outerImg.color = Color.white; // Texture itself has correct P&C dark-green values
+                outerImg.sprite = terrainSprite;
+                outerImg.type = Image.Type.Simple;
+                outerImg.preserveAspect = false; // stretch to fill content area
+                outerImg.color = Color.white;    // let the art speak for itself
             }
             else
             {
-                // Fallback: dark green matching P&C terrain
-                outerImg.color = new Color(0.18f, 0.26f, 0.12f, 1f);
+                // Fallback: very dark background
+                outerImg.color = new Color(0.05f, 0.04f, 0.08f, 1f);
             }
             outerImg.raycastTarget = true;
 
@@ -245,7 +245,7 @@ namespace AshenThrone.Editor
 
             CreateEdgeFogTexture();
             var fogSprite = LoadOrCreateSprite("Assets/Art/UI/Production/edge_fog.png");
-            Color fogColor = new Color(0.08f, 0.12f, 0.06f, 0.50f); // dark forest edge fog (P&C style)
+            Color fogColor = new Color(0.04f, 0.03f, 0.08f, 0.55f); // dark purple edge fog matching terrain art
 
             // 4 fog panels along each diamond edge, extending outward
             float fogThickness = CellSize * 6f; // thick fog band
@@ -283,7 +283,7 @@ namespace AshenThrone.Editor
             }
             goImg.raycastTarget = false;
             // Grid overlay hidden by default — only shown during move mode
-            goImg.color = new Color(0.25f, 0.40f, 0.20f, 0.15f); // subtle green grid when active
+            goImg.color = new Color(0.12f, 0.18f, 0.10f, 0.12f); // subtle grid when active
             gridOverlayGO.SetActive(false);
 
             // ================================================================
@@ -365,8 +365,8 @@ namespace AshenThrone.Editor
                 (25, 15, 31, 12), // Resources → SE quarries
             };
 
-            Color roadColor = new Color(0.30f, 0.25f, 0.18f, 0.55f);     // dark dirt path on P&C terrain
-            Color roadEdge = new Color(0.22f, 0.18f, 0.12f, 0.40f);      // slightly darker edge
+            Color roadColor = new Color(0.14f, 0.12f, 0.08f, 0.50f);     // dark stone path on P&C terrain
+            Color roadEdge = new Color(0.10f, 0.08f, 0.05f, 0.35f);      // slightly darker edge
             float roadWidth = 5f;                                          // thin path
 
             foreach (var (fx, fy, tx, ty) in roadSegments)
@@ -388,14 +388,18 @@ namespace AshenThrone.Editor
 
             // Targeted ground glow under key magical buildings only (not every building)
             var glowBuildings = new System.Collections.Generic.HashSet<string> {
-                "stronghold", "arcane_tower", "enchanting_tower", "hero_shrine", "observatory"
+                "stronghold", "arcane_tower", "enchanting_tower", "hero_shrine", "observatory",
+                "forge", "laboratory", "guild_hall"
             };
             var glowColors = new System.Collections.Generic.Dictionary<string, Color> {
-                { "stronghold",       new Color(0.85f, 0.55f, 0.15f, 0.08f) },
-                { "arcane_tower",     new Color(0.40f, 0.25f, 0.80f, 0.06f) },
-                { "enchanting_tower", new Color(0.30f, 0.60f, 0.85f, 0.06f) },
-                { "hero_shrine",      new Color(0.80f, 0.65f, 0.20f, 0.06f) },
-                { "observatory",      new Color(0.25f, 0.50f, 0.70f, 0.05f) },
+                { "stronghold",       new Color(0.90f, 0.60f, 0.15f, 0.18f) },  // dramatic amber glow
+                { "arcane_tower",     new Color(0.45f, 0.25f, 0.85f, 0.14f) },  // vivid purple
+                { "enchanting_tower", new Color(0.30f, 0.65f, 0.90f, 0.12f) },  // bright cyan
+                { "hero_shrine",      new Color(0.85f, 0.70f, 0.20f, 0.14f) },  // warm gold
+                { "observatory",      new Color(0.25f, 0.55f, 0.80f, 0.10f) },  // sky blue
+                { "forge",            new Color(0.90f, 0.40f, 0.10f, 0.14f) },  // forge fire orange
+                { "laboratory",       new Color(0.35f, 0.80f, 0.40f, 0.10f) },  // alchemical green
+                { "guild_hall",       new Color(0.80f, 0.65f, 0.15f, 0.10f) },  // warm gold
             };
 
             // ================================================================
@@ -525,7 +529,7 @@ namespace AshenThrone.Editor
             botFogRect.offsetMin = Vector2.zero;
             botFogRect.offsetMax = Vector2.zero;
             var botFogImg = botFog.AddComponent<Image>();
-            botFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.35f);
+            botFogImg.color = new Color(0.03f, 0.02f, 0.05f, 0.35f);
             botFogImg.raycastTarget = false;
 
             // Left vignette — very subtle on bright terrain
@@ -536,7 +540,7 @@ namespace AshenThrone.Editor
             leftFogRect.offsetMin = Vector2.zero;
             leftFogRect.offsetMax = Vector2.zero;
             var leftFogImg = leftFog.AddComponent<Image>();
-            leftFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.25f);
+            leftFogImg.color = new Color(0.03f, 0.02f, 0.05f, 0.25f);
             leftFogImg.raycastTarget = false;
 
             // Right vignette — very subtle
@@ -547,7 +551,7 @@ namespace AshenThrone.Editor
             rightFogRect.offsetMin = Vector2.zero;
             rightFogRect.offsetMax = Vector2.zero;
             var rightFogImg = rightFog.AddComponent<Image>();
-            rightFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.25f);
+            rightFogImg.color = new Color(0.03f, 0.02f, 0.05f, 0.25f);
             rightFogImg.raycastTarget = false;
 
             // Focal aura moved to before buildings (section 6a) for correct z-order
@@ -1028,26 +1032,27 @@ namespace AshenThrone.Editor
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Repeat;
 
-            // P&C-style terrain: medium-dark green with rich variation
-            // Matches the dark forest floor seen in P&C reference screenshots
+            // P&C-style terrain: dark but RICH — mossy greens, stone greys, warm earth
+            // P&C is dark but not flat — it has depth, texture variation, warm undertones
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
                     // Multi-octave noise for natural terrain variation
-                    float n1 = Mathf.PerlinNoise(x * 0.015f + 0.5f, y * 0.015f + 0.5f);     // large patches
-                    float n2 = Mathf.PerlinNoise(x * 0.04f + 10.5f, y * 0.04f + 10.5f);      // medium detail
-                    float n3 = Mathf.PerlinNoise(x * 0.08f + 20.5f, y * 0.08f + 20.5f);      // fine grass blades
-                    float n4 = Mathf.PerlinNoise(x * 0.02f + 30.5f, y * 0.02f + 30.5f);      // earthy patches
+                    float n1 = Mathf.PerlinNoise(x * 0.012f + 0.5f, y * 0.012f + 0.5f);     // large biome patches
+                    float n2 = Mathf.PerlinNoise(x * 0.035f + 10.5f, y * 0.035f + 10.5f);    // medium detail
+                    float n3 = Mathf.PerlinNoise(x * 0.08f + 20.5f, y * 0.08f + 20.5f);      // fine texture grain
+                    float n4 = Mathf.PerlinNoise(x * 0.018f + 30.5f, y * 0.018f + 30.5f);    // earthy/stone patches
+                    float n5 = Mathf.PerlinNoise(x * 0.06f + 50.5f, y * 0.06f + 50.5f);      // warm highlights
 
-                    // Combine: large variation + medium detail + fine texture
-                    float grassNoise = n1 * 0.12f + n2 * 0.06f + n3 * 0.03f;
-                    float earthPatch = n4 > 0.55f ? (n4 - 0.55f) * 0.15f : 0f; // sparse earth spots
+                    float grassNoise = n1 * 0.08f + n2 * 0.04f + n3 * 0.02f;
+                    float earthPatch = n4 > 0.50f ? (n4 - 0.50f) * 0.14f : 0f; // stone/earth patches
+                    float warmSpot = n5 > 0.60f ? (n5 - 0.60f) * 0.10f : 0f;   // subtle warm highlights
 
-                    // Base: dark forest green (P&C reference tone)
-                    float r = 0.18f + grassNoise * 0.6f + earthPatch * 1.2f;
-                    float g = 0.28f + grassNoise * 1.0f - earthPatch * 0.3f;
-                    float b = 0.12f + grassNoise * 0.3f + earthPatch * 0.2f;
+                    // Base: dark forest floor with mossy greens + warm earth undertones
+                    float r = 0.10f + grassNoise * 0.5f + earthPatch * 1.0f + warmSpot * 1.5f;
+                    float g = 0.14f + grassNoise * 0.8f - earthPatch * 0.2f + warmSpot * 0.4f;
+                    float b = 0.08f + grassNoise * 0.3f + earthPatch * 0.15f - warmSpot * 0.3f;
 
                     // Clamp to keep in range
                     r = Mathf.Clamp01(r);

@@ -130,7 +130,7 @@ namespace AshenThrone.Empire
         private const float ZoomSpeed = 0.005f; // per pixel of pinch delta
         private const float MouseScrollZoomSpeed = 0.15f;
         private const float ZoomLerpSpeed = 8f; // P&C: smooth zoom interpolation
-        private const float DefaultZoom = 0.55f;
+        private const float DefaultZoom = 1.0f;
         private float _currentZoom = DefaultZoom;
         private float _targetZoom = DefaultZoom;
         private Vector2 _zoomPivotScreen;
@@ -283,8 +283,8 @@ namespace AshenThrone.Empire
             CreateMerchantIcon();     // slot 1
             CreateEventHubIcon();     // slot 2
             CreateGiftsIcon();        // slot 3
-            // P&C: City prosperity badge
-            UpdateProsperityBadge();
+            // P&C: City prosperity badge — disabled, overlaps with SceneUI info panel
+            // UpdateProsperityBadge();
             // P&C IT101: Recommended upgrade advisor arrow
             RefreshAdvisorArrow();
             // P&C IT103: Wire resource bar icons to production breakdown popup
@@ -555,13 +555,9 @@ namespace AshenThrone.Empire
             // P&C: Auto-collect resource bubbles
             TickAutoCollect();
 
-            // P&C: Refresh prosperity badge periodically
-            _prosperityRefreshTimer += Time.deltaTime;
-            if (_prosperityRefreshTimer >= 30f)
-            {
-                _prosperityRefreshTimer = 0f;
-                UpdateProsperityBadge();
-            }
+            // P&C: Prosperity badge disabled (overlaps SceneUI info panel)
+            // _prosperityRefreshTimer += Time.deltaTime;
+            // if (_prosperityRefreshTimer >= 30f) { _prosperityRefreshTimer = 0f; UpdateProsperityBadge(); }
 
             // Pinch-zoom (mobile multi-touch)
             _touchCount = Input.touchCount;
@@ -1269,8 +1265,8 @@ namespace AshenThrone.Empire
             int sx = size.x, sy = size.y;
 
             // Subtle shadow plate — slightly darker than P&C dark terrain to ground buildings
-            Color plateFill = new Color(0.10f, 0.16f, 0.07f, 0.45f);
-            Color plateBorder = new Color(0.14f, 0.22f, 0.10f, 0.35f);
+            Color plateFill = new Color(0.04f, 0.06f, 0.03f, 0.35f);
+            Color plateBorder = new Color(0.06f, 0.08f, 0.04f, 0.25f);
             var diamondSpr = GetDiamondCellSprite();
 
             for (int gx = 0; gx < sx; gx++)
@@ -17886,13 +17882,14 @@ namespace AshenThrone.Empire
             _prosperityBadge = new GameObject("ProsperityBadge");
             _prosperityBadge.transform.SetParent(canvas.transform, false);
             var rect = _prosperityBadge.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.03f, 0.88f);
-            rect.anchorMax = new Vector2(0.35f, 0.92f);
+            // Position inside the commander info panel content area (smaller, not a separate panel)
+            rect.anchorMin = new Vector2(0.04f, 0.895f);
+            rect.anchorMax = new Vector2(0.28f, 0.915f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
             var bg = _prosperityBadge.AddComponent<Image>();
-            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.80f);
+            bg.color = new Color(0.06f, 0.04f, 0.12f, 0.55f); // more transparent to blend
             bg.raycastTarget = false;
             var outline = _prosperityBadge.AddComponent<Outline>();
             outline.effectColor = new Color(color.r, color.g, color.b, 0.5f);
