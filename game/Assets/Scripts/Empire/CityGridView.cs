@@ -4494,10 +4494,10 @@ namespace AshenThrone.Empire
             }
 
             // P&C: Arrange buttons in semicircle arc above the name plate
-            float radius = 55f; // pixels from center
+            float radius = 62f; // pixels from center — P&C uses generous spacing
             float startAngle = 150f; // degrees — leftmost position
             float endAngle = 30f;    // degrees — rightmost position
-            float btnSize = 38f;
+            float btnSize = 44f;     // P&C: larger tap targets
 
             for (int i = 0; i < radialButtons.Count; i++)
             {
@@ -4569,15 +4569,17 @@ namespace AshenThrone.Empire
             rect.anchoredPosition = pixelPos + new Vector2(size * 0.5f, size * 0.5f);
             rect.sizeDelta = new Vector2(size, size);
 
-            // Circular background
+            // P&C: Circular background with radial gradient sprite
             var bg = btnGO.AddComponent<Image>();
             bg.color = bgColor;
             bg.raycastTarget = true;
+            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+            if (radialSpr != null) { bg.sprite = radialSpr; bg.type = Image.Type.Simple; }
 
             // Gold ring border
             var outline = btnGO.AddComponent<Outline>();
-            outline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.75f);
-            outline.effectDistance = new Vector2(1.2f, -1.2f);
+            outline.effectColor = new Color(0.85f, 0.68f, 0.20f, 0.80f);
+            outline.effectDistance = new Vector2(1.4f, -1.4f);
             var outline2 = btnGO.AddComponent<Outline>();
             outline2.effectColor = new Color(0.4f, 0.3f, 0.1f, 0.4f);
             outline2.effectDistance = new Vector2(-0.8f, 0.8f);

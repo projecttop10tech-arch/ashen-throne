@@ -51,37 +51,79 @@ namespace AshenThrone.Empire
             _rect = GetComponent<RectTransform>();
             if (_rect == null) _rect = gameObject.AddComponent<RectTransform>();
 
-            _rect.sizeDelta = new Vector2(56, 56); // P&C: Generous tap target
+            _rect.sizeDelta = new Vector2(64, 64); // P&C: Large tap target
 
             // Canvas group for fade
             _canvasGroup = gameObject.AddComponent<CanvasGroup>();
             _canvasGroup.alpha = 0f; // Fade in
 
-            // Combined icon + amount as single floating text (no bg rectangle)
+            // P&C: Colored circular background bubble
+            Color bubbleCol = GetBubbleColor(type);
+            var radialSpr = Resources.Load<Sprite>("Art/UI/Production/radial_gradient");
+
+            // Glow ring behind bubble
+            var glowGO = new GameObject("Glow");
+            glowGO.transform.SetParent(transform, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.25f, -0.25f);
+            glowRect.anchorMax = new Vector2(1.25f, 1.25f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = new Color(bubbleCol.r, bubbleCol.g, bubbleCol.b, 0.30f);
+            glowImg.raycastTarget = false;
+            if (radialSpr != null) glowImg.sprite = radialSpr;
+
+            // Main circle bg
+            var bgImg = gameObject.AddComponent<Image>();
+            bgImg.color = new Color(bubbleCol.r * 0.35f, bubbleCol.g * 0.35f, bubbleCol.b * 0.35f, 0.88f);
+            bgImg.raycastTarget = true;
+            if (radialSpr != null) { bgImg.sprite = radialSpr; bgImg.type = Image.Type.Simple; }
+            var bgOutline = gameObject.AddComponent<Outline>();
+            bgOutline.effectColor = new Color(bubbleCol.r, bubbleCol.g, bubbleCol.b, 0.70f);
+            bgOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Resource icon (top portion)
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.10f, 0.35f);
+            iconRect.anchorMax = new Vector2(0.90f, 0.90f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = GetResourceSymbol(type);
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = 16;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = GetBubbleTextColor(type);
+            iconText.raycastTarget = false;
+            var iconShadow = iconGO.AddComponent<Shadow>();
+            iconShadow.effectColor = new Color(0, 0, 0, 0.9f);
+            iconShadow.effectDistance = new Vector2(0.8f, -0.8f);
+
+            // Amount label (bottom portion)
             var labelGO = new GameObject("Label");
             labelGO.transform.SetParent(transform, false);
             var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.sizeDelta = new Vector2(40, 0); // Extra width for text
+            labelRect.anchorMin = new Vector2(0, 0.05f);
+            labelRect.anchorMax = new Vector2(1, 0.40f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
             _amountText = labelGO.AddComponent<Text>();
-            _amountText.text = $"{GetResourceSymbol(type)}+{FormatAmount(amount)}";
+            _amountText.text = $"+{FormatAmount(amount)}";
             _amountText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _amountText.fontSize = 11;
+            _amountText.fontSize = 9;
             _amountText.fontStyle = FontStyle.Bold;
             _amountText.alignment = TextAnchor.MiddleCenter;
-            _amountText.color = GetBubbleTextColor(type);
+            _amountText.color = Color.white;
             _amountText.raycastTarget = false;
 
-            // Strong outline for readability against dark bg
+            // Strong outline for readability
             var outline = labelGO.AddComponent<Outline>();
             outline.effectColor = new Color(0, 0, 0, 0.9f);
-            outline.effectDistance = new Vector2(1.2f, -1.2f);
-
-            // Second outline pass for extra contrast
-            var outline2 = labelGO.AddComponent<Outline>();
-            outline2.effectColor = new Color(0, 0, 0, 0.6f);
-            outline2.effectDistance = new Vector2(-1f, 1f);
+            outline.effectDistance = new Vector2(1f, -1f);
 
             // Random bob phase offset so bubbles aren't synchronized
             _bobPhase = Random.Range(0f, Mathf.PI * 2f);

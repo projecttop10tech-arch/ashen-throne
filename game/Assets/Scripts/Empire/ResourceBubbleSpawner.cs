@@ -170,9 +170,9 @@ namespace AshenThrone.Empire
             _collectAllButton = new GameObject("CollectAllButton");
             _collectAllButton.transform.SetParent(canvas.transform, false);
             var rect = _collectAllButton.AddComponent<RectTransform>();
-            // Position: bottom-right, above nav bar
-            rect.anchorMin = new Vector2(0.60f, 0.12f);
-            rect.anchorMax = new Vector2(0.95f, 0.17f);
+            // P&C: Bottom-center, above nav bar (avoid overlap with auto-collect toggle at right)
+            rect.anchorMin = new Vector2(0.25f, 0.14f);
+            rect.anchorMax = new Vector2(0.70f, 0.19f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 

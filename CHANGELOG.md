@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.88.0] — 2026-03-12 (Ralph Loop Iteration 83: P&C Resource Bubbles, Radial Menu Polish)
+
+### CHANGED
+- **Resource bubbles now P&C-style circular** — Bubbles have colored circular background (using radial_gradient sprite), glow ring halo, resource icon in upper portion, and amount label below. Size increased from 56px to 64px for better tap targets. Replaces plain floating text with proper circular bubble visual.
+- **"Collect All" button repositioned** — Moved from bottom-right (0.60-0.95) to bottom-center (0.25-0.70) to avoid overlap with auto-collect toggle pill.
+- **Radial menu buttons enlarged** — Button size increased from 38px to 44px, radius from 55px to 62px. Buttons now use radial_gradient sprite for circular appearance with thicker gold borders (1.4px). More P&C-like generous tap targets.
+
+---
+
 ## [0.87.0] — 2026-03-12 (Ralph Loop Iteration 82: Clean City View, Full-Width Upgrade Button)
 
 ### CHANGED
