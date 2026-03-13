@@ -417,6 +417,51 @@ namespace AshenThrone.Editor
             aiImg.raycastTarget = false;
 
             // ================================================================
+            // 5b. P&C-style connecting road paths between buildings
+            // ================================================================
+            var roadsGO = CreateChild(content, "Roads");
+            var roadsRect = roadsGO.AddComponent<RectTransform>();
+            roadsRect.anchorMin = new Vector2(0.5f, 0.5f);
+            roadsRect.anchorMax = new Vector2(0.5f, 0.5f);
+            roadsRect.pivot = new Vector2(0.5f, 0.5f);
+            roadsRect.sizeDelta = new Vector2(contentW, contentH);
+
+            // Road segments: pairs of grid coordinates forming a path network
+            // Connect stronghold (22,22) to key nearby buildings via isometric-aligned segments
+            var roadSegments = new (int fromX, int fromY, int toX, int toY)[]
+            {
+                // Main roads from stronghold center to cardinal directions
+                (22, 22, 24, 20), // Stronghold → Marketplace (east)
+                (22, 22, 20, 24), // Stronghold → Barracks (west)
+                (22, 22, 18, 20), // Stronghold → Grain Farm (southwest)
+                (22, 22, 25, 25), // Stronghold → Iron Mine (north)
+                (22, 22, 20, 18), // Stronghold → Arcane Tower (south)
+                (22, 22, 26, 22), // Stronghold → Watch Tower (east-south)
+                // Cross connections between districts
+                (24, 20, 26, 18), // Marketplace → Watch Tower area
+                (20, 24, 16, 26), // Barracks → Training Ground
+                (18, 20, 16, 22), // Grain Farm → Stone Quarry
+                (25, 25, 22, 28), // Iron Mine → Guild Hall area
+                (20, 18, 18, 16), // Arcane Tower → Laboratory
+                // Extended roads to outer buildings
+                (26, 18, 30, 16), // East outer
+                (16, 26, 12, 30), // West outer
+                (16, 22, 12, 24), // Far west
+                (22, 28, 20, 32), // Far north
+            };
+
+            Color roadColor = new Color(0.28f, 0.22f, 0.18f, 0.55f);     // dark stone brown
+            Color roadEdge = new Color(0.18f, 0.14f, 0.10f, 0.40f);      // darker edge
+            float roadWidth = 5f;                                          // thin path
+
+            foreach (var (fx, fy, tx, ty) in roadSegments)
+            {
+                Vector2 from = GridToIso(fx + 0.5f, fy + 0.5f);
+                Vector2 to = GridToIso(tx + 0.5f, ty + 0.5f);
+                CreateRoadSegment(roadsGO, from, to, roadColor, roadEdge, roadWidth);
+            }
+
+            // ================================================================
             // 6. Buildings container
             // ================================================================
             var buildingsGO = CreateChild(content, "Buildings");
@@ -484,7 +529,7 @@ namespace AshenThrone.Editor
                     var groundGlow = CreateChild(buildingsGO, $"GroundGlow_{inst}");
                     var ggRect = groundGlow.AddComponent<RectTransform>();
                     ggRect.anchoredPosition = isoPos - Vector2.up * (footprint.y * 0.15f);
-                    float glowScale = id == "stronghold" ? 2.2f : 1.6f;
+                    float glowScale = id == "stronghold" ? 1.4f : 1.2f;
                     ggRect.sizeDelta = footprint * glowScale;
                     var ggImg = groundGlow.AddComponent<Image>();
                     ggImg.sprite = radialSprite;
@@ -519,11 +564,11 @@ namespace AshenThrone.Editor
             tgoRect.anchorMin = new Vector2(0.5f, 0.5f);
             tgoRect.anchorMax = new Vector2(0.5f, 0.5f);
             tgoRect.pivot = new Vector2(0.5f, 0.5f);
-            tgoRect.anchoredPosition = shCenter + Vector2.up * 120f;
-            tgoRect.sizeDelta = new Vector2(500, 400);
+            tgoRect.anchoredPosition = shCenter + Vector2.up * 80f;
+            tgoRect.sizeDelta = new Vector2(300, 240);
             var tgoImg = topGlowOuter.AddComponent<Image>();
             tgoImg.sprite = radialSprite;
-            tgoImg.color = new Color(0.85f, 0.55f, 0.12f, 0.10f);
+            tgoImg.color = new Color(0.85f, 0.55f, 0.12f, 0.06f);
             tgoImg.raycastTarget = false;
 
             var topGlowInner = CreateChild(content, "StrongholdTopGlowInner");
@@ -531,11 +576,11 @@ namespace AshenThrone.Editor
             tgiRect.anchorMin = new Vector2(0.5f, 0.5f);
             tgiRect.anchorMax = new Vector2(0.5f, 0.5f);
             tgiRect.pivot = new Vector2(0.5f, 0.5f);
-            tgiRect.anchoredPosition = shCenter + Vector2.up * 100f;
-            tgiRect.sizeDelta = new Vector2(280, 220);
+            tgiRect.anchoredPosition = shCenter + Vector2.up * 60f;
+            tgiRect.sizeDelta = new Vector2(180, 140);
             var tgiImg = topGlowInner.AddComponent<Image>();
             tgiImg.sprite = radialSprite;
-            tgiImg.color = new Color(0.95f, 0.70f, 0.20f, 0.14f);
+            tgiImg.color = new Color(0.95f, 0.70f, 0.20f, 0.08f);
             tgiImg.raycastTarget = false;
 
             // Bottom dark fade — ground recedes into darkness (STRONGER)
@@ -1212,6 +1257,37 @@ namespace AshenThrone.Editor
         {
             var child = parent.Find(childName);
             if (child != null) Object.DestroyImmediate(child.gameObject);
+        }
+
+        /// <summary>Create a thin road segment between two isometric positions.</summary>
+        static void CreateRoadSegment(GameObject parent, Vector2 from, Vector2 to, Color color, Color edgeColor, float width)
+        {
+            Vector2 delta = to - from;
+            float length = delta.magnitude;
+            if (length < 1f) return;
+
+            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+            Vector2 center = (from + to) * 0.5f;
+
+            // Edge (slightly wider, darker)
+            var edgeGO = CreateChild(parent, "RoadEdge");
+            var edgeRect = edgeGO.AddComponent<RectTransform>();
+            edgeRect.anchoredPosition = center;
+            edgeRect.sizeDelta = new Vector2(length, width + 2f);
+            edgeRect.localRotation = Quaternion.Euler(0, 0, angle);
+            var edgeImg = edgeGO.AddComponent<Image>();
+            edgeImg.color = edgeColor;
+            edgeImg.raycastTarget = false;
+
+            // Road fill
+            var roadGO = CreateChild(parent, "Road");
+            var roadRect = roadGO.AddComponent<RectTransform>();
+            roadRect.anchoredPosition = center;
+            roadRect.sizeDelta = new Vector2(length, width);
+            roadRect.localRotation = Quaternion.Euler(0, 0, angle);
+            var roadImg = roadGO.AddComponent<Image>();
+            roadImg.color = color;
+            roadImg.raycastTarget = false;
         }
 
         static bool EnsureSpriteImportSettings(string assetPath)

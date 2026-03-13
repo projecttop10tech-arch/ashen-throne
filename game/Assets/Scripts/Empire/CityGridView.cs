@@ -1316,31 +1316,31 @@ namespace AshenThrone.Empire
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
 
-            // Layer 1: Large outer warm glow
+            // Layer 1: Subtle outer warm glow (reduced — was covering whole building)
             var glow1 = new GameObject("StrongholdGlow_Outer");
             glow1.transform.SetParent(building.transform, false);
             glow1.transform.SetAsFirstSibling();
             var rect1 = glow1.AddComponent<RectTransform>();
-            rect1.anchorMin = new Vector2(-0.25f, -0.15f);
-            rect1.anchorMax = new Vector2(1.25f, 1.15f);
+            rect1.anchorMin = new Vector2(0.10f, 0.05f);
+            rect1.anchorMax = new Vector2(0.90f, 0.70f);
             rect1.offsetMin = Vector2.zero;
             rect1.offsetMax = Vector2.zero;
             var img1 = glow1.AddComponent<Image>();
-            img1.color = new Color(0.85f, 0.65f, 0.15f, 0.12f);
+            img1.color = new Color(0.85f, 0.65f, 0.15f, 0.06f);
             img1.raycastTarget = false;
             if (spr != null) img1.sprite = spr;
 
-            // Layer 2: Inner bright gold glow
+            // Layer 2: Inner bright gold glow — just base area
             var glow2 = new GameObject("StrongholdGlow_Inner");
             glow2.transform.SetParent(building.transform, false);
             glow2.transform.SetSiblingIndex(1);
             var rect2 = glow2.AddComponent<RectTransform>();
-            rect2.anchorMin = new Vector2(-0.10f, -0.05f);
-            rect2.anchorMax = new Vector2(1.10f, 1.05f);
+            rect2.anchorMin = new Vector2(0.20f, 0.10f);
+            rect2.anchorMax = new Vector2(0.80f, 0.55f);
             rect2.offsetMin = Vector2.zero;
             rect2.offsetMax = Vector2.zero;
             var img2 = glow2.AddComponent<Image>();
-            img2.color = new Color(1f, 0.85f, 0.30f, 0.08f);
+            img2.color = new Color(1f, 0.85f, 0.30f, 0.05f);
             img2.raycastTarget = false;
             if (spr != null) img2.sprite = spr;
 
@@ -4405,15 +4405,15 @@ namespace AshenThrone.Empire
             Vector2 buildingPos = buildingRect != null ? buildingRect.anchoredPosition : Vector2.zero;
             float buildingHeight = buildingRect != null ? buildingRect.sizeDelta.y : 80f;
             popupRect.anchoredPosition = buildingPos + new Vector2(0, buildingHeight * 0.35f);
-            popupRect.sizeDelta = new Vector2(200, 200); // Large enough to contain radial
+            popupRect.sizeDelta = new Vector2(280, 260); // Large enough for well-spaced radial buttons
 
             // Name plate in center (pill-shaped)
             string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
             var namePlate = new GameObject("NamePlate");
             namePlate.transform.SetParent(popup.transform, false);
             var nameRect = namePlate.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.15f, 0.38f);
-            nameRect.anchorMax = new Vector2(0.85f, 0.52f);
+            nameRect.anchorMin = new Vector2(0.15f, 0.32f);
+            nameRect.anchorMax = new Vector2(0.85f, 0.44f);
             nameRect.offsetMin = Vector2.zero;
             nameRect.offsetMax = Vector2.zero;
             var nameBg = namePlate.AddComponent<Image>();
@@ -4530,11 +4530,12 @@ namespace AshenThrone.Empire
                 }));
             }
 
-            // P&C: Arrange buttons in semicircle arc above the name plate
-            float radius = 62f; // pixels from center — P&C uses generous spacing
-            float startAngle = 150f; // degrees — leftmost position
-            float endAngle = 30f;    // degrees — rightmost position
-            float btnSize = 44f;     // P&C: larger tap targets
+            // P&C: Arrange buttons in full arc around the name plate
+            float radius = 90f;      // generous spacing so buttons don't overlap
+            float btnSize = 36f;     // slightly smaller for clean separation
+            // Use full semicircle (170°-10°) for 5+ buttons, narrower for fewer
+            float startAngle = radialButtons.Count >= 5 ? 170f : 150f;
+            float endAngle = radialButtons.Count >= 5 ? 10f : 30f;
 
             for (int i = 0; i < radialButtons.Count; i++)
             {
@@ -4542,10 +4543,10 @@ namespace AshenThrone.Empire
                 float t = radialButtons.Count > 1 ? (float)i / (radialButtons.Count - 1) : 0.5f;
                 float angle = Mathf.Lerp(startAngle, endAngle, t) * Mathf.Deg2Rad;
                 float x = Mathf.Cos(angle) * radius;
-                float y = Mathf.Sin(angle) * radius + 15f; // offset upward
+                float y = Mathf.Sin(angle) * radius + 10f;
 
                 CreateRadialButton(popup.transform, icon, label, bgColor, onClick,
-                    new Vector2(100f + x - btnSize * 0.5f, 90f + y - btnSize * 0.5f), btnSize);
+                    new Vector2(120f + x - btnSize * 0.5f, 100f + y - btnSize * 0.5f), btnSize);
             }
 
             // P&C: Upgrade cost line below name plate
@@ -4554,8 +4555,8 @@ namespace AshenThrone.Empire
                 var costGO = new GameObject("CostLine");
                 costGO.transform.SetParent(popup.transform, false);
                 var costRect = costGO.AddComponent<RectTransform>();
-                costRect.anchorMin = new Vector2(0.10f, 0.28f);
-                costRect.anchorMax = new Vector2(0.90f, 0.38f);
+                costRect.anchorMin = new Vector2(0.10f, 0.22f);
+                costRect.anchorMax = new Vector2(0.90f, 0.32f);
                 costRect.offsetMin = Vector2.zero;
                 costRect.offsetMax = Vector2.zero;
                 var costText = costGO.AddComponent<Text>();
@@ -14739,8 +14740,7 @@ namespace AshenThrone.Empire
         /// <summary>P&C: Check all resources against vault caps and show/hide warning badges.</summary>
         private void CheckResourceOverflow()
         {
-            var rm = ServiceLocator.Get<ResourceManager>();
-            if (rm == null) return;
+            if (!ServiceLocator.TryGet<ResourceManager>(out var rm)) return;
 
             CheckSingleResourceOverflow(rm, ResourceType.Stone, rm.Stone, rm.MaxStone);
             CheckSingleResourceOverflow(rm, ResourceType.Iron, rm.Iron, rm.MaxIron);

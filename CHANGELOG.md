@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.94.0] — 2026-03-12 (Ralph Loop Iteration 89: Glow Fix, Popup Spacing, Roads, Error Fix)
+
+### FIXED
+- **Building glows/spotlights no longer cover whole building** — Reduced stronghold glow layers from full-building coverage to base-area only. Generator ground glow scale reduced from 2.2x/1.6x to 1.4x/1.2x. Atmospheric top-glow above stronghold shrunk 40% and faded. Buildings now clearly visible through subtle glow underlays.
+- **Radial popup buttons no longer overlap** — Increased radius from 62px to 90px, decreased button size from 44px to 36px, expanded arc from 150°-30° to 170°-10° for 5+ buttons. Popup container enlarged from 200x200 to 280x260. All 6 action buttons (Upgrade, Info, Move, Skin, Fav, Remove) now clearly separated and independently tappable.
+- **Eliminated recurring ServiceLocator error** — `CheckResourceOverflow()` in CityGridView.Update() now uses `TryGet<ResourceManager>` instead of `Get<>`, preventing `InvalidOperationException` spam every 5 seconds when ResourceManager isn't registered during boot.
+
+### ADDED
+- **Stone road paths between buildings** — 15 connecting road segments from stronghold to key districts and cross-connections between building clusters. Thin dark stone paths with edge borders, rendered behind buildings for P&C-style city infrastructure feel.
+
+---
+
 ## [0.93.0] — 2026-03-12 (Ralph Loop Iteration 88: Circular Event Icons, Action Indicator Polish)
 
 ### FIXED
