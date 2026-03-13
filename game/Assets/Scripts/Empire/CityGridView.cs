@@ -77,8 +77,9 @@ namespace AshenThrone.Empire
         /// <summary>P&C: Max allowed instances per building type. Types not listed default to 1 (unique).</summary>
         private static readonly Dictionary<string, int> MaxBuildingCountPerType = new()
         {
-            { "grain_farm", 5 }, { "iron_mine", 3 }, { "stone_quarry", 3 }, { "arcane_tower", 2 },
-            { "barracks", 2 }, { "training_ground", 2 }, { "wall", 4 },
+            { "grain_farm", 6 }, { "iron_mine", 4 }, { "stone_quarry", 4 }, { "arcane_tower", 3 },
+            { "barracks", 2 }, { "training_ground", 2 }, { "wall", 8 },
+            { "watch_tower", 6 }, { "forge", 2 },
         };
 
         // Virtual grid occupancy: cell position -> instance ID
@@ -130,7 +131,7 @@ namespace AshenThrone.Empire
         private const float ZoomSpeed = 0.005f; // per pixel of pinch delta
         private const float MouseScrollZoomSpeed = 0.15f;
         private const float ZoomLerpSpeed = 8f; // P&C: smooth zoom interpolation
-        private const float DefaultZoom = 1.0f;
+        private const float DefaultZoom = 1.3f;
         private float _currentZoom = DefaultZoom;
         private float _targetZoom = DefaultZoom;
         private Vector2 _zoomPivotScreen;
@@ -1081,11 +1082,11 @@ namespace AshenThrone.Empire
         public static Vector2 FootprintScreenSize(Vector2Int size)
         {
             // Diamond footprint width: (sizeX + sizeY) * HalfW is the exact isometric diamond width.
-            // Scale to 0.70x — buildings fill most of their footprint for dense P&C city feel.
-            // Terrain still visible between buildings as thin gaps.
-            float w = (size.x + size.y) * HalfW * 0.70f;
-            // Taller bounding box — P&C buildings rise above their footprint
-            float h = w * 1.3f;
+            // Scale to 0.90x — buildings nearly fill their diamond for dense packed P&C city feel.
+            // Minimal terrain visible between buildings — city feels packed and alive.
+            float w = (size.x + size.y) * HalfW * 0.90f;
+            // Taller bounding box — P&C buildings rise well above their footprint
+            float h = w * 1.4f;
             return new Vector2(w, h);
         }
 

@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.09.0] — 2026-03-13 (Ralph Loop: Dense City, Larger Buildings, 1.3x Zoom)
+
+### CHANGED
+- **Building footprint 0.70→0.90** — Buildings 28% larger, nearly filling their isometric diamond. Minimal terrain gaps between buildings like P&C.
+- **Default zoom 1.0→1.3** — 30% closer view, buildings dominate the screen like P&C.
+- **Building height multiplier 1.3→1.4** — Buildings rise taller above their footprint for more imposing look.
+- **Tighter building placement** — All buildings moved 1-2 cells closer together. Stronghold shifted to (21,21) for better centering.
+- **Road network updated** — Ring road connecting districts, more cross-connections.
+
+### ADDED
+- **12 additional buildings** — Extra wall segments (6), watch towers (2), forge, arcane tower, grain farm, iron mine, stone quarry. Total: 44 buildings (was 32).
+- **24 decorative elements** — Trees, rocks, fountains, lanterns, arcane crystals placed in gaps between buildings for P&C-style zero-empty-ground feel.
+- **MaxBuildingCountPerType expanded** — Increased limits for walls (8), watch towers (6), forges (2), iron mines (4), stone quarries (4).
+
+---
+
 ## [1.08.0] — 2026-03-13 (Ralph Loop Iteration 103-104: P&C Layout Overhaul, Terrain, Building Sizes)
 
 ### CHANGED

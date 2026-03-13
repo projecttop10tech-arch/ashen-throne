@@ -34,58 +34,71 @@ namespace AshenThrone.Editor
         const float Padding = 120f;
 
         // All buildings: (typeId, instanceId, gridX, gridY, tier)
-        // P&C-style layout: 1 of each key building, only resource buildings duplicated.
-        // Generous spacing with visible terrain between buildings.
+        // P&C-style DENSE layout: buildings packed tight with 1-cell gaps.
+        // Every district filled, multiple resource copies, decorative wall segments.
         // Districts: Military N, Magic NE, Admin ring, Support W, Resources S.
         static readonly (string id, string inst, int gx, int gy, int tier)[] DefaultBuildings = new[]
         {
-            // === Central Stronghold (6×6) — occupies [22-27, 22-27] ===
-            ("stronghold",        "stronghold_0",        22, 22, 3),
+            // === Central Stronghold (6×6) — occupies [21-26, 21-26] ===
+            ("stronghold",        "stronghold_0",        21, 21, 3),
 
-            // === Administration — ring around stronghold (3+ cell gaps) ===
-            ("guild_hall",        "guild_hall_0",        15, 25, 2),  // 4×3 — west
-            ("embassy",           "embassy_0",           14, 19, 2),  // 3×3 — southwest
-            ("marketplace",       "marketplace_0",       29, 25, 2),  // 3×3 — east
-            ("academy",           "academy_0",           29, 19, 2),  // 3×3 — southeast
-            ("library",           "library_0",           22, 17, 1),  // 3×2 — south
-            ("archive",           "archive_0",           26, 17, 1),  // 2×2 — south
+            // === Administration — tight ring around stronghold ===
+            ("guild_hall",        "guild_hall_0",        16, 23, 2),  // 4×3 — west
+            ("embassy",           "embassy_0",           16, 19, 2),  // 3×3 — southwest
+            ("marketplace",       "marketplace_0",       28, 23, 2),  // 3×3 — east
+            ("academy",           "academy_0",           28, 19, 2),  // 3×3 — southeast
+            ("library",           "library_0",           22, 18, 1),  // 3×2 — south
+            ("archive",           "archive_0",           26, 18, 1),  // 2×2 — south-right
 
-            // === Military — north of stronghold (single instances) ===
-            ("barracks",          "barracks_0",          20, 30, 2),  // 4×3 — north center
-            ("training_ground",   "training_ground_0",   26, 30, 1),  // 3×3 — north right
-            ("armory",            "armory_0",            14, 30, 1),  // 3×3 — north left
+            // === Military — north of stronghold (tight cluster) ===
+            ("barracks",          "barracks_0",          20, 28, 2),  // 4×3 — north center
+            ("training_ground",   "training_ground_0",   25, 28, 1),  // 3×3 — north right
+            ("armory",            "armory_0",            15, 28, 1),  // 3×3 — north left
+            ("wall",              "wall_0",              20, 32, 2),  // 3×1 — north perimeter
+            ("wall",              "wall_1",              25, 32, 2),  // 3×1 — north perimeter
 
-            // === Magic — northeast (single instances) ===
-            ("arcane_tower",      "arcane_tower_0",      33, 25, 2),  // 2×3 — NE
-            ("enchanting_tower",  "enchanting_tower_0",  33, 21, 2),  // 2×3 — E
-            ("observatory",       "observatory_0",       37, 23, 1),  // 2×3 — far E
-            ("laboratory",        "laboratory_0",        33, 17, 1),  // 3×2 — SE
+            // === Magic — east district (tight cluster) ===
+            ("arcane_tower",      "arcane_tower_0",      32, 24, 2),  // 2×3 — NE
+            ("enchanting_tower",  "enchanting_tower_0",  32, 20, 2),  // 2×3 — E
+            ("observatory",       "observatory_0",       35, 22, 1),  // 2×3 — far E
+            ("laboratory",        "laboratory_0",        32, 17, 1),  // 3×2 — SE
+            ("arcane_tower",      "arcane_tower_1",      35, 18, 1),  // 2×3 — extra arcane
 
-            // === Support — west (single instances) ===
-            ("hero_shrine",       "hero_shrine_0",       10, 25, 2),  // 3×3 — W
-            ("forge",             "forge_0",             10, 20, 2),  // 3×2 — W
+            // === Support — west district (tight cluster) ===
+            ("hero_shrine",       "hero_shrine_0",       12, 24, 2),  // 3×3 — W
+            ("forge",             "forge_0",             12, 20, 2),  // 3×2 — W
+            ("forge",             "forge_1",              9, 22, 1),  // 3×2 — far W extra
 
-            // === Resources — south, clustered by type with gaps between groups ===
-            // Grain farms — southwest cluster
-            ("grain_farm",        "grain_farm_0",        10, 14, 2),  // 2×2
-            ("grain_farm",        "grain_farm_1",        13, 14, 2),  // 2×2
-            ("grain_farm",        "grain_farm_2",        10, 11, 1),  // 2×2
-            ("grain_farm",        "grain_farm_3",        13, 11, 1),  // 2×2
-            ("grain_farm",        "grain_farm_4",        16, 13, 1),  // 2×2
+            // === Resources — south, packed clusters ===
+            // Grain farms — southwest cluster (tight 2-wide rows)
+            ("grain_farm",        "grain_farm_0",        11, 15, 2),  // 2×2
+            ("grain_farm",        "grain_farm_1",        14, 15, 2),  // 2×2
+            ("grain_farm",        "grain_farm_2",        11, 12, 1),  // 2×2
+            ("grain_farm",        "grain_farm_3",        14, 12, 1),  // 2×2
+            ("grain_farm",        "grain_farm_4",        17, 14, 1),  // 2×2
+            ("grain_farm",        "grain_farm_5",         8, 14, 1),  // 2×2 — extra farm
             // Iron mines — south center cluster
-            ("iron_mine",         "iron_mine_0",         21, 14, 2),  // 2×2
-            ("iron_mine",         "iron_mine_1",         24, 14, 1),  // 2×2
-            ("iron_mine",         "iron_mine_2",         21, 11, 1),  // 2×2
+            ("iron_mine",         "iron_mine_0",         20, 15, 2),  // 2×2
+            ("iron_mine",         "iron_mine_1",         23, 15, 1),  // 2×2
+            ("iron_mine",         "iron_mine_2",         20, 12, 1),  // 2×2
+            ("iron_mine",         "iron_mine_3",         23, 12, 1),  // 2×2 — extra mine
             // Stone quarries — southeast cluster
-            ("stone_quarry",      "stone_quarry_0",      30, 14, 2),  // 2×2
-            ("stone_quarry",      "stone_quarry_1",      33, 14, 1),  // 2×2
-            ("stone_quarry",      "stone_quarry_2",      30, 11, 1),  // 2×2
+            ("stone_quarry",      "stone_quarry_0",      28, 15, 2),  // 2×2
+            ("stone_quarry",      "stone_quarry_1",      31, 15, 1),  // 2×2
+            ("stone_quarry",      "stone_quarry_2",      28, 12, 1),  // 2×2
+            ("stone_quarry",      "stone_quarry_3",      31, 12, 1),  // 2×2 — extra quarry
 
-            // === Defense — perimeter watch towers (2×2) ===
-            ("watch_tower",       "watch_tower_0",        8, 32, 1),  // NW
-            ("watch_tower",       "watch_tower_1",       36, 32, 1),  // NE
-            ("watch_tower",       "watch_tower_2",        8,  8, 1),  // SW
-            ("watch_tower",       "watch_tower_3",       36,  8, 1),  // SE
+            // === Defense — perimeter watch towers + walls ===
+            ("watch_tower",       "watch_tower_0",       10, 30, 1),  // NW
+            ("watch_tower",       "watch_tower_1",       34, 30, 1),  // NE
+            ("watch_tower",       "watch_tower_2",       10, 10, 1),  // SW
+            ("watch_tower",       "watch_tower_3",       34, 10, 1),  // SE
+            ("watch_tower",       "watch_tower_4",       22, 33, 1),  // N center
+            ("watch_tower",       "watch_tower_5",       22,  9, 1),  // S center
+            ("wall",              "wall_2",              14, 32, 1),  // NW wall
+            ("wall",              "wall_3",              30, 32, 1),  // NE wall
+            ("wall",              "wall_4",              14, 10, 1),  // SW wall
+            ("wall",              "wall_5",              30, 10, 1),  // SE wall
         };
 
         // ================================================================
@@ -109,8 +122,8 @@ namespace AshenThrone.Editor
         static Vector2 FootprintSize(Vector2Int size)
         {
             // Must match CityGridView.FootprintScreenSize for consistent layout
-            float w = (size.x + size.y) * HalfW * 0.70f;
-            float h = w * 1.3f; // Taller bounding box — P&C buildings rise above footprint
+            float w = (size.x + size.y) * HalfW * 0.90f;
+            float h = w * 1.4f; // Taller bounding box — P&C buildings rise above footprint
             return new Vector2(w, h);
         }
 
@@ -188,10 +201,10 @@ namespace AshenThrone.Editor
             contentRect.anchorMax = new Vector2(0.5f, 0.5f);
             contentRect.pivot = new Vector2(0.5f, 0.5f);
             contentRect.sizeDelta = new Vector2(contentW, contentH);
-            // P&C-style default zoom — overview showing most of the city at once
-            // Content is ~3200x2140. At 0.55x on 1080x1920 screen ≈ 1760x1177 visible content
+            // P&C-style zoomed-in default — buildings large and dominant on screen
+            // Content is ~3200x2140. At 1.3x on 1080x1920 screen, buildings fill viewport
             // This persists in the scene — CityGridView reads it at Start()
-            contentRect.localScale = Vector3.one * 1.0f;
+            contentRect.localScale = Vector3.one * 1.3f;
 
             var scroll = viewport.AddComponent<ScrollRect>();
             scroll.content = contentRect;
@@ -289,7 +302,7 @@ namespace AshenThrone.Editor
             // ================================================================
             // 5b. Focal aura behind Stronghold (P&C dragon-equivalent)
             // ================================================================
-            Vector2 shCenter = GridToIsoCenter(22, 22, new Vector2Int(6, 6));
+            Vector2 shCenter = GridToIsoCenter(21, 21, new Vector2Int(6, 6));
 
             var radialSprite = GetOrCreateRadialGradient();
 
@@ -343,26 +356,30 @@ namespace AshenThrone.Editor
             roadsRect.pivot = new Vector2(0.5f, 0.5f);
             roadsRect.sizeDelta = new Vector2(contentW, contentH);
 
-            // Road segments: pairs of grid coordinates forming a path network
-            // Connect stronghold (22,22) to key nearby buildings via isometric-aligned segments
-            // Road network radiating from stronghold center (25,25) to districts
+            // Road segments: pairs of grid coordinates forming a dense path network
+            // Connect stronghold center (24,24) to all districts
             var roadSegments = new (int fromX, int fromY, int toX, int toY)[]
             {
                 // Main roads from stronghold center to cardinal directions
-                (25, 25, 30, 26), // Stronghold → Marketplace (east)
-                (25, 25, 19, 26), // Stronghold → Guild Hall (west)
-                (25, 25, 25, 19), // Stronghold → Library (south)
-                (25, 25, 25, 31), // Stronghold → Barracks (north)
+                (24, 24, 29, 24), // Stronghold → Marketplace (east)
+                (24, 24, 19, 24), // Stronghold → Guild Hall (west)
+                (24, 24, 24, 19), // Stronghold → Library (south)
+                (24, 24, 24, 29), // Stronghold → Barracks (north)
                 // Cross connections to districts
-                (30, 26, 34, 26), // Marketplace → Magic District
-                (19, 26, 13, 26), // Guild Hall → Support District
-                (25, 19, 25, 15), // Library → Resource District
-                (25, 31, 25, 34), // Barracks → Military outer
+                (29, 24, 33, 23), // Marketplace → Magic District
+                (19, 24, 14, 24), // Guild Hall → Support District
+                (24, 19, 24, 16), // Library → Resource District
+                (24, 29, 24, 33), // Barracks → Military outer
                 // Extended roads
-                (34, 26, 38, 24), // Magic → Far East
-                (13, 26, 9, 26),  // Support → Far West
-                (25, 15, 22, 12), // Resources → SW farms
-                (25, 15, 31, 12), // Resources → SE quarries
+                (33, 23, 36, 22), // Magic → Far East
+                (14, 24, 10, 23), // Support → Far West
+                (24, 16, 18, 14), // Resources → SW farms
+                (24, 16, 30, 14), // Resources → SE quarries
+                // Ring road connecting districts
+                (19, 29, 14, 29), // Military W connector
+                (25, 29, 30, 29), // Military E connector
+                (14, 24, 14, 16), // West corridor
+                (33, 23, 33, 16), // East corridor
             };
 
             Color roadColor = new Color(0.14f, 0.12f, 0.08f, 0.50f);     // dark stone path on P&C terrain
@@ -490,6 +507,67 @@ namespace AshenThrone.Editor
                 CreateActionIndicator(bldgGO, inst);
 
                 placed++;
+            }
+
+            // ================================================================
+            // 7a. Decorative elements to fill gaps (P&C-style dense city)
+            // ================================================================
+            // P&C cities have NO empty ground — every gap has trees, rocks, or decor.
+            // Place small decorative elements in gaps between buildings.
+            var decorPositions = new (int gx, int gy, string symbol, Color color, float size)[]
+            {
+                // Trees between admin district buildings
+                (20, 19, "\u2663", new Color(0.25f, 0.55f, 0.20f, 0.70f), 18f),  // ♣ tree
+                (27, 20, "\u2663", new Color(0.20f, 0.50f, 0.18f, 0.65f), 16f),
+                (15, 22, "\u2663", new Color(0.28f, 0.52f, 0.22f, 0.70f), 20f),
+                // Trees around military
+                (18, 31, "\u2663", new Color(0.22f, 0.48f, 0.18f, 0.65f), 17f),
+                (29, 31, "\u2663", new Color(0.25f, 0.50f, 0.20f, 0.60f), 15f),
+                // Rocks in resource district
+                (17, 11, "\u25C6", new Color(0.45f, 0.42f, 0.38f, 0.55f), 12f),  // ◆ rock
+                (26, 11, "\u25C6", new Color(0.40f, 0.38f, 0.35f, 0.50f), 14f),
+                (19, 10, "\u25C6", new Color(0.42f, 0.40f, 0.36f, 0.50f), 10f),
+                // Fountain/wells in central area
+                (20, 22, "\u2756", new Color(0.40f, 0.65f, 0.90f, 0.65f), 14f),  // ❖ fountain
+                (27, 22, "\u2756", new Color(0.35f, 0.60f, 0.85f, 0.60f), 12f),
+                // Lanterns along roads
+                (24, 27, "\u2739", new Color(0.90f, 0.75f, 0.25f, 0.55f), 10f),  // ✹ lantern
+                (24, 20, "\u2739", new Color(0.85f, 0.70f, 0.20f, 0.50f), 10f),
+                (19, 20, "\u2739", new Color(0.88f, 0.72f, 0.22f, 0.50f), 10f),
+                (29, 20, "\u2739", new Color(0.88f, 0.72f, 0.22f, 0.50f), 10f),
+                // More trees around edges
+                (8, 18, "\u2663", new Color(0.20f, 0.45f, 0.18f, 0.60f), 22f),
+                (36, 18, "\u2663", new Color(0.22f, 0.48f, 0.20f, 0.55f), 20f),
+                (8, 28, "\u2663", new Color(0.18f, 0.42f, 0.15f, 0.65f), 24f),
+                (36, 28, "\u2663", new Color(0.20f, 0.45f, 0.18f, 0.60f), 22f),
+                // Fill gaps in magic district
+                (35, 26, "\u2726", new Color(0.55f, 0.30f, 0.80f, 0.40f), 12f),  // ✦ arcane crystal
+                (31, 19, "\u2726", new Color(0.50f, 0.28f, 0.75f, 0.35f), 10f),
+                // Fill gaps in support district
+                (9, 18, "\u2663", new Color(0.22f, 0.50f, 0.20f, 0.55f), 18f),
+                (9, 26, "\u2663", new Color(0.25f, 0.52f, 0.22f, 0.60f), 16f),
+                // Resource district infill
+                (16, 10, "\u2663", new Color(0.25f, 0.48f, 0.20f, 0.50f), 14f),
+                (26, 14, "\u25C6", new Color(0.38f, 0.36f, 0.32f, 0.45f), 11f),
+                (34, 14, "\u25C6", new Color(0.42f, 0.40f, 0.36f, 0.50f), 12f),
+            };
+
+            foreach (var (gx, gy, symbol, color, fontSize) in decorPositions)
+            {
+                Vector2 pos = GridToIso(gx + 0.5f, gy + 0.5f);
+                var decorGO = CreateChild(buildingsGO, $"Decor_{gx}_{gy}");
+                var decorRect = decorGO.AddComponent<RectTransform>();
+                decorRect.anchoredPosition = pos;
+                decorRect.sizeDelta = new Vector2(fontSize * 2f, fontSize * 2f);
+                var decorText = decorGO.AddComponent<Text>();
+                decorText.text = symbol;
+                decorText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                decorText.fontSize = (int)fontSize;
+                decorText.alignment = TextAnchor.MiddleCenter;
+                decorText.color = color;
+                decorText.raycastTarget = false;
+                // Push decorations behind building sprites
+                decorGO.transform.SetAsFirstSibling();
             }
 
             // ================================================================
