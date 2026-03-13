@@ -40,29 +40,30 @@ namespace AshenThrone.Empire
         [SerializeField] private GameObject gridOverlay;
 
         // Building size definitions (width x height in grid cells)
+        // P&C-style building sizes: military & key buildings are LARGER than resource buildings
         public static readonly Dictionary<string, Vector2Int> BuildingSizes = new()
         {
-            { "stronghold",       new Vector2Int(6, 6) },
-            { "barracks",         new Vector2Int(3, 2) },
-            { "forge",            new Vector2Int(2, 2) },
-            { "marketplace",      new Vector2Int(3, 2) },
-            { "academy",          new Vector2Int(2, 3) },
-            { "grain_farm",       new Vector2Int(2, 2) },
-            { "iron_mine",        new Vector2Int(2, 2) },
-            { "stone_quarry",     new Vector2Int(2, 2) },
-            { "arcane_tower",     new Vector2Int(2, 3) },
-            { "wall",             new Vector2Int(2, 1) },
-            { "watch_tower",      new Vector2Int(2, 2) },
-            { "guild_hall",       new Vector2Int(3, 2) },
-            { "embassy",          new Vector2Int(3, 2) },
-            { "training_ground",  new Vector2Int(2, 2) },
-            { "hero_shrine",      new Vector2Int(2, 2) },
-            { "laboratory",       new Vector2Int(2, 2) },
-            { "library",          new Vector2Int(2, 2) },
-            { "armory",           new Vector2Int(2, 2) },
-            { "enchanting_tower", new Vector2Int(2, 3) },
-            { "observatory",      new Vector2Int(2, 2) },
-            { "archive",          new Vector2Int(2, 2) },
+            { "stronghold",       new Vector2Int(6, 6) },   // Citadel — massive central building
+            { "barracks",         new Vector2Int(4, 3) },   // Large military complex
+            { "training_ground",  new Vector2Int(3, 3) },   // Military staging area
+            { "armory",           new Vector2Int(3, 3) },   // Equipment storage — larger than resource bldgs
+            { "academy",          new Vector2Int(3, 3) },   // Research institute — prominent
+            { "guild_hall",       new Vector2Int(4, 3) },   // Alliance war hall — large
+            { "embassy",          new Vector2Int(3, 3) },   // Diplomatic building
+            { "marketplace",      new Vector2Int(3, 3) },   // Trading hub
+            { "forge",            new Vector2Int(3, 2) },   // Crafting workshop — medium
+            { "library",          new Vector2Int(3, 2) },   // Knowledge building — medium
+            { "laboratory",       new Vector2Int(3, 2) },   // Research lab — medium
+            { "enchanting_tower", new Vector2Int(2, 3) },   // Tall magic tower — narrow+tall
+            { "arcane_tower",     new Vector2Int(2, 3) },   // Magic tower — narrow+tall
+            { "observatory",      new Vector2Int(2, 3) },   // Tall tower — narrow+tall
+            { "hero_shrine",      new Vector2Int(3, 3) },   // Sacred building — prominent
+            { "grain_farm",       new Vector2Int(2, 2) },   // Small resource patch
+            { "iron_mine",        new Vector2Int(2, 2) },   // Small resource site
+            { "stone_quarry",     new Vector2Int(2, 2) },   // Small resource site
+            { "wall",             new Vector2Int(2, 1) },   // Thin wall segment
+            { "watch_tower",      new Vector2Int(2, 2) },   // Small defensive tower
+            { "archive",          new Vector2Int(2, 2) },   // Small knowledge building
             // Decorations / cosmetic items (future)
             { "road",             new Vector2Int(1, 1) },
             { "fountain",         new Vector2Int(1, 1) },
@@ -286,6 +287,8 @@ namespace AshenThrone.Empire
             UpdateProsperityBadge();
             // P&C IT101: Recommended upgrade advisor arrow
             RefreshAdvisorArrow();
+            // P&C IT103: Wire resource bar icons to production breakdown popup
+            WireResourceBarTapHandlers();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -630,6 +633,9 @@ namespace AshenThrone.Empire
 
             // P&C: Hide detail labels at far zoom levels
             UpdateZoomDetailVisibility();
+
+            // P&C IT103: Simplify buildings when zoomed out
+            UpdateBuildingSimplification();
 
             // P&C: Show zoom level indicator briefly
             ShowZoomLevelIndicator();
@@ -1262,10 +1268,9 @@ namespace AshenThrone.Empire
             float yOffset = FootprintScreenSize(size).y * 0.15f;
             int sx = size.x, sy = size.y;
 
-            // Earthy ground plate — per-cell iso diamonds using diamond sprite
-            // Dark earthy tone to ground buildings against the visible terrain
-            Color plateFill = new Color(0.20f, 0.22f, 0.14f, 0.65f);
-            Color plateBorder = new Color(0.35f, 0.38f, 0.22f, 0.55f);
+            // Subtle shadow plate — slightly darker than P&C dark terrain to ground buildings
+            Color plateFill = new Color(0.10f, 0.16f, 0.07f, 0.45f);
+            Color plateBorder = new Color(0.14f, 0.22f, 0.10f, 0.35f);
             var diamondSpr = GetDiamondCellSprite();
 
             for (int gx = 0; gx < sx; gx++)
@@ -19569,6 +19574,304 @@ namespace AshenThrone.Empire
 
                 yield return null;
             }
+        }
+
+        // ====================================================================
+        // P&C IT103: Resource Bar Tap → Production Breakdown
+        // ====================================================================
+
+        /// <summary>
+        /// P&C IT103: Find resource icons in the Canvas hierarchy and wire tap handlers
+        /// to open production breakdown popups.
+        /// </summary>
+        private void WireResourceBarTapHandlers()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            string[] resourceNames = { "Grain", "Iron", "Stone", "Arcane" };
+            foreach (var resName in resourceNames)
+            {
+                // Search for Icon_<ResName> in the canvas hierarchy
+                var icon = FindDeepChild(canvas.transform, $"Icon_{resName}");
+                if (icon == null) continue;
+
+                // Add Button if not already present
+                var btn = icon.GetComponent<Button>();
+                if (btn == null)
+                {
+                    var img = icon.GetComponent<Image>();
+                    if (img != null) img.raycastTarget = true;
+                    btn = icon.gameObject.AddComponent<Button>();
+                    btn.targetGraphic = img;
+                }
+
+                string capturedName = resName;
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => ShowResourceBreakdownPopup(capturedName));
+
+                // Also wire the amount text next to the icon
+                var amtGO = FindDeepChild(canvas.transform, $"{resName}Amt");
+                if (amtGO != null)
+                {
+                    var amtBtn = amtGO.GetComponent<Button>();
+                    if (amtBtn == null)
+                    {
+                        var amtImg = amtGO.GetComponent<Image>();
+                        if (amtImg == null)
+                        {
+                            amtImg = amtGO.gameObject.AddComponent<Image>();
+                            amtImg.color = new Color(0, 0, 0, 0); // Invisible but raycastable
+                        }
+                        amtImg.raycastTarget = true;
+                        amtBtn = amtGO.gameObject.AddComponent<Button>();
+                        amtBtn.targetGraphic = amtImg;
+                    }
+                    amtBtn.onClick.RemoveAllListeners();
+                    amtBtn.onClick.AddListener(() => ShowResourceBreakdownPopup(capturedName));
+                }
+            }
+        }
+
+        /// <summary>Recursive deep child search by name.</summary>
+        private static Transform FindDeepChild(Transform parent, string childName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == childName) return child;
+                var found = FindDeepChild(child, childName);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        // ====================================================================
+        // P&C IT103: Zoom-Level Building Simplification
+        // ====================================================================
+
+        private const float ZoomSimplifyThreshold = 0.65f;
+        private bool _buildingsSimplified;
+
+        /// <summary>
+        /// P&C IT103: When zoomed out past threshold, swap building sprites to
+        /// simplified category-colored circle markers for readability.
+        /// </summary>
+        private void UpdateBuildingSimplification()
+        {
+            bool shouldSimplify = _currentZoom < ZoomSimplifyThreshold;
+            if (shouldSimplify == _buildingsSimplified) return;
+
+            _buildingsSimplified = shouldSimplify;
+
+            foreach (var p in _placements)
+            {
+                if (p.VisualGO == null) continue;
+
+                var marker = p.VisualGO.transform.Find("ZoomMarker");
+                var mainImg = p.VisualGO.GetComponent<Image>();
+
+                if (shouldSimplify)
+                {
+                    // Hide main sprite, show simplified marker
+                    if (mainImg != null) mainImg.color = new Color(1, 1, 1, 0.15f);
+
+                    // Hide labels and badges
+                    SetChildrenAlpha(p.VisualGO.transform, 0.15f, "ZoomMarker");
+
+                    if (marker == null)
+                    {
+                        // Create simplified marker
+                        var markerGO = new GameObject("ZoomMarker");
+                        markerGO.transform.SetParent(p.VisualGO.transform, false);
+                        markerGO.transform.SetAsLastSibling();
+                        var mRect = markerGO.AddComponent<RectTransform>();
+                        mRect.anchorMin = new Vector2(0.20f, 0.30f);
+                        mRect.anchorMax = new Vector2(0.80f, 0.80f);
+                        mRect.offsetMin = Vector2.zero;
+                        mRect.offsetMax = Vector2.zero;
+
+                        Color catColor = GetBuildingCategoryGlowColor(p.BuildingId);
+                        // Use brighter version of the category color
+                        catColor = new Color(
+                            Mathf.Min(1f, catColor.r * 4f),
+                            Mathf.Min(1f, catColor.g * 4f),
+                            Mathf.Min(1f, catColor.b * 4f),
+                            0.90f);
+
+                        var mImg = markerGO.AddComponent<Image>();
+                        mImg.raycastTarget = false;
+                        mImg.color = catColor;
+
+                        // Use radial gradient for soft dot
+                        var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+                        #if UNITY_EDITOR
+                        if (spr == null)
+                            spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+                        #endif
+                        if (spr != null) mImg.sprite = spr;
+
+                        // Category icon label
+                        string icon = GetBuildingCategoryIcon(p.BuildingId);
+                        var iconGO = new GameObject("Icon");
+                        iconGO.transform.SetParent(markerGO.transform, false);
+                        var iconRect = iconGO.AddComponent<RectTransform>();
+                        iconRect.anchorMin = Vector2.zero;
+                        iconRect.anchorMax = Vector2.one;
+                        iconRect.offsetMin = Vector2.zero;
+                        iconRect.offsetMax = Vector2.zero;
+                        var iconText = iconGO.AddComponent<Text>();
+                        iconText.text = icon;
+                        iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                        iconText.fontSize = 14;
+                        iconText.alignment = TextAnchor.MiddleCenter;
+                        iconText.color = Color.white;
+                        iconText.raycastTarget = false;
+                    }
+                    else
+                    {
+                        marker.gameObject.SetActive(true);
+                    }
+                }
+                else
+                {
+                    // Restore main sprite and hide marker
+                    if (mainImg != null) mainImg.color = Color.white;
+                    SetChildrenAlpha(p.VisualGO.transform, 1f, "ZoomMarker");
+                    if (marker != null) marker.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        /// <summary>Set alpha on all children except the named exclusion.</summary>
+        private static void SetChildrenAlpha(Transform parent, float alpha, string exclude)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == exclude) continue;
+                var cg = child.GetComponent<CanvasGroup>();
+                if (cg == null) cg = child.gameObject.AddComponent<CanvasGroup>();
+                cg.alpha = alpha;
+            }
+        }
+
+        /// <summary>P&C IT103: Category emoji icon for simplified zoom markers.</summary>
+        private static string GetBuildingCategoryIcon(string buildingId) => buildingId switch
+        {
+            "stronghold" => "\u265B", // Crown
+            "barracks" or "training_ground" or "armory" => "\u2694", // Swords
+            "grain_farm" or "iron_mine" or "stone_quarry" => "\u2692", // Hammers (resource)
+            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => "\u2726", // Star
+            "wall" or "watch_tower" => "\u26E8", // Shield
+            "marketplace" or "guild_hall" or "embassy" => "\u2605", // Star
+            "academy" or "library" or "archive" => "\u2710", // Book
+            "hero_shrine" => "\u2661", // Heart
+            "forge" => "\u2668", // Flame
+            _ => "\u25CF" // Dot
+        };
+
+        // ====================================================================
+        // P&C IT103: Speed-Up Rush Visual Effect
+        // ====================================================================
+
+        /// <summary>
+        /// P&C IT103: Dramatic fast-forward swirl effect when a speed-up is applied.
+        /// Clock hands spinning + ">>>" text + golden particles.
+        /// </summary>
+        private void PlaySpeedUpRushEffect(GameObject building)
+        {
+            if (building == null) return;
+            StartCoroutine(SpeedUpRushCoroutine(building));
+        }
+
+        private IEnumerator SpeedUpRushCoroutine(GameObject building)
+        {
+            if (building == null) yield break;
+
+            var container = building.transform.parent;
+            if (container == null) yield break;
+
+            var buildingRect = building.GetComponent<RectTransform>();
+            Vector2 center = buildingRect != null
+                ? buildingRect.anchoredPosition + new Vector2(0, buildingRect.sizeDelta.y * 0.3f)
+                : Vector2.zero;
+
+            // --- Fast-forward text ">>>" ---
+            var ffGO = new GameObject("RushText");
+            ffGO.transform.SetParent(container, false);
+            ffGO.transform.SetAsLastSibling();
+            var ffRect = ffGO.AddComponent<RectTransform>();
+            ffRect.anchoredPosition = center + new Vector2(0, 20);
+            ffRect.sizeDelta = new Vector2(80, 30);
+            var ffText = ffGO.AddComponent<Text>();
+            ffText.text = "\u25B6\u25B6\u25B6";
+            ffText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            ffText.fontSize = 20;
+            ffText.fontStyle = FontStyle.Bold;
+            ffText.alignment = TextAnchor.MiddleCenter;
+            ffText.color = new Color(1f, 0.85f, 0.30f);
+            ffText.raycastTarget = false;
+            var ffOutline = ffGO.AddComponent<Outline>();
+            ffOutline.effectColor = new Color(0.5f, 0.3f, 0f, 0.9f);
+            ffOutline.effectDistance = new Vector2(1.5f, -1.5f);
+            var ffCG = ffGO.AddComponent<CanvasGroup>();
+
+            // --- Spinning clock hands (4 lines rotating) ---
+            int handCount = 4;
+            var hands = new List<(RectTransform rect, CanvasGroup cg)>();
+            for (int i = 0; i < handCount; i++)
+            {
+                var handGO = new GameObject($"ClockHand_{i}");
+                handGO.transform.SetParent(container, false);
+                handGO.transform.SetAsLastSibling();
+                var hRect = handGO.AddComponent<RectTransform>();
+                hRect.anchoredPosition = center;
+                hRect.sizeDelta = new Vector2(3, 20);
+                hRect.pivot = new Vector2(0.5f, 0f);
+                float startAngle = (i / (float)handCount) * 360f;
+                hRect.localRotation = Quaternion.Euler(0, 0, startAngle);
+                var hImg = handGO.AddComponent<Image>();
+                hImg.color = new Color(1f, 0.90f, 0.40f, 0.80f);
+                hImg.raycastTarget = false;
+                var hCG = handGO.AddComponent<CanvasGroup>();
+                hands.Add((hRect, hCG));
+            }
+
+            // --- Animate ---
+            float duration = 0.7f;
+            float elapsed = 0f;
+            float spinSpeed = 720f; // degrees per second
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // >>> text rises and fades
+                if (ffGO != null)
+                {
+                    ffRect.anchoredPosition = center + new Vector2(0, 20 + t * 30);
+                    ffCG.alpha = t < 0.3f ? t / 0.3f : 1f - ((t - 0.3f) / 0.7f);
+                    ffRect.localScale = Vector3.one * (1f + t * 0.3f);
+                }
+
+                // Clock hands spin fast and fade out
+                float angle = spinSpeed * elapsed;
+                foreach (var (rect, cg) in hands)
+                {
+                    if (rect == null) continue;
+                    float baseAngle = hands.IndexOf((rect, cg)) * (360f / handCount);
+                    rect.localRotation = Quaternion.Euler(0, 0, baseAngle + angle);
+                    cg.alpha = 1f - t;
+                    rect.sizeDelta = new Vector2(3, Mathf.Lerp(20, 35, t));
+                }
+
+                yield return null;
+            }
+
+            // Cleanup
+            if (ffGO != null) Destroy(ffGO);
+            foreach (var (rect, _) in hands)
+                if (rect != null) Destroy(rect.gameObject);
         }
     }
 }

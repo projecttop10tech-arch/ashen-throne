@@ -34,144 +34,58 @@ namespace AshenThrone.Editor
         const float Padding = 120f;
 
         // All buildings: (typeId, instanceId, gridX, gridY, tier)
-        // Ultra-dense P&C-style layout: buildings packed shoulder-to-shoulder
+        // P&C-style layout: 1 of each key building, only resource buildings duplicated.
+        // Generous spacing with visible terrain between buildings.
+        // Districts: Military N, Magic NE, Admin ring, Support W, Resources S.
         static readonly (string id, string inst, int gx, int gy, int tier)[] DefaultBuildings = new[]
         {
-            // === Central Stronghold (4×4) at grid center ===
+            // === Central Stronghold (6×6) — occupies [22-27, 22-27] ===
             ("stronghold",        "stronghold_0",        22, 22, 3),
 
-            // === Inner Ring — Administration (touching stronghold) ===
-            ("guild_hall",        "guild_hall_0",        19, 22, 2),  // west
-            ("embassy",           "embassy_0",           19, 19, 2),  // southwest
-            ("marketplace",       "marketplace_0",       24, 20, 2),  // east
-            ("academy",           "academy_0",           27, 18, 2),  // southeast
-            ("library",           "library_0",           22, 18, 1),  // south of stronghold
-            ("archive",           "archive_0",           24, 18, 1),  // south of stronghold
+            // === Administration — ring around stronghold (3+ cell gaps) ===
+            ("guild_hall",        "guild_hall_0",        15, 25, 2),  // 4×3 — west
+            ("embassy",           "embassy_0",           14, 19, 2),  // 3×3 — southwest
+            ("marketplace",       "marketplace_0",       29, 25, 2),  // 3×3 — east
+            ("academy",           "academy_0",           29, 19, 2),  // 3×3 — southeast
+            ("library",           "library_0",           22, 17, 1),  // 3×2 — south
+            ("archive",           "archive_0",           26, 17, 1),  // 2×2 — south
 
-            // === North of Stronghold — Military ===
-            ("barracks",          "barracks_0",          19, 26, 2),  // NW tight
-            ("barracks",          "barracks_1",          20, 28, 2),  // N tight
-            ("barracks",          "barracks_2",          23, 28, 2),  // NE tight
-            ("training_ground",   "training_ground_0",   18, 28, 1),
-            ("training_ground",   "training_ground_1",   20, 30, 1),
-            ("armory",            "armory_0",            23, 30, 1),
-            ("armory",            "armory_1",            25, 29, 1),
-            ("barracks",          "barracks_3",          27, 29, 2),
+            // === Military — north of stronghold (single instances) ===
+            ("barracks",          "barracks_0",          20, 30, 2),  // 4×3 — north center
+            ("training_ground",   "training_ground_0",   26, 30, 1),  // 3×3 — north right
+            ("armory",            "armory_0",            14, 30, 1),  // 3×3 — north left
 
-            // === East — Magic District ===
-            ("arcane_tower",      "arcane_tower_0",      29, 22, 2),
-            ("enchanting_tower",  "enchanting_tower_0",  29, 19, 2),
-            ("observatory",       "observatory_0",       32, 22, 1),
-            ("laboratory",        "laboratory_0",        32, 20, 1),
-            ("arcane_tower",      "arcane_tower_1",      34, 22, 1),
-            ("enchanting_tower",  "enchanting_tower_1",  34, 19, 1),
-            ("library",           "library_1",           32, 18, 1),
-            ("archive",           "archive_1",           34, 17, 1),
+            // === Magic — northeast (single instances) ===
+            ("arcane_tower",      "arcane_tower_0",      33, 25, 2),  // 2×3 — NE
+            ("enchanting_tower",  "enchanting_tower_0",  33, 21, 2),  // 2×3 — E
+            ("observatory",       "observatory_0",       37, 23, 1),  // 2×3 — far E
+            ("laboratory",        "laboratory_0",        33, 17, 1),  // 3×2 — SE
 
-            // === West — Support District ===
-            ("hero_shrine",       "hero_shrine_0",       16, 22, 2),
-            ("forge",             "forge_0",             16, 19, 2),
-            ("hero_shrine",       "hero_shrine_1",       14, 22, 1),
-            ("forge",             "forge_1",             14, 19, 1),
-            ("hero_shrine",       "hero_shrine_2",       12, 22, 1),
-            ("forge",             "forge_2",             12, 19, 1),
+            // === Support — west (single instances) ===
+            ("hero_shrine",       "hero_shrine_0",       10, 25, 2),  // 3×3 — W
+            ("forge",             "forge_0",             10, 20, 2),  // 3×2 — W
 
-            // === South — Resource District ===
-            ("grain_farm",        "grain_farm_0",        16, 16, 2),
-            ("grain_farm",        "grain_farm_1",        18, 16, 2),
-            ("grain_farm",        "grain_farm_2",        20, 16, 1),
-            ("grain_farm",        "grain_farm_3",        16, 14, 1),
-            ("grain_farm",        "grain_farm_4",        18, 14, 1),
-            ("iron_mine",         "iron_mine_0",         22, 16, 2),
-            ("iron_mine",         "iron_mine_1",         24, 16, 1),
-            ("iron_mine",         "iron_mine_2",         22, 14, 1),
-            ("stone_quarry",      "stone_quarry_0",      26, 16, 2),
-            ("stone_quarry",      "stone_quarry_1",      28, 16, 1),
-            ("stone_quarry",      "stone_quarry_2",      26, 14, 1),
+            // === Resources — south, clustered by type with gaps between groups ===
+            // Grain farms — southwest cluster
+            ("grain_farm",        "grain_farm_0",        10, 14, 2),  // 2×2
+            ("grain_farm",        "grain_farm_1",        13, 14, 2),  // 2×2
+            ("grain_farm",        "grain_farm_2",        10, 11, 1),  // 2×2
+            ("grain_farm",        "grain_farm_3",        13, 11, 1),  // 2×2
+            ("grain_farm",        "grain_farm_4",        16, 13, 1),  // 2×2
+            // Iron mines — south center cluster
+            ("iron_mine",         "iron_mine_0",         21, 14, 2),  // 2×2
+            ("iron_mine",         "iron_mine_1",         24, 14, 1),  // 2×2
+            ("iron_mine",         "iron_mine_2",         21, 11, 1),  // 2×2
+            // Stone quarries — southeast cluster
+            ("stone_quarry",      "stone_quarry_0",      30, 14, 2),  // 2×2
+            ("stone_quarry",      "stone_quarry_1",      33, 14, 1),  // 2×2
+            ("stone_quarry",      "stone_quarry_2",      30, 11, 1),  // 2×2
 
-            // === Outer South — More Resources ===
-            ("grain_farm",        "grain_farm_5",        14, 14, 1),
-            ("iron_mine",         "iron_mine_3",         24, 14, 1),
-            ("stone_quarry",      "stone_quarry_3",      28, 14, 1),
-            ("grain_farm",        "grain_farm_6",        16, 12, 1),
-            ("iron_mine",         "iron_mine_4",         20, 12, 1),
-            ("stone_quarry",      "stone_quarry_4",      24, 12, 1),
-            ("grain_farm",        "grain_farm_7",        28, 12, 1),
-
-            // === Outer North — More Military ===
-            ("barracks",          "barracks_4",          15, 28, 1),
-            ("barracks",          "barracks_5",          30, 26, 1),
-            ("armory",            "armory_2",            30, 29, 1),
-            ("training_ground",   "training_ground_2",   33, 25, 1),
-            ("barracks",          "barracks_6",          14, 26, 1),
-
-            // === Outer East — More Magic ===
-            ("laboratory",        "laboratory_1",        36, 22, 1),
-            ("observatory",       "observatory_1",       36, 20, 1),
-            ("enchanting_tower",  "enchanting_tower_2",  36, 17, 1),
-            ("arcane_tower",      "arcane_tower_2",      28, 25, 1),
-
-            // === Outer West — More Support ===
-            ("forge",             "forge_3",             10, 22, 1),
-            ("hero_shrine",       "hero_shrine_3",       10, 19, 1),
-            ("forge",             "forge_4",             12, 16, 1),
-            ("hero_shrine",       "hero_shrine_4",       10, 16, 1),
-
-            // === Defense Towers — Perimeter Ring ===
-            ("watch_tower",       "watch_tower_0",        8, 28, 1),
-            ("watch_tower",       "watch_tower_1",       36, 28, 1),
-            ("watch_tower",       "watch_tower_2",        8, 14, 1),
-            ("watch_tower",       "watch_tower_3",       36, 14, 1),
-            ("watch_tower",       "watch_tower_4",       22, 32, 1),
-            ("watch_tower",       "watch_tower_5",       22, 10, 1),
-            ("watch_tower",       "watch_tower_6",       38, 22, 1),
-            ("watch_tower",       "watch_tower_7",        8, 22, 1),
-
-            // === Gap Fillers — Additional buildings to eliminate empty patches ===
-            ("marketplace",       "marketplace_1",       30, 16, 1),
-            ("academy",           "academy_1",           12, 26, 1),
-            ("laboratory",        "laboratory_2",        14, 16, 1),
-            ("academy",           "academy_2",           32, 29, 1),
-            ("marketplace",       "marketplace_2",       9, 25, 1),
-            ("library",           "library_2",           20, 14, 1),
-            ("archive",           "archive_2",           18, 12, 1),
-            ("observatory",       "observatory_2",       22, 12, 1),
-
-            // === Watch Tower Neighbors — fill gaps around perimeter towers ===
-            ("grain_farm",        "grain_farm_8",        10, 28, 1),  // near NW tower
-            ("barracks",          "barracks_7",          33, 27, 1),  // near NE tower
-            ("stone_quarry",      "stone_quarry_5",      10, 14, 1),  // near SW tower
-            ("iron_mine",         "iron_mine_5",         34, 14, 1),  // near SE tower
-            ("armory",            "armory_3",            20, 32, 1),  // near N tower
-            ("training_ground",   "training_ground_3",   24, 32, 1),  // near N tower
-            ("grain_farm",        "grain_farm_9",        20, 10, 1),  // near S tower
-            ("stone_quarry",      "stone_quarry_6",      24, 10, 1),  // near S tower
-            ("forge",             "forge_5",             38, 14, 1),  // near E tower gap
-            ("hero_shrine",       "hero_shrine_5",        7, 25, 1),  // near W tower gap
-
-            // === Deep outer ring — close off remaining holes ===
-            ("iron_mine",         "iron_mine_6",         12, 12, 1),
-            ("grain_farm",        "grain_farm_10",       30, 12, 1),
-            ("enchanting_tower",  "enchanting_tower_3",  36, 24, 1),
-            ("laboratory",        "laboratory_3",        10, 12, 1),
-            ("archive",           "archive_3",           26, 12, 1),
-            ("library",           "library_3",           30, 14, 1),
-            ("barracks",          "barracks_8",          16, 32, 1),
-            ("barracks",          "barracks_9",          28, 32, 1),
-
-            // === Ultra-dense infill — eliminate ALL visible gaps ===
-            ("forge",             "forge_6",             13, 29, 1),   // between W support and N military
-            ("grain_farm",        "grain_farm_11",       11, 30, 1),   // W outer gap
-            ("observatory",       "observatory_3",       31, 24, 1),   // between E magic and inner
-            ("laboratory",        "laboratory_4",        38, 19, 1),   // far E
-            ("grain_farm",        "grain_farm_12",       14, 12, 1),   // SW corner
-            ("stone_quarry",      "stone_quarry_7",      26, 10, 1),   // S gap
-            ("iron_mine",         "iron_mine_7",         32, 12, 1),   // SE gap
-            ("hero_shrine",       "hero_shrine_6",        8, 19, 1),   // far W
-            ("forge",             "forge_7",             38, 24, 1),   // far NE
-            ("academy",           "academy_3",           14, 31, 1),   // N inner
-            ("marketplace",       "marketplace_3",       28, 10, 1),   // S outer
-            ("enchanting_tower",  "enchanting_tower_4",  38, 16, 1),   // far SE
+            // === Defense — perimeter watch towers (2×2) ===
+            ("watch_tower",       "watch_tower_0",        8, 32, 1),  // NW
+            ("watch_tower",       "watch_tower_1",       36, 32, 1),  // NE
+            ("watch_tower",       "watch_tower_2",        8,  8, 1),  // SW
+            ("watch_tower",       "watch_tower_3",       36,  8, 1),  // SE
         };
 
         // ================================================================
@@ -256,9 +170,9 @@ namespace AshenThrone.Editor
             vpRect.offsetMin = Vector2.zero;
             vpRect.offsetMax = Vector2.zero;
             viewport.AddComponent<RectMask2D>();
-            // Dark viewport background — catches any gaps in content coverage
+            // Viewport background — dark green to match P&C terrain (catches any gaps)
             var vpBg = viewport.AddComponent<Image>();
-            vpBg.color = new Color(0.03f, 0.03f, 0.04f, 1f);
+            vpBg.color = new Color(0.14f, 0.20f, 0.10f, 1f);
             vpBg.raycastTarget = false;
             // Place CityViewport right after Background (index 1) so Background is behind
             // and all UI overlays (nav bar, info panel, etc.) are on top
@@ -300,20 +214,22 @@ namespace AshenThrone.Editor
             outerRect.offsetMax = Vector2.zero;
             var outerImg = outerBG.AddComponent<Image>();
 
-            // P&C-style visible terrain — earthy green/brown ground, NOT dark
-            var terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
-            if (terrainSprite != null)
+            // P&C-style terrain — medium-dark textured ground (NOT bright green, NOT black)
+            // Matches the dark forest green tone from the P&C reference screenshot
+            CreateGrassTexture(); // Regenerate with P&C-matching dark-green values
+            AssetDatabase.Refresh();
+            EnsureSpriteImportSettings("Assets/Art/Environments/tile_grass.png");
+            var grassSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/tile_grass.png");
+            if (grassSprite != null)
             {
-                EnsureSpriteImportSettings("Assets/Art/Environments/empire_terrain_bg.png");
-                terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/empire_terrain_bg.png");
-                outerImg.sprite = terrainSprite;
-                // Bright earthy green-brown — clearly visible grass/dirt ground like P&C
-                outerImg.color = new Color(0.35f, 0.40f, 0.25f, 1f);
+                outerImg.sprite = grassSprite;
+                outerImg.type = Image.Type.Tiled;
+                outerImg.color = Color.white; // Texture itself has correct P&C dark-green values
             }
             else
             {
-                // Fallback: visible earthy green terrain (not dark/black)
-                outerImg.color = new Color(0.30f, 0.35f, 0.22f, 1f);
+                // Fallback: dark green matching P&C terrain
+                outerImg.color = new Color(0.18f, 0.26f, 0.12f, 1f);
             }
             outerImg.raycastTarget = true;
 
@@ -329,7 +245,7 @@ namespace AshenThrone.Editor
 
             CreateEdgeFogTexture();
             var fogSprite = LoadOrCreateSprite("Assets/Art/UI/Production/edge_fog.png");
-            Color fogColor = new Color(0.12f, 0.14f, 0.08f, 0.85f); // earthy dark green fog (not black)
+            Color fogColor = new Color(0.08f, 0.12f, 0.06f, 0.50f); // dark forest edge fog (P&C style)
 
             // 4 fog panels along each diamond edge, extending outward
             float fogThickness = CellSize * 6f; // thick fog band
@@ -366,9 +282,9 @@ namespace AshenThrone.Editor
                 goImg.color = new Color(0.4f, 0.8f, 0.3f, 0.15f);
             }
             goImg.raycastTarget = false;
-            // P&C-style: subtle but visible diamond grid lines on terrain
-            goImg.color = new Color(0.30f, 0.20f, 0.50f, 0.15f); // dark fantasy purple grid
-            gridOverlayGO.SetActive(true);
+            // Grid overlay hidden by default — only shown during move mode
+            goImg.color = new Color(0.25f, 0.40f, 0.20f, 0.15f); // subtle green grid when active
+            gridOverlayGO.SetActive(false);
 
             // ================================================================
             // 5b. Focal aura behind Stronghold (P&C dragon-equivalent)
@@ -429,30 +345,28 @@ namespace AshenThrone.Editor
 
             // Road segments: pairs of grid coordinates forming a path network
             // Connect stronghold (22,22) to key nearby buildings via isometric-aligned segments
+            // Road network radiating from stronghold center (25,25) to districts
             var roadSegments = new (int fromX, int fromY, int toX, int toY)[]
             {
                 // Main roads from stronghold center to cardinal directions
-                (22, 22, 24, 20), // Stronghold → Marketplace (east)
-                (22, 22, 20, 24), // Stronghold → Barracks (west)
-                (22, 22, 18, 20), // Stronghold → Grain Farm (southwest)
-                (22, 22, 25, 25), // Stronghold → Iron Mine (north)
-                (22, 22, 20, 18), // Stronghold → Arcane Tower (south)
-                (22, 22, 26, 22), // Stronghold → Watch Tower (east-south)
-                // Cross connections between districts
-                (24, 20, 26, 18), // Marketplace → Watch Tower area
-                (20, 24, 16, 26), // Barracks → Training Ground
-                (18, 20, 16, 22), // Grain Farm → Stone Quarry
-                (25, 25, 22, 28), // Iron Mine → Guild Hall area
-                (20, 18, 18, 16), // Arcane Tower → Laboratory
-                // Extended roads to outer buildings
-                (26, 18, 30, 16), // East outer
-                (16, 26, 12, 30), // West outer
-                (16, 22, 12, 24), // Far west
-                (22, 28, 20, 32), // Far north
+                (25, 25, 30, 26), // Stronghold → Marketplace (east)
+                (25, 25, 19, 26), // Stronghold → Guild Hall (west)
+                (25, 25, 25, 19), // Stronghold → Library (south)
+                (25, 25, 25, 31), // Stronghold → Barracks (north)
+                // Cross connections to districts
+                (30, 26, 34, 26), // Marketplace → Magic District
+                (19, 26, 13, 26), // Guild Hall → Support District
+                (25, 19, 25, 15), // Library → Resource District
+                (25, 31, 25, 34), // Barracks → Military outer
+                // Extended roads
+                (34, 26, 38, 24), // Magic → Far East
+                (13, 26, 9, 26),  // Support → Far West
+                (25, 15, 22, 12), // Resources → SW farms
+                (25, 15, 31, 12), // Resources → SE quarries
             };
 
-            Color roadColor = new Color(0.28f, 0.22f, 0.18f, 0.55f);     // dark stone brown
-            Color roadEdge = new Color(0.18f, 0.14f, 0.10f, 0.40f);      // darker edge
+            Color roadColor = new Color(0.30f, 0.25f, 0.18f, 0.55f);     // dark dirt path on P&C terrain
+            Color roadEdge = new Color(0.22f, 0.18f, 0.12f, 0.40f);      // slightly darker edge
             float roadWidth = 5f;                                          // thin path
 
             foreach (var (fx, fy, tx, ty) in roadSegments)
@@ -488,10 +402,29 @@ namespace AshenThrone.Editor
             // 7. Place all buildings (isometric positions)
             // ================================================================
             int placed = 0;
+            var occupiedCells = new System.Collections.Generic.HashSet<Vector2Int>();
             foreach (var (id, inst, gx, gy, tier) in DefaultBuildings)
             {
                 if (!CityGridView.BuildingSizes.TryGetValue(id, out var size))
                     size = new Vector2Int(2, 2);
+
+                // Overlap safety check — skip buildings that collide with already-placed ones
+                bool overlaps = false;
+                var cells = new System.Collections.Generic.List<Vector2Int>();
+                for (int ox = 0; ox < size.x; ox++)
+                    for (int oy = 0; oy < size.y; oy++)
+                    {
+                        var cell = new Vector2Int(gx + ox, gy + oy);
+                        cells.Add(cell);
+                        if (occupiedCells.Contains(cell))
+                            overlaps = true;
+                    }
+                if (overlaps)
+                {
+                    Debug.LogWarning($"[EmpireCityLayout] Skipping {inst} at ({gx},{gy}) size {size} — overlaps existing building");
+                    continue;
+                }
+                foreach (var c in cells) occupiedCells.Add(c);
 
                 string spritePath = $"Assets/Art/Buildings/{id}_t{tier}.png";
                 EnsureSpriteImportSettings(spritePath);
@@ -505,7 +438,7 @@ namespace AshenThrone.Editor
                 Vector2 footprint = FootprintSize(size);
                 // Stronghold gets size boost for dramatic dominance (P&C-style)
                 if (id == "stronghold")
-                    footprint *= 1.5f;
+                    footprint *= 1.2f; // Moderate boost — 6×6 base is already dominant
                 // Offset upward so building base sits on diamond footprint
                 float yOffset = footprint.y * 0.15f;
                 bldgRect.anchoredPosition = isoPos + Vector2.up * yOffset;
@@ -584,37 +517,37 @@ namespace AshenThrone.Editor
             tgiImg.color = new Color(0.95f, 0.70f, 0.20f, 0.08f);
             tgiImg.raycastTarget = false;
 
-            // Bottom dark fade — ground recedes into darkness (STRONGER)
+            // Bottom subtle darken — very light on bright terrain
             var botFog = CreateChild(content, "BottomDarkFade");
             var botFogRect = botFog.AddComponent<RectTransform>();
             botFogRect.anchorMin = new Vector2(0f, 0f);
-            botFogRect.anchorMax = new Vector2(1f, 0.20f);
+            botFogRect.anchorMax = new Vector2(1f, 0.12f);
             botFogRect.offsetMin = Vector2.zero;
             botFogRect.offsetMax = Vector2.zero;
             var botFogImg = botFog.AddComponent<Image>();
-            botFogImg.color = new Color(0.02f, 0.01f, 0.04f, 0.70f);
+            botFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.35f);
             botFogImg.raycastTarget = false;
 
-            // Left vignette fog — dark fade on left edge
+            // Left vignette — very subtle on bright terrain
             var leftFog = CreateChild(content, "LeftVignetteFog");
             var leftFogRect = leftFog.AddComponent<RectTransform>();
             leftFogRect.anchorMin = new Vector2(0f, 0f);
-            leftFogRect.anchorMax = new Vector2(0.15f, 1f);
+            leftFogRect.anchorMax = new Vector2(0.10f, 1f);
             leftFogRect.offsetMin = Vector2.zero;
             leftFogRect.offsetMax = Vector2.zero;
             var leftFogImg = leftFog.AddComponent<Image>();
-            leftFogImg.color = new Color(0.02f, 0.01f, 0.04f, 0.50f);
+            leftFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.25f);
             leftFogImg.raycastTarget = false;
 
-            // Right vignette fog — dark fade on right edge
+            // Right vignette — very subtle
             var rightFog = CreateChild(content, "RightVignetteFog");
             var rightFogRect = rightFog.AddComponent<RectTransform>();
-            rightFogRect.anchorMin = new Vector2(0.85f, 0f);
+            rightFogRect.anchorMin = new Vector2(0.90f, 0f);
             rightFogRect.anchorMax = new Vector2(1f, 1f);
             rightFogRect.offsetMin = Vector2.zero;
             rightFogRect.offsetMax = Vector2.zero;
             var rightFogImg = rightFog.AddComponent<Image>();
-            rightFogImg.color = new Color(0.02f, 0.01f, 0.04f, 0.50f);
+            rightFogImg.color = new Color(0.06f, 0.10f, 0.04f, 0.25f);
             rightFogImg.raycastTarget = false;
 
             // Focal aura moved to before buildings (section 6a) for correct z-order
@@ -1089,29 +1022,37 @@ namespace AshenThrone.Editor
         static void CreateGrassTexture()
         {
             string path = "Assets/Art/Environments/tile_grass.png";
-            int size = 128;
+            int size = 256; // Larger texture for less obvious tiling at multiple zoom levels
 
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Repeat;
 
-            // Dark earthy ground — subtle noise variation, NO grid lines
+            // P&C-style terrain: medium-dark green with rich variation
+            // Matches the dark forest floor seen in P&C reference screenshots
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    // Multi-octave tileable noise using PerlinNoise
-                    // Frequencies that divide evenly into 128 give seamless tiling
-                    float n1 = Mathf.PerlinNoise(x * 0.03125f + 0.5f, y * 0.03125f + 0.5f); // 32px period
-                    float n2 = Mathf.PerlinNoise(x * 0.0625f + 10.5f, y * 0.0625f + 10.5f);  // 16px period
-                    float n3 = Mathf.PerlinNoise(x * 0.125f + 20.5f, y * 0.125f + 20.5f);     // 8px period
+                    // Multi-octave noise for natural terrain variation
+                    float n1 = Mathf.PerlinNoise(x * 0.015f + 0.5f, y * 0.015f + 0.5f);     // large patches
+                    float n2 = Mathf.PerlinNoise(x * 0.04f + 10.5f, y * 0.04f + 10.5f);      // medium detail
+                    float n3 = Mathf.PerlinNoise(x * 0.08f + 20.5f, y * 0.08f + 20.5f);      // fine grass blades
+                    float n4 = Mathf.PerlinNoise(x * 0.02f + 30.5f, y * 0.02f + 30.5f);      // earthy patches
 
-                    float noise = n1 * 0.06f + n2 * 0.03f + n3 * 0.015f;
+                    // Combine: large variation + medium detail + fine texture
+                    float grassNoise = n1 * 0.12f + n2 * 0.06f + n3 * 0.03f;
+                    float earthPatch = n4 > 0.55f ? (n4 - 0.55f) * 0.15f : 0f; // sparse earth spots
 
-                    // Base: dark mossy earth
-                    float r = 0.14f + noise;
-                    float g = 0.19f + noise * 1.3f;
-                    float b = 0.11f + noise * 0.7f;
+                    // Base: dark forest green (P&C reference tone)
+                    float r = 0.18f + grassNoise * 0.6f + earthPatch * 1.2f;
+                    float g = 0.28f + grassNoise * 1.0f - earthPatch * 0.3f;
+                    float b = 0.12f + grassNoise * 0.3f + earthPatch * 0.2f;
+
+                    // Clamp to keep in range
+                    r = Mathf.Clamp01(r);
+                    g = Mathf.Clamp01(g);
+                    b = Mathf.Clamp01(b);
 
                     tex.SetPixel(x, y, new Color(r, g, b, 1f));
                 }

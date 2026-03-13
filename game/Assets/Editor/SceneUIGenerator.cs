@@ -3840,7 +3840,7 @@ namespace AshenThrone.Editor
 
             // Map to dedicated production sprites — each is unique and instantly recognizable
             string spriteKey = label.ToLower() switch {
-                "world"    => "nav_battle",     // crossed swords / world map
+                "world"    => "nav_world",      // globe with compass
                 "hero"     => "nav_heroes",     // ornate helmet
                 "quest"    => "icon_quest",     // glowing quest scroll
                 "bag"      => "nav_shop",       // treasure chest

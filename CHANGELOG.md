@@ -4,6 +4,29 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.08.0] — 2026-03-13 (Ralph Loop Iteration 103-104: P&C Layout Overhaul, Terrain, Building Sizes)
+
+### CHANGED
+- **Building layout redesigned to match P&C** — Single instance of each key building (barracks, academy, forge, etc.) instead of duplicating. Only resource buildings (farms, mines, quarries) have multiple copies. Buildings now arranged in logical districts with generous spacing.
+- **Building sizes differentiated** — Military/key buildings (barracks 4×3, academy 3×3, guild_hall 4×3) are larger than resource buildings (2×2). Stronghold is 6×6. Matches P&C's visual hierarchy.
+- **Terrain colors match P&C reference** — Medium-dark green terrain (not bright green, not black). 256px grass texture with multi-octave noise for natural variation at all zoom levels. Earthy patches for depth.
+- **Road network simplified** — Clean radial roads from stronghold center to each district.
+- **Stronghold visual boost reduced** — 1.2x instead of 1.5x since 6×6 base is already dominant.
+
+### ADDED
+- **Resource bar tap handlers** — Tapping grain/iron/stone/arcane icons in resource bar opens resource breakdown popup.
+- **Zoom-level building simplification** — Below 0.65x zoom, buildings swap to simplified category-colored circle markers for readability.
+- **Speed-up rush visual effect** — Fast-forward ">>>" swirl animation for buildings using speed-ups.
+- **Overlap safety check** — Building placement generator now validates cell occupancy and skips overlapping buildings with warnings.
+- **World map nav icon** — Generated globe icon (nav_world.png) replacing crossed-swords icon for "World" nav button.
+
+### FIXED
+- **Buildings all same size** — Barracks, academy, library no longer same size as farms. Proper P&C-style tiered sizing.
+- **Grid overlay visible by default** — Grid lines hidden by default, only shown during move mode.
+- **Shadow plates match terrain** — Updated to dark green tones matching P&C terrain instead of bright green.
+
+---
+
 ## [1.07.0] — 2026-03-13 (Ralph Loop Iteration 102: Long-Press Radial, Category Glows)
 
 ### ADDED
