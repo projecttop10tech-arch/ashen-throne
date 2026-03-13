@@ -2575,207 +2575,362 @@ namespace AshenThrone.Editor
             var ornateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/panel_ornate_gen.png");
             var btnOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/btn_neutral.png");
 
-            // === TERRAIN SPRITES for world map tiles ===
-            Sprite[] terrainSprites = {
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_forest.png"),   // 0
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_desert.png"),   // 1
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_mountain.png"), // 2
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_swamp.png"),    // 3
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_volcanic.png"), // 4
-            };
-            var citySprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/stronghold_t3.png");
-            var towerSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/watch_tower_t2.png");
-            var arcaneSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/arcane_tower_t2.png");
-            var forgeSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/iron_mine_t2.png");
-            var academySpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/academy_t2.png");
+            // === BUILDING SPRITES for world map objects ===
+            var strongholdSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/stronghold_t3.png");
+            var strongholdT1 = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/stronghold_t1.png");
+            var strongholdT2 = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/stronghold_t2.png");
+            var grainSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/grain_farm_t1.png");
+            var ironSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/iron_mine_t1.png");
+            var stoneSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/stone_quarry_t1.png");
+            var arcaneSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/arcane_tower_t1.png");
+            var towerSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/watch_tower_t1.png");
+            var barracksSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/barracks_t1.png");
+            // Terrain feature sprites
+            var forestSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_forest.png");
+            var swampSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Environments/worldmap_swamp.png");
 
-            // Dark world-map background — visible only if tiles don't cover
-            var bg = AddPanel(canvasGo, "MapBackground", new Color(0.04f, 0.05f, 0.03f, 1f));
+            // === P&C-STYLE OPEN WORLD — continuous green terrain with scattered objects ===
+
+            // Green terrain background
+            var bg = AddPanel(canvasGo, "MapBackground", new Color(0.32f, 0.48f, 0.20f, 1f)); // vivid P&C green grass
             StretchToParent(bg);
 
-            // === TERRITORY DATA — 8 rows × 6 cols for full phone coverage ===
-            int ROWS = 8, COLS = 6;
-            string[,] tileNames = {
-                { "Ashfall", "Iron Wastes", "Duskfen", "Stonewatch", "Thornvale", "Grimreach" },
-                { "Emberveil", "", "Blackhollow", "", "Wraithwood", "" },
-                { "Goldvein", "Mistpeak", "", "Frostmere", "Shadowfen", "Deepforge" },
-                { "", "Dragonspire", "Voidrift", "", "Skybreak", "" },
-                { "Sunhaven", "", "Moonfall", "Irondeep", "", "Ashenmoor" },
-                { "", "Dawnreach", "", "Nighthollow", "", "Cinderpeak" },
-                { "Silvervein", "", "Stormwall", "", "Dreadmire", "" },
-                { "Frostgate", "Ashwood", "", "Voidspire", "", "Bonecrag" }
-            };
-            int[,] tileTypes = { // 0=neutral, 1=allied, 2=enemy, 3=contested
-                { 1, 1, 0, 2, 0, 2 },
-                { 1, 0, 3, 0, 2, 0 },
-                { 0, 1, 0, 0, 3, 2 },
-                { 0, 1, 2, 0, 0, 0 },
-                { 1, 0, 0, 2, 0, 2 },
-                { 0, 1, 0, 2, 0, 3 },
-                { 1, 0, 0, 0, 2, 0 },
-                { 1, 1, 0, 3, 0, 2 }
-            };
-            int[,] terrainIdx = { // 0=forest, 1=desert, 2=mountain, 3=swamp, 4=volcanic
-                { 4, 1, 3, 2, 0, 4 },
-                { 4, 0, 3, 2, 0, 1 },
-                { 1, 2, 0, 2, 3, 4 },
-                { 1, 2, 4, 3, 2, 0 },
-                { 0, 2, 0, 2, 4, 3 },
-                { 3, 0, 1, 4, 2, 4 },
-                { 0, 1, 2, 0, 3, 1 },
-                { 2, 0, 3, 4, 1, 2 }
-            };
-            string[,] owners = {
-                { "Lord Kael", "Iron Legion", "", "Shadow Pact", "", "Overlord Nyx" },
-                { "Lady Sera", "", "CONTESTED", "", "Shadow Queen", "" },
-                { "", "Capt. Lyra", "", "", "CONTESTED", "Warlord Grim" },
-                { "", "Warden Rowan", "Dark Vortex", "", "", "" },
-                { "Duke Vex", "", "Mistwalker", "Baron Zara", "", "Count Dread" },
-                { "", "Sir Aldric", "", "Lady Morrigan", "", "CONTESTED" },
-                { "Warden Pike", "", "", "", "Skulltaker", "" },
-                { "Frostking", "Scout Wren", "", "CONTESTED", "", "Lord Ashen" }
-            };
-            // Ownership overlay tints
-            Color[] ownerTints = {
-                new Color(0.08f, 0.08f, 0.06f, 0.08f), // neutral — barely visible
-                new Color(0.05f, 0.40f, 0.02f, 0.30f), // allied green — strong
-                new Color(0.45f, 0.04f, 0.02f, 0.30f), // enemy red — strong
-                new Color(0.45f, 0.35f, 0.02f, 0.35f)  // contested amber — strong
-            };
-            Color[] tileBorderColors = {
-                new Color(0.35f, 0.32f, 0.25f, 0.40f),
-                new Color(0.25f, 0.55f, 0.18f, 0.75f), // allied — bright green
-                new Color(0.60f, 0.18f, 0.12f, 0.75f), // enemy — bright red
-                new Color(0.65f, 0.52f, 0.12f, 0.78f)  // contested — bright amber
-            };
+            // Scrollable viewport
+            var viewport = AddPanel(canvasGo, "MapViewport", new Color(0.28f, 0.42f, 0.18f, 1f));
+            StretchToParent(viewport);
+            viewport.AddComponent<RectMask2D>();
+            viewport.GetComponent<Image>().raycastTarget = false;
 
-            // === FULL-SCREEN tile grid — terrain fills entire screen edge-to-edge ===
-            var mapContainer = AddPanel(canvasGo, "MapTiles", new Color(0, 0, 0, 0));
-            StretchToParent(mapContainer); // 0,0 to 1,1 — fills EVERYTHING
+            float contentW = 4000f, contentH = 4500f; // large open world
+            var mapContent = new GameObject("MapContent");
+            mapContent.transform.SetParent(viewport.transform, false);
+            var contentRect = mapContent.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0.5f, 0.5f);
+            contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+            contentRect.pivot = new Vector2(0.5f, 0.5f);
+            contentRect.sizeDelta = new Vector2(contentW, contentH);
+            contentRect.localScale = Vector3.one * 1.0f;
 
-            for (int r = 0; r < ROWS; r++)
+            var scroll = viewport.AddComponent<ScrollRect>();
+            scroll.content = contentRect;
+            scroll.horizontal = true;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.elasticity = 0.10f;
+            scroll.inertia = true;
+            scroll.decelerationRate = 0.12f;
+            scroll.scrollSensitivity = 40f;
+
+            // --- TERRAIN VARIATION: scatter forest/swamp patches on green base ---
+            var terrainPatches = new (float x, float y, float w, float h, Sprite spr, float alpha)[] {
+                (-1200, -800, 700, 600, forestSpr, 0.40f),
+                (800, 1200, 650, 550, forestSpr, 0.35f),
+                (-600, 1400, 600, 500, swampSpr, 0.30f),
+                (1400, -400, 580, 520, forestSpr, 0.38f),
+                (-1500, 600, 500, 450, swampSpr, 0.28f),
+                (400, -1600, 650, 580, forestSpr, 0.32f),
+                (1200, 800, 450, 400, swampSpr, 0.25f),
+            };
+            foreach (var patch in terrainPatches)
             {
-                for (int c = 0; c < COLS; c++)
+                if (patch.spr == null) continue;
+                var pGO = new GameObject("TerrainPatch");
+                pGO.transform.SetParent(mapContent.transform, false);
+                var pRect = pGO.AddComponent<RectTransform>();
+                pRect.anchorMin = pRect.anchorMax = new Vector2(0.5f, 0.5f);
+                pRect.pivot = new Vector2(0.5f, 0.5f);
+                pRect.anchoredPosition = new Vector2(patch.x, patch.y);
+                pRect.sizeDelta = new Vector2(patch.w, patch.h);
+                var pImg = pGO.AddComponent<Image>();
+                pImg.sprite = patch.spr;
+                pImg.preserveAspect = false;
+                pImg.color = new Color(1f, 1f, 1f, patch.alpha);
+                pImg.raycastTarget = false;
+            }
+
+            // --- TERRAIN DECORATION: scatter small rocks, tree clusters ---
+            var decorations = new (float x, float y, string symbol, Color color, float size)[] {
+                (-300, 200, "\u2663", new Color(0.20f, 0.38f, 0.15f, 0.60f), 28f),   // tree
+                (500, -300, "\u2663", new Color(0.22f, 0.40f, 0.18f, 0.55f), 24f),
+                (-800, -500, "\u25C6", new Color(0.40f, 0.38f, 0.32f, 0.45f), 18f),  // rock
+                (900, 600, "\u2663", new Color(0.18f, 0.35f, 0.14f, 0.50f), 30f),
+                (-1100, 300, "\u25C6", new Color(0.38f, 0.35f, 0.28f, 0.40f), 16f),
+                (200, 800, "\u2663", new Color(0.22f, 0.42f, 0.16f, 0.55f), 26f),
+                (-400, -1000, "\u2663", new Color(0.20f, 0.36f, 0.14f, 0.48f), 22f),
+                (1300, -800, "\u25C6", new Color(0.35f, 0.32f, 0.25f, 0.38f), 20f),
+                (-700, 1000, "\u2663", new Color(0.24f, 0.44f, 0.18f, 0.52f), 28f),
+                (600, 1500, "\u25C6", new Color(0.36f, 0.34f, 0.28f, 0.42f), 15f),
+                (0, -600, "\u2663", new Color(0.22f, 0.40f, 0.16f, 0.50f), 24f),
+                (-1400, -200, "\u2663", new Color(0.18f, 0.35f, 0.12f, 0.45f), 26f),
+            };
+            foreach (var d in decorations)
+            {
+                var dGO = new GameObject("Decor");
+                dGO.transform.SetParent(mapContent.transform, false);
+                var dRect = dGO.AddComponent<RectTransform>();
+                dRect.anchorMin = dRect.anchorMax = new Vector2(0.5f, 0.5f);
+                dRect.pivot = new Vector2(0.5f, 0.5f);
+                dRect.anchoredPosition = new Vector2(d.x, d.y);
+                dRect.sizeDelta = new Vector2(d.size * 2f, d.size * 2f);
+                var dText = dGO.AddComponent<Text>();
+                dText.text = d.symbol;
+                dText.fontSize = (int)d.size;
+                dText.alignment = TextAnchor.MiddleCenter;
+                dText.color = d.color;
+                dText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                dText.raycastTarget = false;
+            }
+
+            // Helper: place a map object (castle, resource, monster)
+            System.Action<float, float, float, float, Sprite, string, string, Color, bool, string> PlaceMapObject =
+                (float px, float py, float w, float h, Sprite spr, string label, string sublabel, Color labelColor, bool isShielded, string goName) =>
+            {
+                var obj = new GameObject(goName);
+                obj.transform.SetParent(mapContent.transform, false);
+                var objRect = obj.AddComponent<RectTransform>();
+                objRect.anchorMin = objRect.anchorMax = new Vector2(0.5f, 0.5f);
+                objRect.pivot = new Vector2(0.5f, 0.5f);
+                objRect.anchoredPosition = new Vector2(px, py);
+                objRect.sizeDelta = new Vector2(w, h);
+
+                // Building/object sprite
+                if (spr != null)
                 {
-                    int tt = tileTypes[r, c];
-                    int ti = terrainIdx[r, c];
-                    float rx0 = (float)c / COLS, ry0 = (float)r / ROWS;
-                    float rx1 = (float)(c + 1) / COLS, ry1 = (float)(r + 1) / ROWS;
-
-                    // Terrain sprite tile — FULL brightness, sprites provide their own color
-                    var tile = AddPanel(mapContainer, $"Tile_{r}_{c}", Color.white);
-                    SetAnchors(tile, rx0, ry0, rx1, ry1);
-                    var tileImg = tile.GetComponent<Image>();
-                    if (terrainSprites[ti] != null)
-                    {
-                        tileImg.sprite = terrainSprites[ti];
-                        tileImg.type = Image.Type.Simple;
-                        tileImg.preserveAspect = false;
-                        tileImg.color = new Color(0.95f, 0.93f, 0.90f, 1f); // bright terrain, slight warm tint
-                    }
-                    else
-                    {
-                        // Fallback — dark terrain color if sprite missing
-                        tileImg.color = new Color(0.12f, 0.14f, 0.10f, 1f);
-                    }
-
-                    // Ownership tint overlay
-                    var overlay = AddPanel(tile, "OwnerTint", ownerTints[tt]);
-                    StretchToParent(overlay);
-                    overlay.GetComponent<Image>().raycastTarget = false;
-
-                    // Inner glow border for ownership (thicker colored edge)
-                    if (tt > 0) // skip neutral
-                    {
-                        var innerGlow = AddPanel(tile, "InnerGlow", new Color(0, 0, 0, 0));
-                        StretchToParent(innerGlow);
-                        var ig = innerGlow.AddComponent<Outline>();
-                        ig.effectColor = tileBorderColors[tt];
-                        ig.effectDistance = new Vector2(3f, -3f);
-                    }
-                    // Territory border — subtle dark grid line (softer than chess board)
-                    AddOutlinePanel(tile, new Color(0.02f, 0.02f, 0.01f, 0.35f));
-
-                    string name = tileNames[r, c];
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        // City marker — different sprites by ownership + terrain
-                        Sprite marker = tt == 1 ? citySprite : tt == 2 ? (ti == 4 ? forgeSpr : citySprite) :
-                            tt == 3 ? arcaneSpr : (ti == 2 ? towerSprite : academySpr);
-                        if (marker == null) marker = citySprite;
-                        if (marker != null)
-                        {
-                            var cityGO = AddPanel(tile, "CityMarker", Color.white);
-                            SetAnchors(cityGO, 0.10f, 0.08f, 0.90f, 0.72f);
-                            var cityImg = cityGO.GetComponent<Image>();
-                            cityImg.sprite = marker;
-                            cityImg.preserveAspect = true;
-                            cityImg.raycastTarget = false;
-                            var citySh = cityGO.AddComponent<Shadow>();
-                            citySh.effectColor = new Color(0, 0, 0, 0.85f);
-                            citySh.effectDistance = new Vector2(2f, -2.5f);
-                        }
-
-                        // Territory name banner — dark backdrop pill at top
-                        var nameBg = AddPanel(tile, "NameBg", new Color(0.01f, 0.01f, 0.02f, 0.85f));
-                        SetAnchors(nameBg, 0.02f, 0.72f, 0.98f, 0.96f);
-                        AddOutlinePanel(nameBg, tt == 1 ? new Color(0.25f, 0.55f, 0.18f, 0.70f) :
-                            tt == 2 ? new Color(0.60f, 0.18f, 0.14f, 0.70f) :
-                            tt == 3 ? new Color(0.60f, 0.50f, 0.12f, 0.70f) :
-                            new Color(0.40f, 0.35f, 0.25f, 0.55f));
-                        var nameLabel = AddText(nameBg, "Name", name, 10, TextAnchor.MiddleCenter);
-                        StretchToParent(nameLabel);
-                        nameLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-                        nameLabel.GetComponent<Text>().color = tt == 1 ? new Color(0.55f, 0.92f, 0.42f, 1f) :
-                            tt == 2 ? new Color(0.95f, 0.42f, 0.38f, 1f) :
-                            tt == 3 ? new Color(0.98f, 0.85f, 0.28f, 1f) :
-                            new Color(0.85f, 0.80f, 0.65f, 1f);
-                        var nSh = nameLabel.AddComponent<Shadow>();
-                        nSh.effectColor = new Color(0, 0, 0, 1f);
-                        nSh.effectDistance = new Vector2(0.8f, -0.8f);
-
-                        // Owner / player name at bottom
-                        string owner = owners[r, c];
-                        if (!string.IsNullOrEmpty(owner))
-                        {
-                            var ownerBg = AddPanel(tile, "OwnerBg", new Color(0.01f, 0.01f, 0.02f, 0.62f));
-                            SetAnchors(ownerBg, 0.06f, 0.01f, 0.94f, 0.16f);
-                            var ownerLabel = AddText(ownerBg, "Owner", owner, 10, TextAnchor.MiddleCenter);
-                            StretchToParent(ownerLabel);
-                            ownerLabel.GetComponent<Text>().fontStyle = FontStyle.Italic;
-                            ownerLabel.GetComponent<Text>().color = tt == 1 ? new Color(0.42f, 0.75f, 0.35f, 0.95f) :
-                                tt == 2 ? new Color(0.82f, 0.38f, 0.32f, 0.95f) :
-                                tt == 3 ? new Color(0.85f, 0.72f, 0.28f, 0.95f) :
-                                new Color(0.62f, 0.58f, 0.50f, 0.85f);
-                            var oSh = ownerLabel.AddComponent<Shadow>();
-                            oSh.effectColor = new Color(0, 0, 0, 0.95f);
-                            oSh.effectDistance = new Vector2(0.6f, -0.6f);
-                        }
-                    }
+                    var img = obj.AddComponent<Image>();
+                    img.sprite = spr;
+                    img.preserveAspect = true;
+                    img.color = Color.white;
+                    img.raycastTarget = true;
+                    var sh = obj.AddComponent<Shadow>();
+                    sh.effectColor = new Color(0, 0, 0, 0.85f);
+                    sh.effectDistance = new Vector2(2f, -3f);
                 }
-            }
 
-            // Atmospheric fog — gradient strips at ALL edges for depth
-            for (int i = 0; i < 6; i++)
+                // Shield dome effect
+                if (isShielded)
+                {
+                    var shield = AddPanel(obj, "Shield", new Color(0.30f, 0.60f, 0.90f, 0.18f));
+                    SetAnchors(shield, -0.15f, -0.10f, 1.15f, 1.10f);
+                    var shieldOut = shield.AddComponent<Outline>();
+                    shieldOut.effectColor = new Color(0.40f, 0.70f, 1f, 0.40f);
+                    shieldOut.effectDistance = new Vector2(2f, -2f);
+                }
+
+                // Name label above
+                if (!string.IsNullOrEmpty(label))
+                {
+                    var labelGO = new GameObject("Label");
+                    labelGO.transform.SetParent(obj.transform, false);
+                    var lRect = labelGO.AddComponent<RectTransform>();
+                    lRect.anchorMin = new Vector2(0f, 1f);
+                    lRect.anchorMax = new Vector2(1f, 1f);
+                    lRect.pivot = new Vector2(0.5f, 0f);
+                    lRect.anchoredPosition = new Vector2(0, 4f);
+                    lRect.sizeDelta = new Vector2(w * 1.4f, 22f);
+                    // Dark pill bg
+                    var lBg = labelGO.AddComponent<Image>();
+                    lBg.color = new Color(0.02f, 0.02f, 0.04f, 0.80f);
+                    lBg.raycastTarget = false;
+                    var lText = AddText(labelGO, "Text", label, 10, TextAnchor.MiddleCenter);
+                    StretchToParent(lText);
+                    lText.GetComponent<Text>().color = labelColor;
+                    lText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+                    var lSh = lText.AddComponent<Shadow>();
+                    lSh.effectColor = new Color(0, 0, 0, 1f);
+                    lSh.effectDistance = new Vector2(0.5f, -0.5f);
+                }
+
+                // Sub-label (power, level) below
+                if (!string.IsNullOrEmpty(sublabel))
+                {
+                    var subGO = new GameObject("SubLabel");
+                    subGO.transform.SetParent(obj.transform, false);
+                    var sRect = subGO.AddComponent<RectTransform>();
+                    sRect.anchorMin = new Vector2(0f, 0f);
+                    sRect.anchorMax = new Vector2(1f, 0f);
+                    sRect.pivot = new Vector2(0.5f, 1f);
+                    sRect.anchoredPosition = new Vector2(0, -2f);
+                    sRect.sizeDelta = new Vector2(w * 1.2f, 16f);
+                    var sBg = subGO.AddComponent<Image>();
+                    sBg.color = new Color(0.02f, 0.02f, 0.04f, 0.65f);
+                    sBg.raycastTarget = false;
+                    var sText = AddText(subGO, "Text", sublabel, 8, TextAnchor.MiddleCenter);
+                    StretchToParent(sText);
+                    sText.GetComponent<Text>().color = new Color(0.75f, 0.72f, 0.60f, 0.90f);
+                    var sSh = sText.AddComponent<Shadow>();
+                    sSh.effectColor = new Color(0, 0, 0, 0.85f);
+                    sSh.effectDistance = new Vector2(0.3f, -0.3f);
+                }
+            };
+
+            // ======= YOUR CASTLE — center of the map, largest =======
+            PlaceMapObject(0, 0, 130, 165, strongholdSpr,
+                "[ASH] Lord Kael", "\u2694 1.2M Power", new Color(0.55f, 0.95f, 0.42f, 1f), true, "MyCastle");
+
+            // ======= ALLIED CASTLES — green names, clustered near you =======
+            var alliedCastles = new (float x, float y, string name, string power, Sprite spr, bool shield)[] {
+                (-280, 180, "[ASH] Lady Sera", "\u2694 980K", strongholdT2, true),
+                (320, 250, "[ASH] Capt. Lyra", "\u2694 750K", strongholdT2, false),
+                (-150, -320, "[ASH] Warden Rowan", "\u2694 1.1M", strongholdT2, true),
+                (180, -200, "[ASH] Scout Wren", "\u2694 420K", strongholdT1, false),
+                (-400, -80, "[ASH] Sir Aldric", "\u2694 680K", strongholdT1, true),
+                (450, 100, "[ASH] Knight Sera", "\u2694 850K", strongholdT2, false),
+            };
+            foreach (var ac in alliedCastles)
+                PlaceMapObject(ac.x, ac.y, 90, 110, ac.spr, ac.name, ac.power,
+                    new Color(0.50f, 0.92f, 0.38f, 1f), ac.shield, "AlliedCastle");
+
+            // ======= ENEMY CASTLES — red names, scattered further out =======
+            var enemyCastles = new (float x, float y, string name, string power, Sprite spr, bool shield)[] {
+                (800, 600, "[DRK] Overlord Nyx", "\u2694 2.1M", strongholdT2, true),
+                (-900, 700, "[BLD] Warlord Grim", "\u2694 1.8M", strongholdT2, false),
+                (700, -800, "[SHA] Shadow Queen", "\u2694 1.5M", strongholdT1, true),
+                (-600, -900, "[DRK] Baron Ash", "\u2694 900K", strongholdT1, false),
+                (1100, -200, "[BLD] Count Dread", "\u2694 1.3M", strongholdT2, true),
+                (-1000, -400, "[SHA] Dark Host", "\u2694 700K", strongholdT1, false),
+                (500, 1000, "[DRK] Lord Doom", "\u2694 1.6M", strongholdT2, false),
+                (-800, 1200, "[SHA] Skulltaker", "\u2694 1.1M", strongholdT1, true),
+            };
+            foreach (var ec in enemyCastles)
+                PlaceMapObject(ec.x, ec.y, 82, 100, ec.spr, ec.name, ec.power,
+                    new Color(0.98f, 0.38f, 0.32f, 1f), ec.shield, "EnemyCastle");
+
+            // ======= RESOURCE GATHERING NODES =======
+            var resources = new (float x, float y, Sprite spr, string label, string goName)[] {
+                // Grain fields
+                (-500, 350, grainSpr, "Grain Lv.4", "Res_Grain"),
+                (250, 500, grainSpr, "Grain Lv.3", "Res_Grain"),
+                (600, -150, grainSpr, "Grain Lv.5", "Res_Grain"),
+                (-200, -550, grainSpr, "Grain Lv.2", "Res_Grain"),
+                (900, 350, grainSpr, "Grain Lv.3", "Res_Grain"),
+                (-1100, 150, grainSpr, "Grain Lv.4", "Res_Grain"),
+                // Iron deposits
+                (400, -500, ironSpr, "Iron Lv.4", "Res_Iron"),
+                (-650, -200, ironSpr, "Iron Lv.3", "Res_Iron"),
+                (150, 700, ironSpr, "Iron Lv.5", "Res_Iron"),
+                (-350, 900, ironSpr, "Iron Lv.2", "Res_Iron"),
+                (1000, -600, ironSpr, "Iron Lv.3", "Res_Iron"),
+                // Stone quarries
+                (-150, 400, stoneSpr, "Stone Lv.3", "Res_Stone"),
+                (550, 200, stoneSpr, "Stone Lv.4", "Res_Stone"),
+                (-800, -600, stoneSpr, "Stone Lv.2", "Res_Stone"),
+                (350, -700, stoneSpr, "Stone Lv.5", "Res_Stone"),
+                // Arcane essence
+                (750, 450, arcaneSpr, "Arcane Lv.5", "Res_Arcane"),
+                (-450, 600, arcaneSpr, "Arcane Lv.4", "Res_Arcane"),
+                (100, -400, arcaneSpr, "Arcane Lv.3", "Res_Arcane"),
+            };
+            foreach (var res in resources)
+                PlaceMapObject(res.x, res.y, 55, 68, res.spr, res.label, null,
+                    new Color(0.90f, 0.85f, 0.55f, 1f), false, res.goName);
+
+            // ======= MONSTER DENS — red-tinted with skull icon and level =======
+            var monsters = new (float x, float y, string name, int level)[] {
+                (-350, -150, "Wolf Pack", 8),
+                (650, -400, "Wraith", 15),
+                (-750, 400, "Golem", 22),
+                (300, 350, "Bandit Camp", 12),
+                (-500, -700, "Undead Horde", 18),
+                (900, -100, "Dragon Whelp", 25),
+                (-200, 800, "Troll Den", 10),
+                (500, -900, "Demon Gate", 30),
+                (-900, -100, "Shadow Beast", 20),
+                (1200, 500, "Void Spawn", 28),
+                (-300, 1100, "Dark Lich", 35),
+                (100, -1200, "Ancient Wyrm", 40),
+                (-1100, 800, "Bone Giant", 32),
+                (750, 1100, "Fire Imp", 6),
+            };
+            foreach (var m in monsters)
             {
-                float a = 0.08f + i * 0.12f;
-                // Top fog
-                var stripT = AddPanel(canvasGo, $"FogTopStrip_{i}", new Color(0.03f, 0.02f, 0.06f, a));
-                float ty = 1.0f - i * 0.015f;
-                SetAnchors(stripT, 0f, ty - 0.015f, 1f, ty);
-                // Bottom fog
-                var stripB = AddPanel(canvasGo, $"FogBotStrip_{i}", new Color(0.03f, 0.02f, 0.06f, a));
-                float by = i * 0.015f;
-                SetAnchors(stripB, 0f, by, 1f, by + 0.015f);
+                var mGO = new GameObject("Monster_" + m.name);
+                mGO.transform.SetParent(mapContent.transform, false);
+                var mRect = mGO.AddComponent<RectTransform>();
+                mRect.anchorMin = mRect.anchorMax = new Vector2(0.5f, 0.5f);
+                mRect.pivot = new Vector2(0.5f, 0.5f);
+                mRect.anchoredPosition = new Vector2(m.x, m.y);
+                mRect.sizeDelta = new Vector2(60, 55);
+                // Red-tinted circle bg
+                var mBg = mGO.AddComponent<Image>();
+                mBg.color = new Color(0.45f, 0.10f, 0.08f, 0.75f);
+                // Skull icon
+                var skull = AddText(mGO, "Icon", "\u2620", 22, TextAnchor.MiddleCenter);
+                SetAnchors(skull, 0f, 0.25f, 1f, 0.95f);
+                skull.GetComponent<Text>().color = new Color(1f, 0.40f, 0.28f, 0.95f);
+                var skSh = skull.AddComponent<Shadow>();
+                skSh.effectColor = new Color(0, 0, 0, 0.90f);
+                skSh.effectDistance = new Vector2(1f, -1f);
+                // Level badge
+                var lvl = AddText(mGO, "Level", $"Lv.{m.level}", 9, TextAnchor.MiddleCenter);
+                SetAnchors(lvl, 0f, 0f, 1f, 0.28f);
+                lvl.GetComponent<Text>().color = new Color(1f, 0.85f, 0.50f, 1f);
+                lvl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+                var lvSh = lvl.AddComponent<Shadow>();
+                lvSh.effectColor = new Color(0, 0, 0, 0.85f);
+                lvSh.effectDistance = new Vector2(0.5f, -0.5f);
+                // Name label above
+                var nameLbl = new GameObject("Name");
+                nameLbl.transform.SetParent(mGO.transform, false);
+                var nRect = nameLbl.AddComponent<RectTransform>();
+                nRect.anchorMin = new Vector2(0f, 1f);
+                nRect.anchorMax = new Vector2(1f, 1f);
+                nRect.pivot = new Vector2(0.5f, 0f);
+                nRect.anchoredPosition = new Vector2(0, 2f);
+                nRect.sizeDelta = new Vector2(100, 16f);
+                var nBg = nameLbl.AddComponent<Image>();
+                nBg.color = new Color(0.30f, 0.05f, 0.04f, 0.75f);
+                nBg.raycastTarget = false;
+                var nText = AddText(nameLbl, "Txt", m.name, 8, TextAnchor.MiddleCenter);
+                StretchToParent(nText);
+                nText.GetComponent<Text>().color = new Color(1f, 0.70f, 0.50f, 0.95f);
+                nText.GetComponent<Text>().fontStyle = FontStyle.Bold;
             }
 
-            // Side atmosphere — subtle vignettes
-            var vigL = AddPanel(canvasGo, "VignetteL", new Color(0.02f, 0.01f, 0.04f, 0.30f));
-            SetAnchors(vigL, 0f, 0f, 0.04f, 1f);
-            var vigR = AddPanel(canvasGo, "VignetteR", new Color(0.02f, 0.01f, 0.04f, 0.30f));
-            SetAnchors(vigR, 0.96f, 0f, 1f, 1f);
+            // ======= ALLIANCE TERRITORY OVERLAY — green-tinted zone around allied castles =======
+            var alliTerritory = AddPanel(mapContent.gameObject, "AllianceTerritory", new Color(0.10f, 0.50f, 0.08f, 0.06f));
+            var atRect = alliTerritory.GetComponent<RectTransform>();
+            atRect.anchorMin = atRect.anchorMax = new Vector2(0.5f, 0.5f);
+            atRect.pivot = new Vector2(0.5f, 0.5f);
+            atRect.anchoredPosition = new Vector2(0, 0);
+            atRect.sizeDelta = new Vector2(1000, 900);
+            atRect.SetAsFirstSibling(); // render behind everything
+            var atOut = alliTerritory.AddComponent<Outline>();
+            atOut.effectColor = new Color(0.20f, 0.60f, 0.15f, 0.35f);
+            atOut.effectDistance = new Vector2(3f, -3f);
 
-            // Notch fill (solid dark bar at very top) with gold accent
+            // ======= CENTRAL WONDER (DRAGONIA) — kingdom center landmark =======
+            var wonderGO = new GameObject("CentralWonder");
+            wonderGO.transform.SetParent(mapContent.transform, false);
+            var wRect = wonderGO.AddComponent<RectTransform>();
+            wRect.anchorMin = wRect.anchorMax = new Vector2(0.5f, 0.5f);
+            wRect.pivot = new Vector2(0.5f, 0.5f);
+            wRect.anchoredPosition = new Vector2(0, 1500); // north of player
+            wRect.sizeDelta = new Vector2(200, 240);
+            if (strongholdSpr != null) {
+                var wImg = wonderGO.AddComponent<Image>();
+                wImg.sprite = strongholdSpr;
+                wImg.preserveAspect = true;
+                wImg.color = new Color(1f, 0.90f, 0.70f, 1f); // golden tint
+            }
+            var wLabel = new GameObject("WonderLabel");
+            wLabel.transform.SetParent(wonderGO.transform, false);
+            var wlRect = wLabel.AddComponent<RectTransform>();
+            wlRect.anchorMin = new Vector2(0f, 1f);
+            wlRect.anchorMax = new Vector2(1f, 1f);
+            wlRect.pivot = new Vector2(0.5f, 0f);
+            wlRect.anchoredPosition = new Vector2(0, 6f);
+            wlRect.sizeDelta = new Vector2(220, 28f);
+            var wlBg = wLabel.AddComponent<Image>();
+            wlBg.color = new Color(0.35f, 0.25f, 0.08f, 0.85f);
+            var wlText = AddText(wLabel, "Txt", "\u2726 DRAGONIA \u2726", 14, TextAnchor.MiddleCenter);
+            StretchToParent(wlText);
+            wlText.GetComponent<Text>().color = new Color(1f, 0.88f, 0.42f, 1f);
+            wlText.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var wlSh = wlText.AddComponent<Shadow>();
+            wlSh.effectColor = new Color(0, 0, 0, 1f);
+            wlSh.effectDistance = new Vector2(1f, -1f);
+
+            // Notch fill
             var notchFill = AddPanel(canvasGo, "NotchFill", new Color(0.03f, 0.02f, 0.05f, 1f));
             SetAnchors(notchFill, 0f, 0.955f, 1f, 1f);
             var wmNotchBorder = AddPanel(notchFill, "Border", new Color(0.72f, 0.56f, 0.22f, 0.45f));
@@ -2783,381 +2938,102 @@ namespace AshenThrone.Editor
 
             var canvas = CreateSafeArea(canvasGo);
 
-            // === TOP BAR — solid dark, bright gold text, readable ===
-            var topBar = AddPanel(canvas, "TopBar", new Color(0.10f, 0.08f, 0.16f, 0.97f));
+            // === TOP BAR ===
+            var topBar = AddPanel(canvas, "TopBar", new Color(0.10f, 0.08f, 0.16f, 0.95f));
             SetAnchors(topBar, 0f, 0.905f, 1f, 0.965f);
-            // Triple gold bottom border
             var topBorderGold = AddPanel(topBar, "BorderGold", new Color(0.90f, 0.72f, 0.30f, 1f));
             SetAnchors(topBorderGold, 0f, 0f, 1f, 0.05f);
             topBorderGold.AddComponent<LayoutElement>().ignoreLayout = true;
-            var topBorderMid = AddPanel(topBar, "BorderMid", new Color(0.60f, 0.45f, 0.15f, 0.60f));
-            SetAnchors(topBorderMid, 0f, 0.05f, 1f, 0.09f);
-            topBorderMid.AddComponent<LayoutElement>().ignoreLayout = true;
-            // Glass highlight at top
-            var topGlass = AddPanel(topBar, "GlassTop", new Color(0.35f, 0.28f, 0.45f, 0.12f));
-            SetAnchors(topGlass, 0f, 0.88f, 1f, 1f);
-            topGlass.AddComponent<LayoutElement>().ignoreLayout = true;
 
-            var mapTitle = AddText(topBar, "MapTitle", "WORLD MAP \u2014 Ashlands", 18, TextAnchor.MiddleCenter);
+            var mapTitle = AddText(topBar, "MapTitle", "KINGDOM MAP \u2014 K:12 Ashlands", 16, TextAnchor.MiddleCenter);
             SetAnchors(mapTitle, 0.15f, 0.05f, 0.85f, 0.95f);
             mapTitle.GetComponent<Text>().color = new Color(1f, 0.88f, 0.42f, 1f);
             mapTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var mtShadow = mapTitle.AddComponent<Shadow>();
             mtShadow.effectColor = new Color(0, 0, 0, 0.98f);
-            mtShadow.effectDistance = new Vector2(1.5f, -1.5f);
-            var mtOutline = mapTitle.AddComponent<Outline>();
-            mtOutline.effectColor = new Color(0.45f, 0.32f, 0.08f, 0.5f);
-            mtOutline.effectDistance = new Vector2(0.8f, -0.8f);
+            mtShadow.effectDistance = new Vector2(1f, -1f);
 
             var backBtn = AddPanel(topBar, "BackBtn", new Color(0.25f, 0.20f, 0.30f));
             SetAnchors(backBtn, 0.01f, 0.08f, 0.14f, 0.92f);
             if (btnOrnateSpr != null) { backBtn.GetComponent<Image>().sprite = btnOrnateSpr; backBtn.GetComponent<Image>().type = Image.Type.Sliced; backBtn.GetComponent<Image>().color = new Color(0.55f, 0.45f, 0.38f, 1f); }
             SetButtonFeedback(backBtn.AddComponent<Button>());
             AddSceneNav(backBtn, SceneName.Empire);
-            var bbLabel = AddText(backBtn, "Label", "\u25C0 BACK", 12, TextAnchor.MiddleCenter);
+            var bbLabel = AddText(backBtn, "Label", "\u25C0", 14, TextAnchor.MiddleCenter);
             StretchToParent(bbLabel);
             bbLabel.GetComponent<Text>().color = Color.white;
             bbLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var bbSh = bbLabel.AddComponent<Shadow>();
-            bbSh.effectColor = new Color(0, 0, 0, 0.92f);
-            bbSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // === COORDINATES DISPLAY — below top bar, non-overlapping ===
-            var coordsPanel = AddPanel(canvas, "CoordsPanel", new Color(0.06f, 0.04f, 0.10f, 0.88f));
-            SetAnchors(coordsPanel, 0.30f, 0.86f, 0.70f, 0.905f);
-            if (ornateSpr != null) { coordsPanel.GetComponent<Image>().sprite = ornateSpr; coordsPanel.GetComponent<Image>().type = Image.Type.Sliced; coordsPanel.GetComponent<Image>().color = new Color(0.45f, 0.40f, 0.35f, 1f); }
-            var coordText = AddText(coordsPanel, "Coords", "K:12  (482, 317)", 11, TextAnchor.MiddleCenter);
-            StretchToParent(coordText);
-            coordText.GetComponent<Text>().color = TextLight;
-            coordText.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var ctSh = coordText.AddComponent<Shadow>();
-            ctSh.effectColor = new Color(0, 0, 0, 0.8f);
-            ctSh.effectDistance = new Vector2(0.5f, -0.5f);
+            // Search button
+            var searchBtn = AddPanel(topBar, "SearchBtn", new Color(0.25f, 0.22f, 0.30f));
+            SetAnchors(searchBtn, 0.86f, 0.08f, 0.99f, 0.92f);
+            if (btnOrnateSpr != null) { searchBtn.GetComponent<Image>().sprite = btnOrnateSpr; searchBtn.GetComponent<Image>().type = Image.Type.Sliced; searchBtn.GetComponent<Image>().color = new Color(0.50f, 0.44f, 0.55f, 1f); }
+            SetButtonFeedback(searchBtn.AddComponent<Button>());
+            AddSceneNav(searchBtn, SceneName.WorldMap);
+            var srchLabel = AddText(searchBtn, "Label", "\uD83D\uDD0D", 14, TextAnchor.MiddleCenter);
+            StretchToParent(srchLabel);
+            srchLabel.GetComponent<Text>().color = TextLight;
 
-            // === ZOOM CONTROLS — right side, floating over map ===
-            var zoomIn = AddPanel(canvas, "ZoomIn", new Color(0.30f, 0.25f, 0.20f, 0.92f));
-            SetAnchors(zoomIn, 0.90f, 0.56f, 0.98f, 0.64f);
+            // === COORDINATES — bottom left ===
+            var coordBg = AddPanel(canvas, "CoordDisplay", new Color(0.02f, 0.02f, 0.04f, 0.75f));
+            SetAnchors(coordBg, 0.01f, 0.02f, 0.28f, 0.06f);
+            var coordTxt = AddText(coordBg, "Coords", "K:12  X:482  Y:317", 10, TextAnchor.MiddleCenter);
+            StretchToParent(coordTxt);
+            coordTxt.GetComponent<Text>().color = new Color(0.78f, 0.72f, 0.55f, 0.90f);
+            coordTxt.GetComponent<Text>().fontStyle = FontStyle.Bold;
+
+            // === ZOOM CONTROLS — right side ===
+            var zoomIn = AddPanel(canvas, "ZoomIn", new Color(0.30f, 0.25f, 0.20f, 0.90f));
+            SetAnchors(zoomIn, 0.90f, 0.52f, 0.98f, 0.60f);
             if (btnOrnateSpr != null) { zoomIn.GetComponent<Image>().sprite = btnOrnateSpr; zoomIn.GetComponent<Image>().type = Image.Type.Sliced; zoomIn.GetComponent<Image>().color = new Color(0.55f, 0.48f, 0.40f, 1f); }
-            AddOutlinePanel(zoomIn, new Color(0.78f, 0.60f, 0.24f, 0.50f));
             SetButtonFeedback(zoomIn.AddComponent<Button>());
             AddSceneNav(zoomIn, SceneName.WorldMap);
             var ziLabel = AddText(zoomIn, "Label", "+", 18, TextAnchor.MiddleCenter);
             StretchToParent(ziLabel);
             ziLabel.GetComponent<Text>().color = Gold;
             ziLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var ziSh = ziLabel.AddComponent<Shadow>();
-            ziSh.effectColor = new Color(0, 0, 0, 0.85f);
-            ziSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            var zoomOut = AddPanel(canvas, "ZoomOut", new Color(0.30f, 0.25f, 0.20f, 0.92f));
-            SetAnchors(zoomOut, 0.90f, 0.47f, 0.98f, 0.55f);
+            var zoomOut = AddPanel(canvas, "ZoomOut", new Color(0.30f, 0.25f, 0.20f, 0.90f));
+            SetAnchors(zoomOut, 0.90f, 0.43f, 0.98f, 0.51f);
             if (btnOrnateSpr != null) { zoomOut.GetComponent<Image>().sprite = btnOrnateSpr; zoomOut.GetComponent<Image>().type = Image.Type.Sliced; zoomOut.GetComponent<Image>().color = new Color(0.55f, 0.48f, 0.40f, 1f); }
-            AddOutlinePanel(zoomOut, new Color(0.78f, 0.60f, 0.24f, 0.50f));
             SetButtonFeedback(zoomOut.AddComponent<Button>());
             AddSceneNav(zoomOut, SceneName.WorldMap);
             var zoLabel = AddText(zoomOut, "Label", "\u2212", 18, TextAnchor.MiddleCenter);
             StretchToParent(zoLabel);
             zoLabel.GetComponent<Text>().color = Gold;
             zoLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var zoSh = zoLabel.AddComponent<Shadow>();
-            zoSh.effectColor = new Color(0, 0, 0, 0.85f);
-            zoSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // === SEARCH COORDS BUTTON — top right ===
-            var searchBtn = AddPanel(canvas, "SearchBtn", new Color(0.25f, 0.22f, 0.30f, 0.92f));
-            SetAnchors(searchBtn, 0.86f, 0.905f, 0.99f, 0.965f);
-            if (btnOrnateSpr != null) { searchBtn.GetComponent<Image>().sprite = btnOrnateSpr; searchBtn.GetComponent<Image>().type = Image.Type.Sliced; searchBtn.GetComponent<Image>().color = new Color(0.50f, 0.44f, 0.55f, 1f); }
-            SetButtonFeedback(searchBtn.AddComponent<Button>());
-            AddSceneNav(searchBtn, SceneName.WorldMap);
-            var srchLabel = AddText(searchBtn, "Label", "SEARCH", 11, TextAnchor.MiddleCenter);
-            StretchToParent(srchLabel);
-            srchLabel.GetComponent<Text>().color = TextLight;
-            srchLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var srSh = srchLabel.AddComponent<Shadow>();
-            srSh.effectColor = new Color(0, 0, 0, 0.85f);
-            srSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            // === LEGEND — ornate frame, top right corner ===
-            var legend = AddPanel(canvas, "Legend", new Color(0.04f, 0.03f, 0.06f, 0.90f));
-            SetAnchors(legend, 0.76f, 0.76f, 0.99f, 0.905f);
-            if (ornateSpr != null) { legend.GetComponent<Image>().sprite = ornateSpr; legend.GetComponent<Image>().type = Image.Type.Sliced; legend.GetComponent<Image>().color = new Color(0.58f, 0.55f, 0.48f, 1f); }
-            else { AddOutlinePanel(legend, GoldDim); }
-            var legTitle = AddText(legend, "LTitle", "LEGEND", 11, TextAnchor.UpperCenter);
-            SetAnchors(legTitle, 0f, 0.82f, 1f, 1f);
-            legTitle.GetComponent<Text>().color = Gold;
-            legTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var ltSh = legTitle.AddComponent<Shadow>();
-            ltSh.effectColor = new Color(0, 0, 0, 0.8f);
-            ltSh.effectDistance = new Vector2(0.5f, -0.5f);
-            AddLegendItem(legend, "Allied", new Color(0.20f, 0.45f, 0.15f), 0.60f);
-            AddLegendItem(legend, "Enemy", new Color(0.55f, 0.15f, 0.12f), 0.40f);
-            AddLegendItem(legend, "Contested", new Color(0.60f, 0.50f, 0.12f), 0.20f);
-            AddLegendItem(legend, "Neutral", new Color(0.28f, 0.26f, 0.20f), 0.0f);
-
-            // === TERRITORY INFO — compact sidebar, left side floating over map ===
-            var infoPanel = AddPanel(canvas, "TerritoryInfo", new Color(0.04f, 0.03f, 0.08f, 0.94f));
-            SetAnchors(infoPanel, 0.01f, 0.17f, 0.26f, 0.48f);
-            if (ornateSpr != null) { infoPanel.GetComponent<Image>().sprite = ornateSpr; infoPanel.GetComponent<Image>().type = Image.Type.Sliced; infoPanel.GetComponent<Image>().color = new Color(0.65f, 0.60f, 0.52f, 1f); }
-            else { AddOutlinePanel(infoPanel, GoldDim); }
-            var infoGlass = AddPanel(infoPanel, "GlassTop", new Color(0.20f, 0.18f, 0.28f, 0.15f));
-            SetAnchors(infoGlass, 0.03f, 0.90f, 0.97f, 0.98f);
-
-            var tiTitle = AddText(infoPanel, "TerritoryName", "Iron Wastes", 16, TextAnchor.MiddleLeft);
-            SetAnchors(tiTitle, 0.06f, 0.84f, 0.95f, 0.98f);
-            tiTitle.GetComponent<Text>().color = Gold;
-            tiTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var titShadow = tiTitle.AddComponent<Shadow>();
-            titShadow.effectColor = new Color(0, 0, 0, 0.95f);
-            titShadow.effectDistance = new Vector2(1f, -1f);
-
-            // Status badge — CONTESTED in amber
-            var statusBadge = AddPanel(infoPanel, "StatusBadge", new Color(0.60f, 0.48f, 0.10f, 0.85f));
-            SetAnchors(statusBadge, 0.68f, 0.86f, 0.94f, 0.97f);
-            var statusBtnSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/btn_neutral.png");
-            if (statusBtnSpr != null) { statusBadge.GetComponent<Image>().sprite = statusBtnSpr; statusBadge.GetComponent<Image>().type = Image.Type.Sliced; statusBadge.GetComponent<Image>().color = new Color(0.65f, 0.52f, 0.12f, 1f); }
-            var statusTxt = AddText(statusBadge, "Txt", "CONTESTED", 10, TextAnchor.MiddleCenter);
-            StretchToParent(statusTxt);
-            statusTxt.GetComponent<Text>().color = new Color(1f, 0.92f, 0.60f, 1f);
-            statusTxt.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var stSh = statusTxt.AddComponent<Shadow>(); stSh.effectColor = new Color(0, 0, 0, 0.7f); stSh.effectDistance = new Vector2(0.3f, -0.3f);
-
-            var tiSep = AddPanel(infoPanel, "Separator", new Color(0.78f, 0.60f, 0.24f, 0.55f));
-            SetAnchors(tiSep, 0.06f, 0.82f, 0.94f, 0.835f);
-
-            var tiOwner = AddText(infoPanel, "Owner", "Controlled by: Iron Legion", 12, TextAnchor.MiddleLeft);
-            SetAnchors(tiOwner, 0.06f, 0.67f, 0.95f, 0.80f);
-            tiOwner.GetComponent<Text>().color = TextLight;
-            var toSh = tiOwner.AddComponent<Shadow>();
-            toSh.effectColor = new Color(0, 0, 0, 0.8f);
-            toSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            var tiBonus = AddText(infoPanel, "Bonus", "+15% Iron production", 11, TextAnchor.MiddleLeft);
-            SetAnchors(tiBonus, 0.06f, 0.54f, 0.95f, 0.65f);
-            tiBonus.GetComponent<Text>().color = Teal;
-            var tbSh = tiBonus.AddComponent<Shadow>();
-            tbSh.effectColor = new Color(0, 0, 0, 0.8f);
-            tbSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            var tiGarrison = AddText(infoPanel, "Garrison", "Garrison: 12,500 Power", 11, TextAnchor.MiddleLeft);
-            SetAnchors(tiGarrison, 0.06f, 0.42f, 0.95f, 0.53f);
-            tiGarrison.GetComponent<Text>().color = TextMid;
-            var tgSh = tiGarrison.AddComponent<Shadow>(); tgSh.effectColor = new Color(0, 0, 0, 0.7f); tgSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            // Reinforcement timer
-            var tiReinforce = AddText(infoPanel, "Reinforce", "\u23F1 Reinforcements: 2h 15m", 10, TextAnchor.MiddleLeft);
-            SetAnchors(tiReinforce, 0.06f, 0.33f, 0.95f, 0.42f);
-            tiReinforce.GetComponent<Text>().color = new Color(0.70f, 0.55f, 0.25f, 0.85f);
-            tiReinforce.GetComponent<Text>().fontStyle = FontStyle.Italic;
-            var trSh = tiReinforce.AddComponent<Shadow>(); trSh.effectColor = new Color(0, 0, 0, 0.7f); trSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            // Ornate action buttons — larger, ATTACK has outer glow for prominence
-            var atkGlow = AddPanel(infoPanel, "AtkGlow", new Color(0.85f, 0.18f, 0.10f, 0.12f));
-            SetAnchors(atkGlow, 0.03f, 0.03f, 0.51f, 0.35f);
-            atkGlow.AddComponent<LayoutElement>().ignoreLayout = true;
-            var tiAttackBtn = AddPanel(infoPanel, "AttackBtn", Blood);
-            SetAnchors(tiAttackBtn, 0.06f, 0.06f, 0.48f, 0.32f);
-            if (btnOrnateSpr != null) { tiAttackBtn.GetComponent<Image>().sprite = btnOrnateSpr; tiAttackBtn.GetComponent<Image>().type = Image.Type.Sliced; tiAttackBtn.GetComponent<Image>().color = new Color(0.85f, 0.25f, 0.18f, 1f); }
-            AddOutlinePanel(tiAttackBtn, new Color(0.90f, 0.70f, 0.25f, 0.60f));
-            SetButtonFeedback(tiAttackBtn.AddComponent<Button>());
-            AddSceneNav(tiAttackBtn, SceneName.Combat);
-            var atkLabel = AddText(tiAttackBtn, "Label", "\u2694 ATTACK", 13, TextAnchor.MiddleCenter);
-            StretchToParent(atkLabel);
-            atkLabel.GetComponent<Text>().color = Color.white;
-            atkLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var akSh = atkLabel.AddComponent<Shadow>();
-            akSh.effectColor = new Color(0, 0, 0, 0.92f);
-            akSh.effectDistance = new Vector2(0.8f, -0.8f);
-            var akOut = atkLabel.AddComponent<Outline>();
-            akOut.effectColor = new Color(0.90f, 0.20f, 0.10f, 0.35f);
-            akOut.effectDistance = new Vector2(0.5f, -0.5f);
-
-            var tiScoutBtn = AddPanel(infoPanel, "ScoutBtn", Sky);
-            SetAnchors(tiScoutBtn, 0.52f, 0.06f, 0.94f, 0.32f);
-            if (btnOrnateSpr != null) { tiScoutBtn.GetComponent<Image>().sprite = btnOrnateSpr; tiScoutBtn.GetComponent<Image>().type = Image.Type.Sliced; tiScoutBtn.GetComponent<Image>().color = new Color(0.28f, 0.58f, 0.75f, 1f); }
-            AddOutlinePanel(tiScoutBtn, new Color(0.90f, 0.70f, 0.25f, 0.55f));
-            SetButtonFeedback(tiScoutBtn.AddComponent<Button>());
-            AddSceneNav(tiScoutBtn, SceneName.WorldMap);
-            var scoutLabel = AddText(tiScoutBtn, "Label", "\uD83D\uDD0D SCOUT", 13, TextAnchor.MiddleCenter);
-            StretchToParent(scoutLabel);
-            scoutLabel.GetComponent<Text>().color = Color.white;
-            scoutLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var slSh = scoutLabel.AddComponent<Shadow>();
-            slSh.effectColor = new Color(0, 0, 0, 0.9f);
-            slSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            // === MINI-MAP — compact ornate, bottom right ===
-            var miniMap = AddPanel(canvas, "MiniMap", new Color(0.04f, 0.04f, 0.03f, 0.92f));
-            SetAnchors(miniMap, 0.76f, 0.02f, 0.99f, 0.22f);
-            if (ornateSpr != null) { miniMap.GetComponent<Image>().sprite = ornateSpr; miniMap.GetComponent<Image>().type = Image.Type.Sliced; miniMap.GetComponent<Image>().color = new Color(0.55f, 0.52f, 0.46f, 1f); }
-            else { AddOutlinePanel(miniMap, GoldDim); }
-            var mmLabel = AddText(miniMap, "Label", "MINI MAP", 11, TextAnchor.UpperCenter);
-            SetAnchors(mmLabel, 0f, 0.88f, 1f, 1f);
-            mmLabel.GetComponent<Text>().color = Gold;
-            mmLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var mmSh = mmLabel.AddComponent<Shadow>();
-            mmSh.effectColor = new Color(0, 0, 0, 0.85f);
-            mmSh.effectDistance = new Vector2(0.5f, -0.5f);
-
-            // Terrain regions on minimap
-            var mmAllied = AddPanel(miniMap, "AlliedZone", new Color(0.15f, 0.32f, 0.12f, 0.50f));
-            SetAnchors(mmAllied, 0.08f, 0.22f, 0.45f, 0.62f);
-            var mmEnemy = AddPanel(miniMap, "EnemyZone", new Color(0.32f, 0.10f, 0.10f, 0.50f));
-            SetAnchors(mmEnemy, 0.55f, 0.38f, 0.92f, 0.78f);
-            var mmContested = AddPanel(miniMap, "ContestedZone", new Color(0.32f, 0.28f, 0.08f, 0.45f));
-            SetAnchors(mmContested, 0.35f, 0.42f, 0.60f, 0.62f);
-
-            // View rectangle (gold outline showing current viewport)
-            var viewRect = AddPanel(miniMap, "ViewRect", new Color(0.85f, 0.68f, 0.28f, 0.10f));
-            SetAnchors(viewRect, 0.25f, 0.28f, 0.55f, 0.52f);
-            AddOutlinePanel(viewRect, new Color(0.90f, 0.72f, 0.30f, 0.85f));
-
-            // Player marker (gold diamond)
-            var playerDot = AddPanel(miniMap, "PlayerDot", Gold);
-            SetAnchors(playerDot, 0.36f, 0.36f, 0.44f, 0.46f);
-            AddOutlinePanel(playerDot, new Color(1f, 0.88f, 0.48f, 0.65f));
-
-            // Alliance markers (green dots)
-            float[] allyX = { 0.18f, 0.30f, 0.22f };
-            float[] allyY = { 0.32f, 0.50f, 0.55f };
-            for (int i = 0; i < 3; i++)
-            {
-                var ally = AddPanel(miniMap, $"AllyDot_{i}", new Color(0.32f, 0.68f, 0.28f, 0.80f));
-                SetAnchors(ally, allyX[i], allyY[i], allyX[i] + 0.05f, allyY[i] + 0.06f);
-            }
-
-            // Enemy markers (red dots)
-            float[] enX = { 0.65f, 0.78f, 0.70f, 0.82f };
-            float[] enY = { 0.52f, 0.46f, 0.66f, 0.60f };
-            for (int i = 0; i < 4; i++)
-            {
-                var en = AddPanel(miniMap, $"EnemyDot_{i}", new Color(0.72f, 0.22f, 0.15f, 0.75f));
-                SetAnchors(en, enX[i], enY[i], enX[i] + 0.04f, enY[i] + 0.05f);
-            }
-
-            // "Your City" label on minimap
-            var mmCityLabel = AddText(miniMap, "CityLabel", "Your City", 10, TextAnchor.MiddleCenter);
-            SetAnchors(mmCityLabel, 0.22f, 0.22f, 0.58f, 0.32f);
-            mmCityLabel.GetComponent<Text>().color = new Color(0.88f, 0.75f, 0.38f, 0.75f);
-
-            // Alliance power strip — bottom left info, above war banner
-            var alliPowerBg = AddPanel(canvas, "AlliPower", new Color(0.04f, 0.03f, 0.08f, 0.82f));
-            SetAnchors(alliPowerBg, 0.01f, 0.10f, 0.32f, 0.16f);
-            if (ornateSpr != null) { alliPowerBg.GetComponent<Image>().sprite = ornateSpr; alliPowerBg.GetComponent<Image>().type = Image.Type.Sliced; alliPowerBg.GetComponent<Image>().color = new Color(0.48f, 0.42f, 0.38f, 1f); }
-            var alliShield = AddText(alliPowerBg, "Shield", "\u26E8", 14, TextAnchor.MiddleCenter);
-            SetAnchors(alliShield, 0.02f, 0.05f, 0.16f, 0.95f);
-            alliShield.GetComponent<Text>().color = new Color(0.40f, 0.72f, 0.35f, 0.90f);
-            alliShield.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.7f);
-            alliShield.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var alliName = AddText(alliPowerBg, "Name", "Iron Legion", 11, TextAnchor.MiddleLeft);
-            SetAnchors(alliName, 0.17f, 0.50f, 0.75f, 0.95f);
-            alliName.GetComponent<Text>().color = new Color(0.55f, 0.88f, 0.48f, 1f);
-            alliName.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            alliName.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
-            alliName.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var alliPwr = AddText(alliPowerBg, "Power", "\u2694 42.3M Territory Power", 10, TextAnchor.MiddleLeft);
-            SetAnchors(alliPwr, 0.17f, 0.05f, 0.98f, 0.50f);
-            alliPwr.GetComponent<Text>().color = new Color(0.72f, 0.66f, 0.55f, 0.80f);
-            alliPwr.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.6f);
-            alliPwr.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.3f);
-
-            // === MARCH TIMER — compact strip under top bar ===
+            // === MARCH TIMER — active troop movement ===
             var marchBg = AddPanel(canvas, "MarchTimer", new Color(0.04f, 0.03f, 0.08f, 0.88f));
-            SetAnchors(marchBg, 0.28f, 0.82f, 0.72f, 0.86f);
+            SetAnchors(marchBg, 0.20f, 0.86f, 0.80f, 0.905f);
             if (ornateSpr != null) { marchBg.GetComponent<Image>().sprite = ornateSpr; marchBg.GetComponent<Image>().type = Image.Type.Sliced; marchBg.GetComponent<Image>().color = new Color(0.55f, 0.30f, 0.25f, 1f); }
-            else { AddOutlinePanel(marchBg, new Color(0.70f, 0.25f, 0.15f, 0.60f)); }
-            var marchIcon = AddText(marchBg, "Icon", "\u2694", 12, TextAnchor.MiddleCenter);
-            SetAnchors(marchIcon, 0.02f, 0.1f, 0.14f, 0.9f);
-            marchIcon.GetComponent<Text>().color = new Color(1f, 0.55f, 0.35f, 0.90f);
-            var marchSh1 = marchIcon.AddComponent<Shadow>(); marchSh1.effectColor = new Color(0, 0, 0, 0.7f); marchSh1.effectDistance = new Vector2(0.5f, -0.5f);
-            var marchLabel = AddText(marchBg, "Label", "March to Duskfen", 10, TextAnchor.MiddleLeft);
-            SetAnchors(marchLabel, 0.15f, 0.50f, 0.80f, 0.95f);
+            var marchLabel = AddText(marchBg, "Label", "\u2694 March to Iron Lv.4  \u23F1 4:32", 11, TextAnchor.MiddleCenter);
+            StretchToParent(marchLabel);
             marchLabel.GetComponent<Text>().color = TextWhite;
             marchLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            marchLabel.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.7f);
-            marchLabel.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var marchTime = AddText(marchBg, "Time", "\u23F1 4:32", 10, TextAnchor.MiddleLeft);
-            SetAnchors(marchTime, 0.15f, 0.05f, 0.60f, 0.50f);
-            marchTime.GetComponent<Text>().color = new Color(0.90f, 0.70f, 0.35f, 0.90f);
-            marchTime.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.6f);
-            marchTime.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.3f);
-            // Cancel button
-            var marchCancel = AddPanel(marchBg, "Cancel", new Color(0.55f, 0.15f, 0.10f, 0.85f));
-            SetAnchors(marchCancel, 0.82f, 0.15f, 0.97f, 0.85f);
-            SetButtonFeedback(marchCancel.AddComponent<Button>());
-            AddSceneNav(marchCancel, SceneName.WorldMap);
-            var mcLabel = AddText(marchCancel, "X", "\u2715", 11, TextAnchor.MiddleCenter);
-            StretchToParent(mcLabel);
-            mcLabel.GetComponent<Text>().color = Color.white;
-            mcLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var marchSh = marchLabel.AddComponent<Shadow>();
+            marchSh.effectColor = new Color(0, 0, 0, 0.85f);
+            marchSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // === VOID RIFT EVENT MARKER — compact alert, right side under legend ===
-            var riftGlow = AddPanel(canvas, "RiftGlow", new Color(0.45f, 0.12f, 0.55f, 0.08f));
-            SetAnchors(riftGlow, 0.74f, 0.68f, 1f, 0.78f);
-            var riftBg = AddPanel(canvas, "VoidRiftAlert", new Color(0.12f, 0.04f, 0.18f, 0.92f));
-            SetAnchors(riftBg, 0.76f, 0.70f, 0.99f, 0.76f);
-            if (ornateSpr != null) { riftBg.GetComponent<Image>().sprite = ornateSpr; riftBg.GetComponent<Image>().type = Image.Type.Sliced; riftBg.GetComponent<Image>().color = new Color(0.48f, 0.28f, 0.55f, 1f); }
-            else { AddOutlinePanel(riftBg, new Color(0.65f, 0.20f, 0.72f, 0.65f)); }
-            var riftIcon = AddText(riftBg, "Icon", "\u2726", 14, TextAnchor.MiddleCenter);
-            SetAnchors(riftIcon, 0.02f, 0.1f, 0.22f, 0.9f);
-            riftIcon.GetComponent<Text>().color = new Color(0.80f, 0.45f, 0.90f, 0.95f);
-            riftIcon.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.7f);
-            riftIcon.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var riftLabel = AddText(riftBg, "Label", "VOID RIFT", 10, TextAnchor.MiddleCenter);
-            SetAnchors(riftLabel, 0.22f, 0.50f, 0.98f, 0.95f);
-            riftLabel.GetComponent<Text>().color = new Color(0.88f, 0.65f, 0.95f, 1f);
-            riftLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            riftLabel.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
-            riftLabel.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var riftTime = AddText(riftBg, "Timer", "Spawns: 1h 42m", 10, TextAnchor.MiddleCenter);
-            SetAnchors(riftTime, 0.22f, 0.05f, 0.98f, 0.50f);
-            riftTime.GetComponent<Text>().color = new Color(0.70f, 0.50f, 0.75f, 0.85f);
-            riftTime.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.6f);
-            riftTime.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.3f);
+            // === MINI-MAP — compact, bottom right ===
+            var miniMap = AddPanel(canvas, "MiniMap", new Color(0.15f, 0.22f, 0.10f, 0.90f));
+            SetAnchors(miniMap, 0.78f, 0.06f, 0.99f, 0.20f);
+            if (ornateSpr != null) { miniMap.GetComponent<Image>().sprite = ornateSpr; miniMap.GetComponent<Image>().type = Image.Type.Sliced; miniMap.GetComponent<Image>().color = new Color(0.45f, 0.42f, 0.36f, 1f); }
+            // Player dot (gold)
+            var playerDot = AddPanel(miniMap, "PlayerDot", Gold);
+            SetAnchors(playerDot, 0.44f, 0.42f, 0.56f, 0.58f);
+            // View rect (gold outline)
+            var viewRect = AddPanel(miniMap, "ViewRect", new Color(0.85f, 0.68f, 0.28f, 0.10f));
+            SetAnchors(viewRect, 0.30f, 0.30f, 0.70f, 0.70f);
+            AddOutlinePanel(viewRect, new Color(0.90f, 0.72f, 0.30f, 0.75f));
 
-            // Coordinate display — bottom left, below alliance strip
-            var coordBg = AddPanel(canvas, "CoordDisplay", new Color(0.02f, 0.02f, 0.04f, 0.75f));
-            SetAnchors(coordBg, 0.01f, 0.02f, 0.22f, 0.06f);
-            AddOutlinePanel(coordBg, new Color(0.40f, 0.32f, 0.15f, 0.35f));
-            var coordTxt = AddText(coordBg, "Coords", "X: 247  Y: 183", 10, TextAnchor.MiddleCenter);
-            StretchToParent(coordTxt);
-            coordTxt.GetComponent<Text>().color = new Color(0.78f, 0.72f, 0.55f, 0.90f);
-            coordTxt.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var cdSh = coordTxt.AddComponent<Shadow>(); cdSh.effectColor = new Color(0, 0, 0, 0.7f); cdSh.effectDistance = new Vector2(0.3f, -0.3f);
-
-            // === WAR EVENT BANNER — floating at bottom center, urgent ===
-            var warBanner = AddPanel(canvas, "WarBanner", new Color(0.55f, 0.08f, 0.06f, 0.94f));
-            SetAnchors(warBanner, 0.22f, 0.07f, 0.73f, 0.14f);
-            if (btnOrnateSpr != null) { warBanner.GetComponent<Image>().sprite = btnOrnateSpr; warBanner.GetComponent<Image>().type = Image.Type.Sliced; warBanner.GetComponent<Image>().color = new Color(0.75f, 0.18f, 0.12f, 1f); }
-            else { AddOutlinePanel(warBanner, Blood); }
-            SetButtonFeedback(warBanner.AddComponent<Button>());
-            AddSceneNav(warBanner, SceneName.WorldMap);
-            var warIcon = AddText(warBanner, "Icon", "\u2694", 16, TextAnchor.MiddleLeft);
-            SetAnchors(warIcon, 0.02f, 0.05f, 0.12f, 0.95f);
-            warIcon.GetComponent<Text>().color = new Color(1f, 0.75f, 0.30f, 1f);
-            warIcon.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
-            warIcon.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
-            var warLabel = AddText(warBanner, "Label", "ALLIANCE WAR — Phase 2", 12, TextAnchor.MiddleLeft);
-            SetAnchors(warLabel, 0.12f, 0.45f, 0.72f, 0.95f);
-            warLabel.GetComponent<Text>().color = Color.white;
-            warLabel.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var wlSh = warLabel.AddComponent<Shadow>(); wlSh.effectColor = new Color(0, 0, 0, 0.9f); wlSh.effectDistance = new Vector2(0.5f, -0.5f);
-            var warTimer = AddText(warBanner, "Timer", "\u23F1 1d 08:42:15", 10, TextAnchor.MiddleLeft);
-            SetAnchors(warTimer, 0.12f, 0.05f, 0.72f, 0.45f);
-            warTimer.GetComponent<Text>().color = new Color(1f, 0.85f, 0.50f, 0.85f);
-            warTimer.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.7f);
-            warTimer.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.3f);
-            var warGoBtn = AddPanel(warBanner, "GoBtn", new Color(0.90f, 0.72f, 0.22f, 1f));
-            SetAnchors(warGoBtn, 0.78f, 0.12f, 0.97f, 0.88f);
-            if (btnOrnateSpr != null) { warGoBtn.GetComponent<Image>().sprite = btnOrnateSpr; warGoBtn.GetComponent<Image>().type = Image.Type.Sliced; warGoBtn.GetComponent<Image>().color = new Color(0.90f, 0.72f, 0.28f, 1f); }
-            var warGoLbl = AddText(warGoBtn, "Lbl", "GO", 12, TextAnchor.MiddleCenter);
-            StretchToParent(warGoLbl);
-            warGoLbl.GetComponent<Text>().color = new Color(0.12f, 0.08f, 0.04f, 1f);
-            warGoLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            warGoLbl.AddComponent<Shadow>().effectColor = new Color(1f, 0.95f, 0.80f, 0.30f);
-            warGoLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, 0.3f);
+            // Territory info panel (hidden, shown on tap)
+            var infoPanel = AddPanel(canvas, "TerritoryInfo", new Color(0.04f, 0.03f, 0.08f, 0.94f));
+            SetAnchors(infoPanel, 0.01f, 0.20f, 0.24f, 0.46f);
+            infoPanel.SetActive(false);
+            // (info panel contents populated at runtime when tapped)
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] WorldMap scene: full-screen territory map with 8x6 grid");
+            Debug.Log("[SceneUIGenerator] WorldMap scene: P&C-style open world with castles, resources, monsters");
         }
 
         // ===================================================================

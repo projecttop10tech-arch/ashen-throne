@@ -4,6 +4,27 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.10.0] — 2026-03-13 (World Map: P&C-Style Open World Overhaul)
+
+### CHANGED
+- **World Map completely rewritten** — Replaced territory tile grid with P&C-style continuous green terrain with scattered objects
+- **Green grass background** — Vivid green base terrain matching P&C's lush overworld
+- **Terrain patches** — Forest and swamp art sprites blended softly into green grass for natural variation
+- **UI streamlined** — Removed legend, territory info hidden by default (shown on tap), cleaner map view
+
+### ADDED
+- **Your castle** — Large stronghold at map center with green alliance name + power label + shield dome
+- **6 allied castles** — Clustered near player, green names, various tiers, some shielded
+- **8 enemy castles** — Scattered further out, red names, various tiers
+- **18 resource gathering nodes** — Grain fields, iron deposits, stone quarries, arcane essence with level badges
+- **14 monster dens** — Red-tinted camps with skull icons and level indicators (Lv.6-40)
+- **Alliance territory overlay** — Subtle green-tinted zone around allied castle cluster
+- **Central Wonder (Dragonia)** — Kingdom landmark at north of map
+- **Decorative elements** — Tree clusters and rock formations scattered across terrain
+- **Scrollable open world** — 4000x4500 content area with elastic scroll + inertia
+
+---
+
 ## [1.09.0] — 2026-03-13 (Ralph Loop: Dense City, Larger Buildings, 1.3x Zoom)
 
 ### CHANGED
