@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.07.0] — 2026-03-13 (Ralph Loop Iteration 102: Long-Press Radial, Category Glows)
+
+### ADDED
+- **Long-press quick action radial** — Long-pressing a building now shows a P&C-style 3-button radial menu (Move/Info/Boost) instead of immediately entering move mode. Buttons scale-in with animation. Boost option only appears on upgrading buildings. Auto-dismisses after 3s.
+- **Building category glow auras** — Subtle radial gradient glow at each building's base, colored by category: military (red), resource (green), magic (purple), defense (blue), social (amber), knowledge (cyan), forge (orange), shrine (white-gold). Stronghold retains its dedicated multi-layer glow.
+
+### CHANGED
+- **Long-press interaction** — No longer jumps straight to move mode. Players choose from radial menu, making building management more intentional and matching P&C behavior.
+
+---
+
 ## [1.06.0] — 2026-03-13 (Ralph Loop Iteration 101: Reward Screen, Advisor Arrow, Camera Polish)
 
 ### ADDED

@@ -1195,6 +1195,9 @@ namespace AshenThrone.Empire
             // P&C: Drop shadow behind building for depth
             CreateBuildingShadow(go, placement.Size);
 
+            // P&C IT102: Category glow aura at building base
+            CreateCategoryGlow(go, placement.BuildingId);
+
             var img = go.AddComponent<Image>();
             string spriteName = $"{placement.BuildingId}_t{placement.Tier}";
             var sprite = Resources.Load<Sprite>($"Buildings/{spriteName}");
@@ -1346,6 +1349,59 @@ namespace AshenThrone.Empire
                 yield return null;
             }
         }
+
+        /// <summary>P&C IT102: Subtle category-colored glow aura at building base.</summary>
+        private void CreateCategoryGlow(GameObject building, string buildingId)
+        {
+            // Stronghold has its own dedicated glow — skip generic category glow
+            if (buildingId == "stronghold") return;
+
+            Color glowColor = GetBuildingCategoryGlowColor(buildingId);
+            if (glowColor.a < 0.01f) return;
+
+            var glowGO = new GameObject("CategoryGlow");
+            glowGO.transform.SetParent(building.transform, false);
+            glowGO.transform.SetAsFirstSibling(); // Behind shadow cells
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            // Wide and low — sits at building base
+            glowRect.anchorMin = new Vector2(-0.20f, -0.15f);
+            glowRect.anchorMax = new Vector2(1.20f, 0.35f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = glowColor;
+            glowImg.raycastTarget = false;
+
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) glowImg.sprite = spr;
+        }
+
+        /// <summary>P&C IT102: Category color for building base glow aura.</summary>
+        private static Color GetBuildingCategoryGlowColor(string buildingId) => buildingId switch
+        {
+            // Military — warm red
+            "barracks" or "training_ground" or "armory" => new Color(0.80f, 0.25f, 0.20f, 0.12f),
+            // Resource — green
+            "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.25f, 0.70f, 0.30f, 0.12f),
+            // Magic — purple
+            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => new Color(0.55f, 0.30f, 0.80f, 0.12f),
+            // Defense — blue
+            "wall" or "watch_tower" => new Color(0.25f, 0.50f, 0.85f, 0.12f),
+            // Social/trade — amber
+            "marketplace" or "guild_hall" or "embassy" => new Color(0.85f, 0.65f, 0.20f, 0.12f),
+            // Knowledge — cyan
+            "academy" or "library" or "archive" => new Color(0.30f, 0.70f, 0.80f, 0.12f),
+            // Sacred — white-gold
+            "hero_shrine" => new Color(0.90f, 0.85f, 0.50f, 0.10f),
+            // Forge — orange
+            "forge" => new Color(0.90f, 0.50f, 0.15f, 0.12f),
+            _ => new Color(0, 0, 0, 0) // No glow for unknown
+        };
 
         /// <summary>P&C: Stronghold gets a special multi-layer golden glow aura that pulses.</summary>
         private void CreateStrongholdGlow(GameObject building)
@@ -11026,6 +11082,212 @@ namespace AshenThrone.Empire
 
             if (found == null) return;
 
+            // P&C IT102: Show quick action radial instead of immediately entering move mode
+            ShowLongPressRadial(found);
+        }
+
+        private GameObject _longPressRadial;
+
+        /// <summary>P&C IT102: Quick action radial on long-press — Move, Info, Boost options.</summary>
+        private void ShowLongPressRadial(CityBuildingPlacement placement)
+        {
+            DismissLongPressRadial();
+            if (placement.VisualGO == null) return;
+
+            // P&C: Audio + haptic on long-press
+            PlaySfx(_sfxTap);
+            #if UNITY_IOS || UNITY_ANDROID
+            Handheld.Vibrate();
+            #endif
+
+            // P&C: Bounce building to confirm long-press registered
+            StartCoroutine(BounceBuilding(placement.VisualGO.transform, 0.08f));
+
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+
+            // Dim overlay (tap to dismiss)
+            _longPressRadial = new GameObject("LongPressRadial");
+            _longPressRadial.transform.SetParent(canvas.transform, false);
+            _longPressRadial.transform.SetAsLastSibling();
+            var dimRect = _longPressRadial.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = _longPressRadial.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.30f);
+            dimImg.raycastTarget = true;
+            var dimBtn = _longPressRadial.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissLongPressRadial);
+
+            // Position radial at building's screen position
+            var buildingRect = placement.VisualGO.GetComponent<RectTransform>();
+            Vector2 screenPos = RectTransformUtility.WorldToScreenPoint(null, placement.VisualGO.transform.position);
+
+            // Container for radial buttons
+            var container = new GameObject("RadialContainer");
+            container.transform.SetParent(_longPressRadial.transform, false);
+            var containerRect = container.AddComponent<RectTransform>();
+            containerRect.position = placement.VisualGO.transform.position;
+            containerRect.sizeDelta = new Vector2(200, 200);
+
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            string capturedInstanceId = placement.InstanceId;
+            string capturedBuildingId = placement.BuildingId;
+            int capturedTier = placement.Tier;
+
+            // Check if building is upgrading (for Boost button)
+            bool isUpgrading = false;
+            float upgRemaining = 0f;
+            if (ServiceLocator.TryGet<BuildingManager>(out var bm))
+            {
+                foreach (var qe in bm.BuildQueue)
+                {
+                    if (qe.PlacedId == capturedInstanceId)
+                    {
+                        isUpgrading = true;
+                        upgRemaining = qe.RemainingSeconds;
+                        break;
+                    }
+                }
+            }
+
+            // --- MOVE button (left) ---
+            CreateRadialActionButton(container.transform, font, "\u2725", "Move",
+                new Color(0.20f, 0.45f, 0.65f, 0.92f), new Color(0.40f, 0.70f, 0.95f, 0.6f),
+                new Vector2(-70, 40), () =>
+                {
+                    DismissLongPressRadial();
+                    EnterMoveModeForPlacement(placement);
+                });
+
+            // --- INFO button (top) ---
+            CreateRadialActionButton(container.transform, font, "\u2139", "Info",
+                new Color(0.50f, 0.40f, 0.65f, 0.92f), new Color(0.70f, 0.55f, 0.90f, 0.6f),
+                new Vector2(0, 80), () =>
+                {
+                    DismissLongPressRadial();
+                    EventBus.Publish(new BuildingTappedEvent(placement));
+                });
+
+            // --- BOOST button (right, only if upgrading) ---
+            if (isUpgrading)
+            {
+                float capSecs = upgRemaining;
+                CreateRadialActionButton(container.transform, font, "\u26A1", "Boost",
+                    new Color(0.60f, 0.45f, 0.15f, 0.92f), new Color(0.90f, 0.70f, 0.25f, 0.6f),
+                    new Vector2(70, 40), () =>
+                    {
+                        DismissLongPressRadial();
+                        if (capSecs <= FreeSpeedUpThresholdSeconds)
+                        {
+                            EventBus.Publish(new SpeedupRequestedEvent(capturedInstanceId, 0, capSecs));
+                        }
+                        else
+                        {
+                            int gemCost = Mathf.Max(1, Mathf.CeilToInt(capSecs / 60f));
+                            ShowSpeedUpDialog(capturedInstanceId, gemCost, Mathf.RoundToInt(capSecs));
+                        }
+                    });
+            }
+
+            // Auto-dismiss after 3 seconds
+            StartCoroutine(AutoDismissRadial(3f));
+        }
+
+        private void CreateRadialActionButton(Transform parent, Font font, string icon, string label,
+            Color bgColor, Color outlineColor, Vector2 offset, System.Action onClick)
+        {
+            var btnGO = new GameObject($"Radial_{label}");
+            btnGO.transform.SetParent(parent, false);
+            var btnRect = btnGO.AddComponent<RectTransform>();
+            btnRect.anchoredPosition = offset;
+            btnRect.sizeDelta = new Vector2(56, 56);
+
+            var bg = btnGO.AddComponent<Image>();
+            bg.color = bgColor;
+            bg.raycastTarget = true;
+            var outline = btnGO.AddComponent<Outline>();
+            outline.effectColor = outlineColor;
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
+
+            var btn = btnGO.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.onClick.AddListener(() => onClick());
+
+            // Icon
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(btnGO.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.1f, 0.35f);
+            iconRect.anchorMax = new Vector2(0.9f, 0.95f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = icon;
+            iconText.font = font;
+            iconText.fontSize = 18;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = Color.white;
+            iconText.raycastTarget = false;
+
+            // Label
+            var lblGO = new GameObject("Label");
+            lblGO.transform.SetParent(btnGO.transform, false);
+            var lblRect = lblGO.AddComponent<RectTransform>();
+            lblRect.anchorMin = new Vector2(0f, 0f);
+            lblRect.anchorMax = new Vector2(1f, 0.38f);
+            lblRect.offsetMin = Vector2.zero;
+            lblRect.offsetMax = Vector2.zero;
+            var lblText = lblGO.AddComponent<Text>();
+            lblText.text = label;
+            lblText.font = font;
+            lblText.fontSize = 8;
+            lblText.fontStyle = FontStyle.Bold;
+            lblText.alignment = TextAnchor.MiddleCenter;
+            lblText.color = new Color(0.9f, 0.9f, 0.9f);
+            lblText.raycastTarget = false;
+
+            // Scale-in animation
+            btnGO.transform.localScale = Vector3.zero;
+            StartCoroutine(ScaleInRadialButton(btnGO));
+        }
+
+        private IEnumerator ScaleInRadialButton(GameObject btn)
+        {
+            float duration = 0.15f;
+            float elapsed = 0f;
+            while (elapsed < duration && btn != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float ease = 1f - (1f - t) * (1f - t);
+                btn.transform.localScale = Vector3.one * ease;
+                yield return null;
+            }
+            if (btn != null) btn.transform.localScale = Vector3.one;
+        }
+
+        private IEnumerator AutoDismissRadial(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            DismissLongPressRadial();
+        }
+
+        private void DismissLongPressRadial()
+        {
+            if (_longPressRadial != null)
+            {
+                Destroy(_longPressRadial);
+                _longPressRadial = null;
+            }
+        }
+
+        /// <summary>P&C IT102: Enter move mode for a specific placement (from radial menu).</summary>
+        private void EnterMoveModeForPlacement(CityBuildingPlacement found)
+        {
             _moveMode = true;
             _movingBuilding = found;
             _moveOriginalOrigin = found.GridOrigin;
