@@ -4,6 +4,20 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.00.0] — 2026-03-13 (Ralph Loop Iteration 95: Full-Screen Detail Panel, Alliance Help, Building Bonuses)
+
+### CHANGED
+- **Full-screen building detail panel** — Expanded panel from 42% to 91% of screen, matching P&C's full-screen building info layout. Building sprite centered at top with next-tier preview and arrow on right. Name (18pt gold, centered), level (centered), gold separator, bonus description, cost row, and full-width action buttons at bottom. Semi-transparent dim overlay behind panel with tap-to-dismiss. Close X button repositioned to top-right above building image.
+- **Building bonus descriptions** — Each building type now shows a descriptive bonus line (e.g., "Grain production: 100/hr", "Troop capacity: 200", "Research speed +5%") between the separator and cost row. All 21 building types have unique descriptions that scale with tier.
+- **Alliance Help button** — When a building is upgrading, the detail panel now shows a "Help" button alongside "Speed Up", allowing players to request alliance help to reduce the upgrade timer. Publishes `AllianceHelpRequestEvent` via EventBus.
+
+### FIXED
+- **Compile error: uIsMax forward reference** — Moved `isUpgrading`, `upgradeRemaining`, `ucostStr`, and `uIsMax` declarations above the next-tier sprite preview that references them, fixing an undefined variable error from iteration 94.
+- **Overlapping anchor positions** — Fixed close button (was overlapping building image), separator (was inside level text area), and cost row (was overlapping level text). All sections now have clear vertical spacing within the 91% panel.
+- **Level text alignment** — Changed from MiddleLeft to MiddleCenter for centered layout consistency.
+
+---
+
 ## [0.99.0] — 2026-03-12 (Ralph Loop Iteration 94: Context Actions, Static Bubbles)
 
 ### CHANGED

@@ -173,6 +173,7 @@ namespace AshenThrone.Empire
 
         // P&C: Building info popup on tap
         private GameObject _infoPopup;
+        private GameObject _infoPopupDimOverlay;
         private string _infoPopupInstanceId;
         private Coroutine _popupAutoDismiss;
         private EventSubscription _buildingTappedSub;
@@ -4395,24 +4396,39 @@ namespace AshenThrone.Empire
 
             _infoPopupInstanceId = evt.InstanceId;
 
-            // P&C: Full detail panel anchored to screen bottom half
+            // P&C: Full-screen detail panel (covers ~80% of screen, leaves top bar visible)
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
-            var popup = new GameObject("InfoPopup");
-            popup.transform.SetParent(canvas.transform, false);
-            popup.transform.SetAsLastSibling();
+            // Dim overlay behind panel (tapping dismisses)
+            var dimOverlay = new GameObject("DimOverlay");
+            dimOverlay.transform.SetParent(canvas.transform, false);
+            dimOverlay.transform.SetAsLastSibling();
+            var dimRect = dimOverlay.AddComponent<RectTransform>();
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = Vector2.zero;
+            dimRect.offsetMax = Vector2.zero;
+            var dimImg = dimOverlay.AddComponent<Image>();
+            dimImg.color = new Color(0, 0, 0, 0.50f);
+            dimImg.raycastTarget = true;
+            var dimBtn = dimOverlay.AddComponent<Button>();
+            dimBtn.targetGraphic = dimImg;
+            dimBtn.onClick.AddListener(DismissInfoPopup);
+
+            var popup = new GameObject("InfoPopup_Panel");
+            popup.transform.SetParent(dimOverlay.transform, false);
 
             var popupRect = popup.AddComponent<RectTransform>();
-            // P&C: Detail panel — full width, covers bottom ~42% of screen
-            popupRect.anchorMin = new Vector2(0.01f, 0.10f);
-            popupRect.anchorMax = new Vector2(0.99f, 0.52f);
+            // P&C: Tall panel — full width, from nav bar to just below resource bar
+            popupRect.anchorMin = new Vector2(0.01f, 0.01f);
+            popupRect.anchorMax = new Vector2(0.99f, 0.92f);
             popupRect.offsetMin = Vector2.zero;
             popupRect.offsetMax = Vector2.zero;
 
             // P&C: Dark panel background with ornate gold border
             var panelBg = popup.AddComponent<Image>();
-            panelBg.color = new Color(0.04f, 0.03f, 0.09f, 0.96f);
+            panelBg.color = new Color(0.04f, 0.03f, 0.09f, 0.97f);
             panelBg.raycastTarget = true;
             var panelOutline = popup.AddComponent<Outline>();
             panelOutline.effectColor = new Color(0.85f, 0.65f, 0.15f, 0.80f);
@@ -4421,71 +4437,14 @@ namespace AshenThrone.Empire
             panelOutline2.effectColor = new Color(0.40f, 0.30f, 0.10f, 0.40f);
             panelOutline2.effectDistance = new Vector2(-1f, 1f);
 
+            // Store dimOverlay as the _infoPopup (destroying it will destroy the panel too)
+            // We set _infoPopup later, but need dimOverlay reference for cleanup
+            _infoPopupDimOverlay = dimOverlay;
+
             string displayName = BuildingDisplayNames.TryGetValue(evt.BuildingId, out var dn) ? dn : evt.BuildingId;
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-            // ============================================
-            // TOP ROW: Building image + name/level + close
-            // ============================================
-
-            // Building sprite (large, left side)
-            Sprite bldSprite = LoadBuildingSprite(evt.BuildingId, evt.Tier);
-            if (bldSprite != null)
-            {
-                var iconGO = new GameObject("BuildingIcon");
-                iconGO.transform.SetParent(popup.transform, false);
-                var iconRect = iconGO.AddComponent<RectTransform>();
-                iconRect.anchorMin = new Vector2(0.02f, 0.50f);
-                iconRect.anchorMax = new Vector2(0.22f, 0.96f);
-                iconRect.offsetMin = Vector2.zero;
-                iconRect.offsetMax = Vector2.zero;
-                var iconImg = iconGO.AddComponent<Image>();
-                iconImg.sprite = bldSprite;
-                iconImg.preserveAspect = true;
-                iconImg.raycastTarget = false;
-                var iconOutline = iconGO.AddComponent<Outline>();
-                iconOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.50f);
-                iconOutline.effectDistance = new Vector2(1f, -1f);
-            }
-
-            // Building name (bold, gold, prominent)
-            var nameGO = new GameObject("Name");
-            nameGO.transform.SetParent(popup.transform, false);
-            var nameRect = nameGO.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.24f, 0.78f);
-            nameRect.anchorMax = new Vector2(0.85f, 0.97f);
-            nameRect.offsetMin = Vector2.zero;
-            nameRect.offsetMax = Vector2.zero;
-            var nameText = nameGO.AddComponent<Text>();
-            nameText.text = displayName;
-            nameText.font = font;
-            nameText.fontSize = 16;
-            nameText.fontStyle = FontStyle.Bold;
-            nameText.alignment = TextAnchor.MiddleLeft;
-            nameText.color = new Color(0.95f, 0.85f, 0.40f);
-            nameText.raycastTarget = false;
-            var nameOutline = nameGO.AddComponent<Outline>();
-            nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
-            nameOutline.effectDistance = new Vector2(1f, -1f);
-
-            // Level + status line
-            var lvlGO = new GameObject("Level");
-            lvlGO.transform.SetParent(popup.transform, false);
-            var lvlRect = lvlGO.AddComponent<RectTransform>();
-            lvlRect.anchorMin = new Vector2(0.24f, 0.62f);
-            lvlRect.anchorMax = new Vector2(0.85f, 0.78f);
-            lvlRect.offsetMin = Vector2.zero;
-            lvlRect.offsetMax = Vector2.zero;
-            var lvlText = lvlGO.AddComponent<Text>();
-            lvlText.font = font;
-            lvlText.fontSize = 12;
-            lvlText.alignment = TextAnchor.MiddleLeft;
-            lvlText.raycastTarget = false;
-            var lvlOutline = lvlGO.AddComponent<Outline>();
-            lvlOutline.effectColor = new Color(0, 0, 0, 0.8f);
-            lvlOutline.effectDistance = new Vector2(0.8f, -0.8f);
-
-            // P&C: Check upgrade state
+            // P&C: Check upgrade state early (needed for next tier preview + level label)
             bool isUpgrading = false;
             float upgradeRemaining = 0f;
             if (ServiceLocator.TryGet<BuildingManager>(out var popupBm))
@@ -4504,6 +4463,89 @@ namespace AshenThrone.Empire
             string ucostStr = GetUpgradeCostString(evt.InstanceId, evt.Tier);
             bool uIsMax = ucostStr == "MAX LEVEL";
 
+            // ============================================
+            // TOP ROW: Building image + name/level + close
+            // ============================================
+
+            // Building sprite (large, centered at top)
+            Sprite bldSprite = LoadBuildingSprite(evt.BuildingId, evt.Tier);
+            if (bldSprite != null)
+            {
+                var iconGO = new GameObject("BuildingIcon");
+                iconGO.transform.SetParent(popup.transform, false);
+                var iconRect = iconGO.AddComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.30f, 0.62f);
+                iconRect.anchorMax = new Vector2(0.70f, 0.92f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconImg = iconGO.AddComponent<Image>();
+                iconImg.sprite = bldSprite;
+                iconImg.preserveAspect = true;
+                iconImg.raycastTarget = false;
+                var iconOutline = iconGO.AddComponent<Outline>();
+                iconOutline.effectColor = new Color(0.70f, 0.55f, 0.15f, 0.50f);
+                iconOutline.effectDistance = new Vector2(1f, -1f);
+            }
+
+            // Next tier sprite preview (right side, if not max)
+            Sprite nextSprite = uIsMax ? null : LoadBuildingSprite(evt.BuildingId, evt.Tier + 1);
+            if (nextSprite != null)
+            {
+                // Arrow between current and next
+                AddInfoPanelText(popup.transform, "UpgArrow", "\u2192", 20, FontStyle.Bold,
+                    new Color(0.95f, 0.82f, 0.35f, 0.7f),
+                    new Vector2(0.68f, 0.72f), new Vector2(0.78f, 0.82f), TextAnchor.MiddleCenter);
+                var nextGO = new GameObject("NextTierIcon");
+                nextGO.transform.SetParent(popup.transform, false);
+                var nextRect = nextGO.AddComponent<RectTransform>();
+                nextRect.anchorMin = new Vector2(0.76f, 0.65f);
+                nextRect.anchorMax = new Vector2(0.96f, 0.90f);
+                nextRect.offsetMin = Vector2.zero;
+                nextRect.offsetMax = Vector2.zero;
+                var nextImg = nextGO.AddComponent<Image>();
+                nextImg.sprite = nextSprite;
+                nextImg.preserveAspect = true;
+                nextImg.raycastTarget = false;
+                nextImg.color = new Color(1, 1, 1, 0.70f);
+            }
+
+            // Building name (bold, gold, prominent — centered below image)
+            var nameGO = new GameObject("Name");
+            nameGO.transform.SetParent(popup.transform, false);
+            var nameRect = nameGO.AddComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0.05f, 0.57f);
+            nameRect.anchorMax = new Vector2(0.95f, 0.66f);
+            nameRect.offsetMin = Vector2.zero;
+            nameRect.offsetMax = Vector2.zero;
+            var nameText = nameGO.AddComponent<Text>();
+            nameText.text = displayName;
+            nameText.font = font;
+            nameText.fontSize = 18;
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.alignment = TextAnchor.MiddleCenter;
+            nameText.color = new Color(0.95f, 0.85f, 0.40f);
+            nameText.raycastTarget = false;
+            var nameOutline = nameGO.AddComponent<Outline>();
+            nameOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            nameOutline.effectDistance = new Vector2(1f, -1f);
+
+            // Level + status line (centered)
+            var lvlGO = new GameObject("Level");
+            lvlGO.transform.SetParent(popup.transform, false);
+            var lvlRect = lvlGO.AddComponent<RectTransform>();
+            lvlRect.anchorMin = new Vector2(0.10f, 0.50f);
+            lvlRect.anchorMax = new Vector2(0.90f, 0.57f);
+            lvlRect.offsetMin = Vector2.zero;
+            lvlRect.offsetMax = Vector2.zero;
+            var lvlText = lvlGO.AddComponent<Text>();
+            lvlText.font = font;
+            lvlText.fontSize = 12;
+            lvlText.alignment = TextAnchor.MiddleCenter;
+            lvlText.raycastTarget = false;
+            var lvlOutline = lvlGO.AddComponent<Outline>();
+            lvlOutline.effectColor = new Color(0, 0, 0, 0.8f);
+            lvlOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
             if (isUpgrading)
             {
                 string timerStr = FormatTimeRemaining(Mathf.RoundToInt(upgradeRemaining));
@@ -4520,8 +4562,8 @@ namespace AshenThrone.Empire
             var sepGO = new GameObject("Separator");
             sepGO.transform.SetParent(popup.transform, false);
             var sepRect = sepGO.AddComponent<RectTransform>();
-            sepRect.anchorMin = new Vector2(0.02f, 0.49f);
-            sepRect.anchorMax = new Vector2(0.98f, 0.505f);
+            sepRect.anchorMin = new Vector2(0.02f, 0.485f);
+            sepRect.anchorMax = new Vector2(0.98f, 0.49f);
             sepRect.offsetMin = Vector2.zero;
             sepRect.offsetMax = Vector2.zero;
             var sepImg = sepGO.AddComponent<Image>();
@@ -4532,8 +4574,8 @@ namespace AshenThrone.Empire
             var closeGO = new GameObject("CloseBtn");
             closeGO.transform.SetParent(popup.transform, false);
             var closeRect = closeGO.AddComponent<RectTransform>();
-            closeRect.anchorMin = new Vector2(0.90f, 0.85f);
-            closeRect.anchorMax = new Vector2(0.99f, 0.98f);
+            closeRect.anchorMin = new Vector2(0.90f, 0.93f);
+            closeRect.anchorMax = new Vector2(0.99f, 0.99f);
             closeRect.offsetMin = Vector2.zero;
             closeRect.offsetMax = Vector2.zero;
             var closeBg = closeGO.AddComponent<Image>();
@@ -4546,7 +4588,18 @@ namespace AshenThrone.Empire
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
 
             // ============================================
-            // MIDDLE ROW: Upgrade costs (if not max/upgrading)
+            // BONUS ROW: Building power/bonus description
+            // ============================================
+            string bonusDesc = GetBuildingBonusDescription(evt.BuildingId, evt.Tier);
+            if (!string.IsNullOrEmpty(bonusDesc))
+            {
+                AddInfoPanelText(popup.transform, "BonusDesc", bonusDesc, 10, FontStyle.Normal,
+                    new Color(0.70f, 0.78f, 0.90f), new Vector2(0.04f, 0.38f),
+                    new Vector2(0.96f, 0.48f), TextAnchor.MiddleCenter);
+            }
+
+            // ============================================
+            // COST ROW: Upgrade costs (if not max/upgrading)
             // ============================================
             if (!uIsMax && !isUpgrading)
             {
@@ -4586,8 +4639,8 @@ namespace AshenThrone.Empire
                         Color valColor = canAfford ? new Color(0.50f, 0.90f, 0.50f) : new Color(0.95f, 0.40f, 0.35f);
 
                         AddInfoPanelText(popup.transform, $"Cost_{resName}",
-                            $"{sym} {FormatCost(cost)}", 10, FontStyle.Bold, valColor,
-                            new Vector2(costX, 0.36f), new Vector2(costX + costW - 0.01f, 0.48f),
+                            $"{sym} {FormatCost(cost)}", 11, FontStyle.Bold, valColor,
+                            new Vector2(costX, 0.37f), new Vector2(costX + costW - 0.01f, 0.47f),
                             TextAnchor.MiddleCenter);
                         costX += costW;
                     }
@@ -4606,10 +4659,15 @@ namespace AshenThrone.Empire
 
             var actions = new List<(string Icon, string Label, Color BgColor, System.Action OnClick)>();
 
-            // Upgrade button (green, prominent)
+            // Upgrade button (green, prominent) + Alliance Help when upgrading
             if (isUpgrading)
             {
                 actions.Add(("\u2692", "Speed Up", new Color(0.55f, 0.45f, 0.15f, 0.95f), null));
+                // P&C: Alliance Help button — request help from alliance to reduce timer
+                actions.Add(("\u2764", "Help", new Color(0.25f, 0.50f, 0.70f, 0.95f), () => {
+                    DismissInfoPopup();
+                    EventBus.Publish(new AllianceHelpRequestEvent(upgInstanceId));
+                }));
             }
             else
             {
@@ -4708,8 +4766,8 @@ namespace AshenThrone.Empire
                 var btnGO = new GameObject($"ActionBtn_{i}");
                 btnGO.transform.SetParent(popup.transform, false);
                 var btnRect = btnGO.AddComponent<RectTransform>();
-                btnRect.anchorMin = new Vector2(x0, 0.04f);
-                btnRect.anchorMax = new Vector2(x1, isUpgrade ? 0.34f : 0.30f);
+                btnRect.anchorMin = new Vector2(x0, 0.03f);
+                btnRect.anchorMax = new Vector2(x1, isUpgrade ? 0.35f : 0.32f);
                 btnRect.offsetMin = Vector2.zero;
                 btnRect.offsetMax = Vector2.zero;
 
@@ -4971,7 +5029,14 @@ namespace AshenThrone.Empire
         private void DismissInfoPopup()
         {
             if (_popupAutoDismiss != null) { StopCoroutine(_popupAutoDismiss); _popupAutoDismiss = null; }
-            if (_infoPopup != null)
+            // P&C: Dim overlay is the root — destroying it removes panel too
+            if (_infoPopupDimOverlay != null)
+            {
+                Destroy(_infoPopupDimOverlay);
+                _infoPopupDimOverlay = null;
+                _infoPopup = null;
+            }
+            else if (_infoPopup != null)
             {
                 Destroy(_infoPopup);
                 _infoPopup = null;
@@ -7451,6 +7516,36 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>P&C: Get formatted upgrade cost string for next tier from BuildingData.</summary>
+        /// <summary>P&C: Returns a short description of what this building provides at its current tier.</summary>
+        private static string GetBuildingBonusDescription(string buildingId, int tier)
+        {
+            return buildingId switch
+            {
+                "stronghold" => $"Power +{tier * 500}  |  Unlocks buildings up to Tier {tier}",
+                "grain_farm" => $"Grain production: {100 * tier}/hr",
+                "iron_mine" => $"Iron production: {80 * tier}/hr",
+                "stone_quarry" => $"Stone production: {80 * tier}/hr",
+                "arcane_tower" => $"Arcane Essence: {40 * tier}/hr  |  Magic defense +{tier * 2}%",
+                "barracks" => $"Troop capacity: {200 * tier}  |  Train speed +{tier * 5}%",
+                "training_ground" => $"Troop ATK +{tier * 3}%  |  March speed +{tier * 2}%",
+                "forge" => $"Equipment slots: {tier + 1}  |  Craft speed +{tier * 4}%",
+                "armory" => $"Troop DEF +{tier * 3}%  |  Equipment storage: {tier * 5}",
+                "academy" => $"Research speed +{tier * 5}%",
+                "library" => $"Research capacity: {tier}  |  Knowledge +{tier * 50}",
+                "archive" => $"Tech tree depth +{tier}  |  Research cost -{tier * 2}%",
+                "observatory" => $"Scout range +{tier * 10}%  |  Enemy info detail +{tier}",
+                "laboratory" => $"Potion slots: {tier + 1}  |  Brew speed +{tier * 4}%",
+                "marketplace" => $"Trade capacity: {tier * 3}  |  Tax rate: {Mathf.Max(1, 10 - tier)}%",
+                "embassy" => $"Alliance help slots: {tier + 2}  |  Rally capacity +{tier * 100}",
+                "hero_shrine" => $"Hero XP gain +{tier * 5}%  |  Skill points +{tier}",
+                "wall" => $"Wall HP: {1000 * tier}  |  Trap slots: {tier * 2}",
+                "watch_tower" => $"Scout range +{tier * 15}%  |  Alert radius +{tier * 10}%",
+                "guild_hall" => $"Guild buffs +{tier * 3}%  |  Event points +{tier * 5}%",
+                "enchanting_tower" => $"Enchant slots: {tier + 1}  |  Success rate +{tier * 3}%",
+                _ => $"Power bonus: +{tier * 100}",
+            };
+        }
+
         private static string GetUpgradeCostString(string instanceId, int currentTier)
         {
             if (!ServiceLocator.TryGet<BuildingManager>(out var bm)) return null;
@@ -14716,6 +14811,13 @@ namespace AshenThrone.Empire
     {
         public readonly string InstanceId;
         public BuildingMoveStartedEvent(string id) { InstanceId = id; }
+    }
+
+    /// <summary>P&C: Request alliance help to reduce upgrade timer.</summary>
+    public readonly struct AllianceHelpRequestEvent
+    {
+        public readonly string InstanceId;
+        public AllianceHelpRequestEvent(string id) { InstanceId = id; }
     }
 
     public readonly struct BuildingDoubleTappedEvent
