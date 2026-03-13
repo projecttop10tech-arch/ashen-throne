@@ -19615,15 +19615,11 @@ namespace AshenThrone.Empire
                     var amtBtn = amtGO.GetComponent<Button>();
                     if (amtBtn == null)
                     {
-                        var amtImg = amtGO.GetComponent<Image>();
-                        if (amtImg == null)
-                        {
-                            amtImg = amtGO.gameObject.AddComponent<Image>();
-                            amtImg.color = new Color(0, 0, 0, 0); // Invisible but raycastable
-                        }
-                        amtImg.raycastTarget = true;
+                        // Use existing Graphic (Text or Image) as target — don't add a second Graphic
+                        var amtGraphic = amtGO.GetComponent<UnityEngine.UI.Graphic>();
+                        if (amtGraphic != null) amtGraphic.raycastTarget = true;
                         amtBtn = amtGO.gameObject.AddComponent<Button>();
-                        amtBtn.targetGraphic = amtImg;
+                        amtBtn.targetGraphic = amtGraphic;
                     }
                     amtBtn.onClick.RemoveAllListeners();
                     amtBtn.onClick.AddListener(() => ShowResourceBreakdownPopup(capturedName));
