@@ -258,7 +258,8 @@ namespace AshenThrone.Empire
             RefreshInstanceCountBadges();
             RefreshUpgradeIndicators();
             RefreshUpgradeArrows();
-            CreateBuilderCountHUD();
+            // Old compact builder pill replaced by P&C queue status panel
+            // CreateBuilderCountHUD();
             CreateActiveUpgradeStrip();
             CreateBuildingQuickNav();
             // P&C: Ambient tint, weather, mini-map, and resource countdown timers
@@ -290,6 +291,8 @@ namespace AshenThrone.Empire
             RefreshAdvisorArrow();
             // P&C IT103: Wire resource bar icons to production breakdown popup
             WireResourceBarTapHandlers();
+            // P&C: Left-side queue status panel (Build/Research slots)
+            CreateQueueStatusPanel();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -552,6 +555,9 @@ namespace AshenThrone.Empire
 
             // P&C: Tick troop training queues
             TickTroopQueues();
+
+            // P&C: Tick queue status panel (builder/research slots)
+            TickQueueStatusPanel();
 
             // P&C: Auto-collect resource bubbles
             TickAutoCollect();
@@ -8880,7 +8886,7 @@ namespace AshenThrone.Empire
             float iconH = 0.050f;
             float gap = 0.010f;
             float totalH = categories.Length * iconH + (categories.Length - 1) * gap;
-            float startY = 0.50f + totalH * 0.5f; // centered vertically
+            float startY = 0.68f + totalH * 0.5f; // upper right, above event icons
             float xMin = 1f - iconW - 0.005f;
             float xMax = 1f - 0.005f;
 
@@ -17332,9 +17338,9 @@ namespace AshenThrone.Empire
 
     public partial class CityGridView
     {
-        // P&C-style: uniform circular event icon column on left edge
-        // Slot 0 = bottom (above chat bar), slots go upward
-        private const float EventIconX = 0.008f;
+        // P&C-style: uniform circular event icon column on RIGHT edge (matches P&C layout)
+        // Slot 0 = bottom (above nav bar), slots go upward
+        private const float EventIconX = 0.905f;   // right side
         private const float EventIconW = 0.088f;   // 8.8% width
         private const float EventIconH = 0.060f;   // ~square on phone
         private const float EventIconGap = 0.012f;
@@ -19866,6 +19872,409 @@ namespace AshenThrone.Empire
             if (ffGO != null) Destroy(ffGO);
             foreach (var (rect, _) in hands)
                 if (rect != null) Destroy(rect.gameObject);
+        }
+    }
+
+    // ====================================================================
+    // P&C: Left-side Queue Status Panel (Build slots + Research slot)
+    // Shows individual builder/research queue slots like P&C's left column
+    // ====================================================================
+
+    public partial class CityGridView
+    {
+        private GameObject _queueStatusPanel;
+        private readonly List<QueueSlotUI> _queueSlots = new();
+        private float _queueSlotRefreshTimer;
+        private const float QueueSlotRefreshInterval = 1f; // Update every second for timers
+
+        private class QueueSlotUI
+        {
+            public GameObject Root;
+            public Text LabelText;   // "Build" or "Research"
+            public Text StatusText;  // "IDLE" or building name
+            public Text TimerText;   // countdown timer
+            public Image ProgressFill;
+            public Image IconImage;
+            public string SlotType;  // "build" or "research"
+            public int SlotIndex;    // 0 or 1 for build slots
+        }
+
+        private void CreateQueueStatusPanel()
+        {
+            if (_queueStatusPanel != null) return;
+
+            Transform canvasRoot = transform;
+            while (canvasRoot.parent != null && canvasRoot.parent.GetComponent<Canvas>() != null)
+                canvasRoot = canvasRoot.parent;
+
+            _queueStatusPanel = new GameObject("QueueStatusPanel");
+            _queueStatusPanel.transform.SetParent(canvasRoot, false);
+            _queueStatusPanel.transform.SetAsLastSibling();
+
+            // Position on left side, below info panel area
+            var panelRect = _queueStatusPanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.005f, 0.58f);
+            panelRect.anchorMax = new Vector2(0.22f, 0.86f);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            // Create 3 slots: Build 1, Build 2, Research
+            var slotDefs = new (string type, string label, string icon, int index)[]
+            {
+                ("build", "Build", "\u2692", 0),    // ⚒ hammer
+                ("build", "Build", "\u2692", 1),    // ⚒ hammer
+                ("research", "Research", "\u2697", 0), // ⚗ alembic
+            };
+
+            float slotH = 1f / slotDefs.Length;
+            for (int i = 0; i < slotDefs.Length; i++)
+            {
+                var def = slotDefs[i];
+                float yTop = 1f - i * slotH;
+                float yBot = yTop - slotH + 0.01f; // small gap
+
+                var slot = CreateQueueSlot(_queueStatusPanel.transform, def.type, def.label,
+                    def.icon, def.index, new Vector2(0, yBot), new Vector2(1, yTop));
+                _queueSlots.Add(slot);
+            }
+
+            RefreshQueueSlots();
+        }
+
+        private QueueSlotUI CreateQueueSlot(Transform parent, string slotType, string label,
+            string icon, int slotIndex, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var slot = new QueueSlotUI { SlotType = slotType, SlotIndex = slotIndex };
+
+            var go = new GameObject($"QueueSlot_{label}_{slotIndex}");
+            go.transform.SetParent(parent, false);
+            slot.Root = go;
+
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // Dark background with gold border
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.05f, 0.14f, 0.92f);
+            bg.raycastTarget = true;
+
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0.75f, 0.58f, 0.18f, 0.70f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Button — tappable to open queue panel
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            string capType = slotType;
+            int capIdx = slotIndex;
+            btn.onClick.AddListener(() => OnQueueSlotTapped(capType, capIdx));
+
+            // --- Icon on left ---
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(go.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.02f, 0.10f);
+            iconRect.anchorMax = new Vector2(0.20f, 0.90f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+
+            // Icon circle background
+            var iconBg = iconGO.AddComponent<Image>();
+            iconBg.color = slotType == "research"
+                ? new Color(0.20f, 0.35f, 0.55f, 0.90f)
+                : new Color(0.45f, 0.30f, 0.12f, 0.90f);
+            iconBg.raycastTarget = false;
+            slot.IconImage = iconBg;
+
+            var iconTextGO = new GameObject("IconText");
+            iconTextGO.transform.SetParent(iconGO.transform, false);
+            var iconTextRect = iconTextGO.AddComponent<RectTransform>();
+            iconTextRect.anchorMin = Vector2.zero;
+            iconTextRect.anchorMax = Vector2.one;
+            iconTextRect.offsetMin = Vector2.zero;
+            iconTextRect.offsetMax = Vector2.zero;
+            var iconText = iconTextGO.AddComponent<Text>();
+            iconText.text = icon;
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.fontSize = 14;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = new Color(0.95f, 0.85f, 0.45f);
+            iconText.raycastTarget = false;
+
+            // --- Label text (top-right area): "Build" or "Research" ---
+            var labelGO = new GameObject("Label");
+            labelGO.transform.SetParent(go.transform, false);
+            var labelRect = labelGO.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0.22f, 0.50f);
+            labelRect.anchorMax = new Vector2(0.98f, 0.95f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            slot.LabelText = labelGO.AddComponent<Text>();
+            slot.LabelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            slot.LabelText.fontSize = 10;
+            slot.LabelText.fontStyle = FontStyle.Bold;
+            slot.LabelText.alignment = TextAnchor.MiddleLeft;
+            slot.LabelText.color = new Color(0.90f, 0.82f, 0.55f);
+            slot.LabelText.text = label;
+            slot.LabelText.raycastTarget = false;
+
+            var labelShadow = labelGO.AddComponent<Shadow>();
+            labelShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            labelShadow.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // --- Status text (bottom-right area): "IDLE" or building name ---
+            var statusGO = new GameObject("Status");
+            statusGO.transform.SetParent(go.transform, false);
+            var statusRect = statusGO.AddComponent<RectTransform>();
+            statusRect.anchorMin = new Vector2(0.22f, 0.05f);
+            statusRect.anchorMax = new Vector2(0.65f, 0.52f);
+            statusRect.offsetMin = Vector2.zero;
+            statusRect.offsetMax = Vector2.zero;
+
+            slot.StatusText = statusGO.AddComponent<Text>();
+            slot.StatusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            slot.StatusText.fontSize = 8;
+            slot.StatusText.alignment = TextAnchor.MiddleLeft;
+            slot.StatusText.color = new Color(0.70f, 0.70f, 0.70f);
+            slot.StatusText.text = "IDLE";
+            slot.StatusText.raycastTarget = false;
+
+            // --- Timer text (bottom-right): countdown ---
+            var timerGO = new GameObject("Timer");
+            timerGO.transform.SetParent(go.transform, false);
+            var timerRect = timerGO.AddComponent<RectTransform>();
+            timerRect.anchorMin = new Vector2(0.65f, 0.05f);
+            timerRect.anchorMax = new Vector2(0.98f, 0.52f);
+            timerRect.offsetMin = Vector2.zero;
+            timerRect.offsetMax = Vector2.zero;
+
+            slot.TimerText = timerGO.AddComponent<Text>();
+            slot.TimerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            slot.TimerText.fontSize = 8;
+            slot.TimerText.fontStyle = FontStyle.Bold;
+            slot.TimerText.alignment = TextAnchor.MiddleRight;
+            slot.TimerText.color = new Color(0.45f, 0.85f, 0.45f); // green timer
+            slot.TimerText.text = "";
+            slot.TimerText.raycastTarget = false;
+
+            // --- Progress bar at very bottom ---
+            var barBg = new GameObject("ProgressBg");
+            barBg.transform.SetParent(go.transform, false);
+            var barBgRect = barBg.AddComponent<RectTransform>();
+            barBgRect.anchorMin = new Vector2(0.02f, 0f);
+            barBgRect.anchorMax = new Vector2(0.98f, 0.08f);
+            barBgRect.offsetMin = Vector2.zero;
+            barBgRect.offsetMax = Vector2.zero;
+            var barBgImg = barBg.AddComponent<Image>();
+            barBgImg.color = new Color(0.15f, 0.12f, 0.20f, 0.80f);
+            barBgImg.raycastTarget = false;
+
+            var fill = new GameObject("Fill");
+            fill.transform.SetParent(barBg.transform, false);
+            var fillRect = fill.AddComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(0f, 1f); // starts empty
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            slot.ProgressFill = fill.AddComponent<Image>();
+            slot.ProgressFill.color = new Color(0.40f, 0.80f, 0.35f, 0.95f);
+            slot.ProgressFill.raycastTarget = false;
+
+            return slot;
+        }
+
+        private void RefreshQueueSlots()
+        {
+            ServiceLocator.TryGet<BuildingManager>(out var bm);
+            ServiceLocator.TryGet<ResearchManager>(out var rm);
+
+            foreach (var slot in _queueSlots)
+            {
+                if (slot.Root == null) continue;
+
+                if (slot.SlotType == "build")
+                {
+                    RefreshBuildSlot(slot, bm);
+                }
+                else if (slot.SlotType == "research")
+                {
+                    RefreshResearchSlot(slot, rm);
+                }
+            }
+        }
+
+        private void RefreshBuildSlot(QueueSlotUI slot, BuildingManager bm)
+        {
+            if (bm == null || bm.BuildQueue.Count <= slot.SlotIndex)
+            {
+                // IDLE state
+                slot.StatusText.text = "IDLE";
+                slot.StatusText.color = new Color(0.55f, 0.75f, 0.45f); // soft green
+                slot.TimerText.text = "";
+                slot.ProgressFill.rectTransform.anchorMax = new Vector2(0f, 1f);
+                slot.IconImage.color = new Color(0.45f, 0.30f, 0.12f, 0.90f);
+                return;
+            }
+
+            var entry = bm.BuildQueue[slot.SlotIndex];
+            // Active build — show building name + timer
+            string displayName = FormatBuildingDisplayName(entry.PlacedId);
+            slot.StatusText.text = displayName;
+            slot.StatusText.color = new Color(0.95f, 0.90f, 0.70f); // warm white
+
+            int secs = Mathf.CeilToInt(entry.RemainingSeconds);
+            slot.TimerText.text = FormatQueueTimer(secs);
+            slot.TimerText.color = secs <= 300
+                ? new Color(0.45f, 0.85f, 0.45f) // green when almost done
+                : new Color(0.85f, 0.75f, 0.40f); // gold otherwise
+
+            // Progress
+            float totalTime = (float)(System.DateTime.UtcNow - entry.StartTime).TotalSeconds + entry.RemainingSeconds;
+            float progress = totalTime > 0 ? 1f - (entry.RemainingSeconds / totalTime) : 0f;
+            progress = Mathf.Clamp01(progress);
+            slot.ProgressFill.rectTransform.anchorMax = new Vector2(progress, 1f);
+
+            // Active icon tint
+            slot.IconImage.color = new Color(0.65f, 0.45f, 0.15f, 0.95f);
+        }
+
+        private void RefreshResearchSlot(QueueSlotUI slot, ResearchManager rm)
+        {
+            if (rm == null || rm.ResearchQueue.Count == 0)
+            {
+                slot.StatusText.text = "IDLE";
+                slot.StatusText.color = new Color(0.45f, 0.60f, 0.80f); // soft blue
+                slot.TimerText.text = "";
+                slot.ProgressFill.rectTransform.anchorMax = new Vector2(0f, 1f);
+                slot.IconImage.color = new Color(0.20f, 0.35f, 0.55f, 0.90f);
+                return;
+            }
+
+            var active = rm.ResearchQueue[0];
+            // Get display name from node data
+            var nodeData = rm.GetNode(active.NodeId);
+            string displayName = nodeData != null ? nodeData.displayName : active.NodeId;
+            if (string.IsNullOrEmpty(displayName)) displayName = active.NodeId;
+            slot.StatusText.text = displayName;
+            slot.StatusText.color = new Color(0.80f, 0.88f, 0.95f);
+
+            int secs = Mathf.CeilToInt(active.RemainingSeconds);
+            slot.TimerText.text = FormatQueueTimer(secs);
+            slot.TimerText.color = secs <= 300
+                ? new Color(0.45f, 0.85f, 0.45f)
+                : new Color(0.55f, 0.75f, 0.90f);
+
+            // Estimate progress (we don't store total time, so use remaining as indicator)
+            // Show a pulsing bar when active but progress unknown
+            float progress = secs > 0 ? Mathf.PingPong(Time.time * 0.15f, 0.5f) + 0.1f : 1f;
+            slot.ProgressFill.rectTransform.anchorMax = new Vector2(progress, 1f);
+
+            slot.IconImage.color = new Color(0.30f, 0.50f, 0.75f, 0.95f);
+        }
+
+        private string FormatBuildingDisplayName(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return "Building";
+            // Remove trailing _0, _1 etc and format nicely
+            int lastUnderscore = instanceId.LastIndexOf('_');
+            string buildingId = lastUnderscore > 0 ? instanceId.Substring(0, lastUnderscore) : instanceId;
+            // Convert snake_case to Title Case
+            var parts = buildingId.Split('_');
+            var sb = new System.Text.StringBuilder();
+            foreach (var part in parts)
+            {
+                if (part.Length == 0) continue;
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append(char.ToUpper(part[0]));
+                if (part.Length > 1) sb.Append(part.Substring(1));
+            }
+            return sb.ToString();
+        }
+
+        private string FormatQueueTimer(int totalSeconds)
+        {
+            if (totalSeconds <= 0) return "Done";
+            int h = totalSeconds / 3600;
+            int m = (totalSeconds % 3600) / 60;
+            int s = totalSeconds % 60;
+            if (h > 0) return $"{h}:{m:D2}:{s:D2}";
+            return $"{m}:{s:D2}";
+        }
+
+        private void OnQueueSlotTapped(string slotType, int slotIndex)
+        {
+            if (slotType == "build")
+            {
+                if (ServiceLocator.TryGet<BuildingManager>(out var bm) && bm.BuildQueue.Count > slotIndex)
+                {
+                    var entry = bm.BuildQueue[slotIndex];
+                    // Find and center on the building
+                    foreach (var p in _placements)
+                    {
+                        if (p.InstanceId == entry.PlacedId && p.VisualGO != null)
+                        {
+                            CenterOnBuilding(p);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // No active build — show build queue panel
+                    ToggleBuildQueuePanel();
+                }
+            }
+            else if (slotType == "research")
+            {
+                // Open research quick panel (uses academy tier)
+                int academyTier = 1;
+                foreach (var p in _placements)
+                {
+                    if (p.BuildingId == "academy") { academyTier = p.Tier; break; }
+                }
+                ShowResearchQuickPanel(academyTier);
+            }
+        }
+
+        private void CenterOnBuilding(CityBuildingPlacement placement)
+        {
+            if (placement.VisualGO == null) return;
+            var targetRect = placement.VisualGO.GetComponent<RectTransform>();
+            if (targetRect == null) return;
+
+            var scrollRect = GetComponentInParent<ScrollRect>();
+            if (scrollRect == null) scrollRect = GetComponent<ScrollRect>();
+            if (scrollRect == null) return;
+
+            // Calculate normalized position to center on building
+            var content = scrollRect.content;
+            if (content == null) return;
+
+            Vector2 targetPos = targetRect.anchoredPosition;
+            Vector2 contentSize = content.sizeDelta;
+            Vector2 viewportSize = scrollRect.viewport != null
+                ? scrollRect.viewport.rect.size
+                : ((RectTransform)scrollRect.transform).rect.size;
+
+            float nx = Mathf.Clamp01((targetPos.x + contentSize.x * 0.5f - viewportSize.x * 0.5f) / (contentSize.x - viewportSize.x));
+            float ny = Mathf.Clamp01((targetPos.y + contentSize.y * 0.5f - viewportSize.y * 0.5f) / (contentSize.y - viewportSize.y));
+            scrollRect.normalizedPosition = new Vector2(nx, ny);
+        }
+
+        private void TickQueueStatusPanel()
+        {
+            if (_queueStatusPanel == null) return;
+            _queueSlotRefreshTimer += Time.deltaTime;
+            if (_queueSlotRefreshTimer >= QueueSlotRefreshInterval)
+            {
+                _queueSlotRefreshTimer = 0f;
+                RefreshQueueSlots();
+            }
         }
     }
 }

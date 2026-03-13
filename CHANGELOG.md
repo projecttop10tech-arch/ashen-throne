@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.11.0] — 2026-03-13 (Empire: P&C Queue Panel + Right-Side Events)
+
+### ADDED
+- **P&C-style queue status panel** — Left-side panel showing Build Slot 1, Build Slot 2, and Research slot with real-time status (IDLE or building name + countdown timer + progress bar). Tappable to jump to building or open research panel.
+- **Per-slot progress bars** — Green fill bars on each queue slot showing upgrade/research progress.
+
+### CHANGED
+- **Event icons moved to right side** — Circular event icons (daily chest, merchant, event hub, gifts) repositioned from left to right edge, matching P&C's layout.
+- **Quick-nav category buttons repositioned** — Moved higher on right side to avoid overlap with event icons.
+- **Builder count HUD replaced** — Old compact "Builder 0/2" pill replaced by the more detailed queue status panel.
+
+---
+
 ## [1.10.0] — 2026-03-13 (World Map: P&C-Style Open World Overhaul)
 
 ### CHANGED
