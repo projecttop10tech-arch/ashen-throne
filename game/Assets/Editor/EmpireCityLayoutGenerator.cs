@@ -274,9 +274,10 @@ namespace AshenThrone.Editor
             contentRect.anchorMax = new Vector2(0.5f, 0.5f);
             contentRect.pivot = new Vector2(0.5f, 0.5f);
             contentRect.sizeDelta = new Vector2(contentW, contentH);
-            // P&C-style default zoom so buildings fill the viewport vertically
+            // P&C-style default zoom — overview showing most of the city at once
+            // Content is ~3200x2140. At 0.55x on 1080x1920 screen ≈ 1760x1177 visible content
             // This persists in the scene — CityGridView reads it at Start()
-            contentRect.localScale = Vector3.one * 2.5f;
+            contentRect.localScale = Vector3.one * 0.55f;
 
             var scroll = viewport.AddComponent<ScrollRect>();
             scroll.content = contentRect;

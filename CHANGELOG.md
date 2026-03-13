@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.96.0] — 2026-03-12 (Ralph Loop Iteration 91: P&C Bottom Sheet, City Overview Zoom)
+
+### CHANGED
+- **Building tap popup → P&C-style bottom sheet** — Replaced radial menu popup (Lords Mobile style) with a horizontal bottom sheet panel anchored to screen bottom. Shows building icon thumbnail on left, name/level in center, and action buttons (Upgrade, Info, Move, Remove) in a row on right. Includes slide-up animation, close X button, and 8-second auto-dismiss. Matches Puzzles & Chaos interaction pattern.
+- **Default zoom 2.5x → 0.55x for city overview** — Previous zoom was so close only 1 building was visible. New zoom shows the entire city grid with all 41 buildings, roads, and ambient effects visible at once. Matches P&C's initial city view. Both generator and runtime default synced.
+
+---
+
 ## [0.95.0] — 2026-03-12 (Ralph Loop Iteration 90: Radial Sprite Fallback, Footprint Sync, Popup Dismiss)
 
 ### FIXED
