@@ -1039,11 +1039,11 @@ namespace AshenThrone.Empire
         public static Vector2 FootprintScreenSize(Vector2Int size)
         {
             // Diamond footprint width: (sizeX + sizeY) * HalfW is the exact isometric diamond width.
-            // Scale to 0.55x — buildings significantly SMALLER than their footprint,
-            // so visible terrain/grid shows between buildings (P&C-style clear separation).
-            float w = (size.x + size.y) * HalfW * 0.55f;
-            // Square bounding box — sprites are roughly 1:1 with iso perspective baked in
-            float h = w;
+            // Scale to 0.70x — buildings fill most of their footprint for dense P&C city feel.
+            // Terrain still visible between buildings as thin gaps.
+            float w = (size.x + size.y) * HalfW * 0.70f;
+            // Taller bounding box — P&C buildings rise above their footprint
+            float h = w * 1.3f;
             return new Vector2(w, h);
         }
 

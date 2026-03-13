@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [0.92.0] — 2026-03-12 (Ralph Loop Iteration 87: Bigger Buildings, Interaction Review)
+
+### CHANGED
+- **Building scale increased** — Footprint scale 0.55x→0.70x, height ratio 1.0→1.3x. Buildings now fill most of their grid footprint for a dense P&C-style city feel. Stronghold and major buildings properly dominate the skyline.
+- **All 15 building interaction features verified** — Tap→radial menu, long press→move mode, upgrade flow with confirmation dialog, resource collection (bubbles, swipe-collect, auto-collect), 3-tab info panel, build queue, batch upgrade mode, and demolish all confirmed fully implemented and functional.
+
+---
+
 ## [0.91.0] — 2026-03-12 (Ralph Loop Iteration 86: Fog Boundary, Ground Plates, Purple Theme)
 
 ### CHANGED
