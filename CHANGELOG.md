@@ -4,6 +4,16 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.27.0] — 2026-03-14 (Empire: Animated Indicators, Ambient FX, Move Mode & Collect All Polish)
+
+### CHANGED
+- **BuildingActionIndicator completely rewritten** — Upgrade icon pulses scale + glow breathes; collect icon bounces vertically + wiggles to signal "tap me"; timer pill color shifts from dark→amber→pulsing gold as build completes; elastic pop-in spawn animation on all indicators.
+- **CityAmbientEffects upgraded to P&C quality** — Wind simulation with variable gusts affecting all particles; sparkles now shimmer/twinkle with sharp brightness peaks; embers spread outward as they rise (smoke dissipation); leaves bob and sway with X-scale flip; all particles have elastic spawn pop and radial glow shadow underneath for depth.
+- **Move mode transitions smoothed** — Grid overlay fades in/out over 0.25s instead of instant pop; move confirm bar slides in from bottom with ease-out cubic; placement highlight cells smoothly transition colors between valid/invalid states.
+- **Collect All button upgraded to ornate P&C quality** — Double gold border (outer glow + inner crisp), glass highlight top-half, warm gold text with outline+shadow, radial glow aura behind, ✦ icon accent, elastic pop-in spawn animation, more dramatic pulse loop with glow breathing.
+
+---
+
 ## [1.26.0] — 2026-03-14 (Empire: Catalog Tabs & Quick Action Menu Polish)
 
 ### CHANGED

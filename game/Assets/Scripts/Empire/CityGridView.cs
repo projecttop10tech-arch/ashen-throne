@@ -1191,16 +1191,36 @@ namespace AshenThrone.Empire
         // Grid overlay visibility
         // ====================================================================
 
+        private Coroutine _gridOverlayFade;
         public void SetGridOverlayVisible(bool visible)
         {
             if (gridOverlay == null) return;
-            // Grid overlay always stays active — toggle between faint texture and bright move-mode
             gridOverlay.SetActive(true);
             var img = gridOverlay.GetComponent<UnityEngine.UI.Image>();
-            if (img != null)
-                img.color = visible
-                    ? new Color(0.40f, 0.25f, 0.65f, 0.32f)  // bright move-mode (dark fantasy purple)
-                    : new Color(0.35f, 0.25f, 0.50f, 0.20f);  // P&C: slightly more visible faint grid
+            if (img == null) return;
+
+            var target = visible
+                ? new Color(0.40f, 0.25f, 0.65f, 0.32f)
+                : new Color(0.35f, 0.25f, 0.50f, 0.20f);
+
+            // P&C: Smooth fade transition instead of instant pop
+            if (_gridOverlayFade != null) StopCoroutine(_gridOverlayFade);
+            _gridOverlayFade = StartCoroutine(FadeGridOverlay(img, target, 0.25f));
+        }
+
+        private System.Collections.IEnumerator FadeGridOverlay(Image img, Color target, float duration)
+        {
+            Color start = img.color;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                img.color = Color.Lerp(start, target, t);
+                yield return null;
+            }
+            img.color = target;
+            _gridOverlayFade = null;
         }
 
         // ====================================================================
@@ -4565,6 +4585,38 @@ namespace AshenThrone.Empire
             confirmText.raycastTarget = false;
 
             _moveConfirmBar = bar;
+
+            // P&C: Slide-in from bottom animation
+            StartCoroutine(SlideInMoveConfirmBar(barRect));
+        }
+
+        private System.Collections.IEnumerator SlideInMoveConfirmBar(RectTransform barRect)
+        {
+            // Start below screen, slide up
+            float targetMinY = barRect.anchorMin.y;
+            float targetMaxY = barRect.anchorMax.y;
+            float height = targetMaxY - targetMinY;
+            barRect.anchorMin = new Vector2(barRect.anchorMin.x, targetMinY - height);
+            barRect.anchorMax = new Vector2(barRect.anchorMax.x, targetMaxY - height);
+
+            float duration = 0.3f;
+            float elapsed = 0f;
+            while (elapsed < duration && barRect != null)
+            {
+                elapsed += Time.deltaTime;
+                // Ease-out cubic
+                float t = 1f - Mathf.Pow(1f - Mathf.Clamp01(elapsed / duration), 3f);
+                float currentMinY = Mathf.Lerp(targetMinY - height, targetMinY, t);
+                float currentMaxY = Mathf.Lerp(targetMaxY - height, targetMaxY, t);
+                barRect.anchorMin = new Vector2(barRect.anchorMin.x, currentMinY);
+                barRect.anchorMax = new Vector2(barRect.anchorMax.x, currentMaxY);
+                yield return null;
+            }
+            if (barRect != null)
+            {
+                barRect.anchorMin = new Vector2(barRect.anchorMin.x, targetMinY);
+                barRect.anchorMax = new Vector2(barRect.anchorMax.x, targetMaxY);
+            }
         }
 
         /// <summary>P&C: Confirm move — commit building to current ghost position.</summary>
@@ -11851,12 +11903,15 @@ namespace AshenThrone.Empire
         private readonly List<GameObject> _moveGridCells = new();
         private Vector2Int _lastMoveGridCenter = new(-999, -999);
         private const int MoveGridRadius = 8;
+        private Vector2Int _lastHighlightOrigin = new(-999, -999);
+        private bool _lastHighlightValid;
+        private Coroutine _highlightColorFade;
 
         private void CreateHighlight()
         {
             if (_movingBuilding == null || buildingContainer == null) return;
             DestroyHighlight();
-            // Create iso diamond cells for the highlight at the current position
+            _lastHighlightOrigin = new Vector2Int(-999, -999);
             UpdateHighlight(GridToLocalCenter(_movingBuilding.GridOrigin, _movingBuilding.Size));
         }
 
@@ -11867,31 +11922,86 @@ namespace AshenThrone.Empire
             var snapOrigin = SnapToGrid(dragLocalPos, _movingBuilding.Size);
             bool valid = CanPlaceAt(snapOrigin, _movingBuilding.Size, _movingBuilding);
 
-            // P&C: Show nearby grid cells with occupancy coloring
             ShowMoveGridCells(snapOrigin);
 
-            // Rebuild iso cells at new snap position
-            foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
-            _highlightCells.Clear();
-
-            var fill = valid ? HighlightValid : HighlightInvalid;
-            var border = valid ? BorderValid : BorderInvalid;
-
-            for (int gx = 0; gx < _movingBuilding.Size.x; gx++)
+            // P&C: If only validity changed (same position), smooth color transition
+            if (snapOrigin == _lastHighlightOrigin && valid != _lastHighlightValid && _highlightCells.Count > 0)
             {
-                for (int gy = 0; gy < _movingBuilding.Size.y; gy++)
-                {
-                    var cellGO = CreateIsoDiamondCell(buildingContainer,
-                        snapOrigin.x + gx, snapOrigin.y + gy, fill, border);
-                    _highlightCells.Add(cellGO);
-                }
+                _lastHighlightValid = valid;
+                var targetFill = valid ? HighlightValid : HighlightInvalid;
+                var targetBorder = valid ? BorderValid : BorderInvalid;
+                if (_highlightColorFade != null) StopCoroutine(_highlightColorFade);
+                _highlightColorFade = StartCoroutine(FadeHighlightColors(targetFill, targetBorder, 0.15f));
+                return;
             }
+
+            // Position changed — rebuild cells
+            if (snapOrigin != _lastHighlightOrigin)
+            {
+                foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
+                _highlightCells.Clear();
+                if (_highlightColorFade != null) { StopCoroutine(_highlightColorFade); _highlightColorFade = null; }
+
+                var fill = valid ? HighlightValid : HighlightInvalid;
+                var border = valid ? BorderValid : BorderInvalid;
+
+                for (int gx = 0; gx < _movingBuilding.Size.x; gx++)
+                {
+                    for (int gy = 0; gy < _movingBuilding.Size.y; gy++)
+                    {
+                        var cellGO = CreateIsoDiamondCell(buildingContainer,
+                            snapOrigin.x + gx, snapOrigin.y + gy, fill, border);
+                        _highlightCells.Add(cellGO);
+                    }
+                }
+
+                _lastHighlightOrigin = snapOrigin;
+                _lastHighlightValid = valid;
+            }
+        }
+
+        /// <summary>P&C: Smooth color transition when highlight validity changes.</summary>
+        private System.Collections.IEnumerator FadeHighlightColors(Color targetFill, Color targetBorder, float duration)
+        {
+            // Capture current colors from first cell
+            var startColors = new List<(Color fill, Color border)>();
+            foreach (var go in _highlightCells)
+            {
+                if (go == null) { startColors.Add((targetFill, targetBorder)); continue; }
+                var imgs = go.GetComponentsInChildren<Image>();
+                Color f = imgs.Length > 0 ? imgs[0].color : targetFill;
+                // Border is on Outline component
+                var outline = go.GetComponentInChildren<Outline>();
+                Color b = outline != null ? outline.effectColor : targetBorder;
+                startColors.Add((f, b));
+            }
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                for (int i = 0; i < _highlightCells.Count && i < startColors.Count; i++)
+                {
+                    if (_highlightCells[i] == null) continue;
+                    var imgs = _highlightCells[i].GetComponentsInChildren<Image>();
+                    if (imgs.Length > 0)
+                        imgs[0].color = Color.Lerp(startColors[i].fill, targetFill, t);
+                    var outline = _highlightCells[i].GetComponentInChildren<Outline>();
+                    if (outline != null)
+                        outline.effectColor = Color.Lerp(startColors[i].border, targetBorder, t);
+                }
+                yield return null;
+            }
+            _highlightColorFade = null;
         }
 
         private void DestroyHighlight()
         {
+            if (_highlightColorFade != null) { StopCoroutine(_highlightColorFade); _highlightColorFade = null; }
             foreach (var go in _highlightCells) { if (go != null) Destroy(go); }
             _highlightCells.Clear();
+            _lastHighlightOrigin = new Vector2Int(-999, -999);
         }
 
         // ====================================================================

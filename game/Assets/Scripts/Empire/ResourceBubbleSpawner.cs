@@ -185,39 +185,96 @@ namespace AshenThrone.Empire
 
         private void CreateCollectAllButton()
         {
-            // Find the Canvas to parent to (above building container)
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) return;
 
             _collectAllButton = new GameObject("CollectAllButton");
             _collectAllButton.transform.SetParent(canvas.transform, false);
             var rect = _collectAllButton.AddComponent<RectTransform>();
-            // P&C: Bottom-center, above nav bar (avoid overlap with auto-collect toggle at right)
-            rect.anchorMin = new Vector2(0.25f, 0.14f);
-            rect.anchorMax = new Vector2(0.70f, 0.19f);
+            rect.anchorMin = new Vector2(0.25f, 0.135f);
+            rect.anchorMax = new Vector2(0.70f, 0.195f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            // Background
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+
+            // P&C: Outer glow aura behind button
+            var glowGO = new GameObject("Glow");
+            glowGO.transform.SetParent(_collectAllButton.transform, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.08f, -0.4f);
+            glowRect.anchorMax = new Vector2(1.08f, 1.4f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = new Color(0.83f, 0.66f, 0.26f, 0.18f);
+            glowImg.raycastTarget = false;
+            if (radialSpr != null) glowImg.sprite = radialSpr;
+
+            // Background — dark recessed fill
             var bg = _collectAllButton.AddComponent<Image>();
-            bg.color = new Color(0.30f, 0.15f, 0.55f, 0.92f); // dark fantasy purple
+            bg.color = new Color(0.15f, 0.08f, 0.28f, 0.94f);
             bg.raycastTarget = true;
 
-            // Gold border
-            var outline = _collectAllButton.AddComponent<Outline>();
-            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.9f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            // P&C: Double gold border (outer glow + inner crisp)
+            var outerShadow = _collectAllButton.AddComponent<Shadow>();
+            outerShadow.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.50f);
+            outerShadow.effectDistance = new Vector2(1.5f, -1.5f);
+            var innerOutline = _collectAllButton.AddComponent<Outline>();
+            innerOutline.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.85f);
+            innerOutline.effectDistance = new Vector2(1f, -1f);
+
+            // P&C: Glass highlight on top half
+            var glassGO = new GameObject("Glass");
+            glassGO.transform.SetParent(_collectAllButton.transform, false);
+            var glassRect = glassGO.AddComponent<RectTransform>();
+            glassRect.anchorMin = new Vector2(0.02f, 0.48f);
+            glassRect.anchorMax = new Vector2(0.98f, 0.96f);
+            glassRect.offsetMin = Vector2.zero;
+            glassRect.offsetMax = Vector2.zero;
+            var glassImg = glassGO.AddComponent<Image>();
+            glassImg.color = new Color(1f, 0.95f, 0.80f, 0.12f);
+            glassImg.raycastTarget = false;
+
+            // P&C: Warm inner edge glow (bottom accent)
+            var warmGO = new GameObject("WarmGlow");
+            warmGO.transform.SetParent(_collectAllButton.transform, false);
+            var warmRect = warmGO.AddComponent<RectTransform>();
+            warmRect.anchorMin = new Vector2(0f, 0f);
+            warmRect.anchorMax = new Vector2(1f, 0.25f);
+            warmRect.offsetMin = Vector2.zero;
+            warmRect.offsetMax = Vector2.zero;
+            var warmImg = warmGO.AddComponent<Image>();
+            warmImg.color = new Color(0.83f, 0.66f, 0.26f, 0.08f);
+            warmImg.raycastTarget = false;
 
             // Button
             var btn = _collectAllButton.AddComponent<Button>();
             btn.targetGraphic = bg;
             btn.onClick.AddListener(CollectAll);
 
+            // P&C: Coin/gem icon
+            var iconGO = new GameObject("Icon");
+            iconGO.transform.SetParent(_collectAllButton.transform, false);
+            var iconRect = iconGO.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.03f, 0.10f);
+            iconRect.anchorMax = new Vector2(0.15f, 0.90f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconText = iconGO.AddComponent<Text>();
+            iconText.text = "\u2726"; // ✦
+            iconText.fontSize = 16;
+            iconText.fontStyle = FontStyle.Bold;
+            iconText.alignment = TextAnchor.MiddleCenter;
+            iconText.color = new Color(1f, 0.85f, 0.35f);
+            iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            iconText.raycastTarget = false;
+
             // Label
             var labelGO = new GameObject("Label");
             labelGO.transform.SetParent(_collectAllButton.transform, false);
             var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMin = new Vector2(0.12f, 0f);
             labelRect.anchorMax = Vector2.one;
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
@@ -226,31 +283,68 @@ namespace AshenThrone.Empire
             text.fontSize = 13;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
+            text.color = new Color(1f, 0.92f, 0.65f); // warm gold text
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.raycastTarget = false;
-            var shadow = labelGO.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0, 0, 0, 0.8f);
-            shadow.effectDistance = new Vector2(0.8f, -0.8f);
+            var textOutline = labelGO.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            textOutline.effectDistance = new Vector2(0.8f, -0.8f);
+            var textShadow = labelGO.AddComponent<Shadow>();
+            textShadow.effectColor = new Color(0.83f, 0.55f, 0.10f, 0.3f);
+            textShadow.effectDistance = new Vector2(0f, -1.2f);
 
-            // P&C: Pulse animation to draw attention
-            StartCoroutine(PulseCollectAllButton());
+            // P&C: Pop-in spawn animation + pulse loop
+            _collectAllButton.transform.localScale = Vector3.zero;
+            StartCoroutine(PopInAndPulseCollectAll());
         }
 
-        private System.Collections.IEnumerator PulseCollectAllButton()
+        private System.Collections.IEnumerator PopInAndPulseCollectAll()
         {
+            // Pop-in: elastic scale
+            float popDuration = 0.35f;
+            float elapsed = 0f;
+            while (elapsed < popDuration && _collectAllButton != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / popDuration);
+                float scale = t < 0.6f
+                    ? Mathf.Lerp(0f, 1.15f, t / 0.6f)
+                    : Mathf.Lerp(1.15f, 1f, (t - 0.6f) / 0.4f);
+                _collectAllButton.transform.localScale = Vector3.one * scale;
+                yield return null;
+            }
+
+            // Ongoing pulse loop
             while (_collectAllButton != null)
             {
+                float time = Time.time;
+                // Background color pulse — warm breathe
                 var img = _collectAllButton.GetComponent<Image>();
                 if (img != null)
                 {
-                    float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 3f);
-                    float purpleBase = 0.55f;
-                    img.color = new Color(0.30f * pulse, 0.15f, purpleBase * pulse, 0.92f);
+                    float pulse = Mathf.Sin(time * 2.5f) * 0.5f + 0.5f;
+                    img.color = new Color(
+                        Mathf.Lerp(0.15f, 0.22f, pulse),
+                        0.08f,
+                        Mathf.Lerp(0.28f, 0.38f, pulse),
+                        0.94f);
                 }
-                // Subtle scale pulse
-                float scale = 1f + 0.03f * Mathf.Sin(Time.time * 2.5f);
-                _collectAllButton.transform.localScale = Vector3.one * scale;
+
+                // Outer glow pulse
+                var glow = _collectAllButton.transform.Find("Glow");
+                if (glow != null)
+                {
+                    var glowI = glow.GetComponent<Image>();
+                    if (glowI != null)
+                    {
+                        float glowPulse = Mathf.Sin(time * 3f) * 0.5f + 0.5f;
+                        glowI.color = new Color(0.83f, 0.66f, 0.26f, Mathf.Lerp(0.10f, 0.28f, glowPulse));
+                    }
+                }
+
+                // Scale pulse — more noticeable
+                float s = 1f + 0.045f * Mathf.Sin(time * 2.8f);
+                _collectAllButton.transform.localScale = Vector3.one * s;
                 yield return null;
             }
         }
