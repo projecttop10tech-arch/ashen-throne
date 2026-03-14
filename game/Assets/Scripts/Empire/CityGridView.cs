@@ -1236,6 +1236,9 @@ namespace AshenThrone.Empire
             }
             img.raycastTarget = true;
 
+            // P&C: Warm internal light overlay on building center
+            CreateBuildingWarmLight(go);
+
             CreateLevelBadge(go, placement.Tier);
             CreateBuildingCountBadge(go, placement.BuildingId);
 
@@ -1377,6 +1380,30 @@ namespace AshenThrone.Empire
             }
         }
 
+        /// <summary>P&C: Warm internal light overlay — simulates window/fire glow within buildings.</summary>
+        private void CreateBuildingWarmLight(GameObject building)
+        {
+            var lightGO = new GameObject("WarmLight");
+            lightGO.transform.SetParent(building.transform, false);
+            // On top of building sprite (last sibling will be above the Image)
+            var lightRect = lightGO.AddComponent<RectTransform>();
+            // Center of building, small warm spot
+            lightRect.anchorMin = new Vector2(0.25f, 0.30f);
+            lightRect.anchorMax = new Vector2(0.75f, 0.70f);
+            lightRect.offsetMin = Vector2.zero;
+            lightRect.offsetMax = Vector2.zero;
+
+            var lightImg = lightGO.AddComponent<Image>();
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) lightImg.sprite = spr;
+            lightImg.color = new Color(1f, 0.80f, 0.45f, 0.12f); // subtle warm interior glow
+            lightImg.raycastTarget = false;
+        }
+
         /// <summary>P&C IT102: Subtle category-colored glow aura at building base.</summary>
         private void CreateCategoryGlow(GameObject building, string buildingId)
         {
@@ -1408,25 +1435,26 @@ namespace AshenThrone.Empire
             if (spr != null) glowImg.sprite = spr;
         }
 
-        /// <summary>P&C IT102: Category color for building base glow aura.</summary>
+        /// <summary>P&C IT102: Category color for building base glow aura.
+        /// Boosted to 0.25 alpha for visible light pools matching P&C's bright building lighting.</summary>
         private static Color GetBuildingCategoryGlowColor(string buildingId) => buildingId switch
         {
             // Military — warm red
-            "barracks" or "training_ground" or "armory" => new Color(0.80f, 0.25f, 0.20f, 0.12f),
+            "barracks" or "training_ground" or "armory" => new Color(0.80f, 0.25f, 0.20f, 0.25f),
             // Resource — green
-            "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.25f, 0.70f, 0.30f, 0.12f),
+            "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.25f, 0.70f, 0.30f, 0.25f),
             // Magic — purple
-            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => new Color(0.55f, 0.30f, 0.80f, 0.12f),
+            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => new Color(0.55f, 0.30f, 0.80f, 0.25f),
             // Defense — blue
-            "wall" or "watch_tower" => new Color(0.25f, 0.50f, 0.85f, 0.12f),
+            "wall" or "watch_tower" => new Color(0.25f, 0.50f, 0.85f, 0.25f),
             // Social/trade — amber
-            "marketplace" or "guild_hall" or "embassy" => new Color(0.85f, 0.65f, 0.20f, 0.12f),
+            "marketplace" or "guild_hall" or "embassy" => new Color(0.85f, 0.65f, 0.20f, 0.25f),
             // Knowledge — cyan
-            "academy" or "library" or "archive" => new Color(0.30f, 0.70f, 0.80f, 0.12f),
+            "academy" or "library" or "archive" => new Color(0.30f, 0.70f, 0.80f, 0.25f),
             // Sacred — white-gold
-            "hero_shrine" => new Color(0.90f, 0.85f, 0.50f, 0.10f),
+            "hero_shrine" => new Color(0.90f, 0.85f, 0.50f, 0.22f),
             // Forge — orange
-            "forge" => new Color(0.90f, 0.50f, 0.15f, 0.12f),
+            "forge" => new Color(0.90f, 0.50f, 0.15f, 0.25f),
             _ => new Color(0, 0, 0, 0) // No glow for unknown
         };
 
@@ -15649,7 +15677,7 @@ namespace AshenThrone.Empire
             else if (isDawn)
                 buildingTint = new Color(0.92f, 0.82f, 0.70f, 1f); // Golden dawn
             else
-                buildingTint = Color.white; // Full daylight
+                buildingTint = new Color(1.35f, 1.25f, 1.15f, 1f); // P&C-style bright daylight — lifts dark sprites
 
             foreach (var placement in _placements)
             {

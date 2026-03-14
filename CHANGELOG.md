@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.14.0] — 2026-03-13 (Empire: Building Brightness + Warm Glow Effects)
+
+### CHANGED
+- **Building daylight tint boosted to 1.35x** — Building sprites now render 35% brighter in daytime, lifting dark fantasy art toward P&C's vivid building palette.
+- **Category glow auras doubled** — Building base glow increased from 0.12 to 0.25 alpha for visible colored light pools (red military, green resource, purple magic, etc.).
+
+### ADDED
+- **Per-building warm light overlay** — Each building gets a radial warm light spot at its center, simulating P&C's interior window/fire lighting.
+
+---
+
 ## [1.13.0] — 2026-03-13 (Empire: Warm Terrain Base, Chat Ticker, Roads, Decorations)
 
 ### ADDED
