@@ -307,6 +307,8 @@ namespace AshenThrone.Empire
             SetupChatTicker();
             // P&C: Stone road paths connecting buildings
             CreateBuildingRoads();
+            // P&C: Auto-scatter trees/rocks/grass in empty spaces
+            ScatterTerrainDecorations();
         }
 
         /// <summary>P&C: Sort building GameObjects by isometric depth so front buildings overlap back ones.</summary>
@@ -20764,51 +20766,27 @@ namespace AshenThrone.Empire
 
     public partial class CityGridView
     {
-        /// <summary>P&C: Brighten the terrain to match P&C's warmer, more vibrant city view.</summary>
+        /// <summary>P&C: Brighten the terrain — adds radial center glow at runtime.
+        /// Base brightness (WarmBase + terrain opacity + AmbientWash) is baked into the scene by the generator.</summary>
         private void BrightenCityTerrain()
         {
             if (contentContainer == null) return;
 
-            // Find GroundBG and brighten it significantly — P&C uses warm golden tones
-            var groundBG = contentContainer.Find("GroundBG");
-            if (groundBG != null)
-            {
-                var img = groundBG.GetComponent<Image>();
-                if (img != null)
-                {
-                    // Strong warm brightening — lifts the dark terrain art toward P&C's golden warmth
-                    img.color = new Color(1.6f, 1.45f, 1.2f, 1f);
-                }
-            }
-
-            // Find viewport background and make it warm blue-grey (P&C edge color)
+            // Viewport edge color — warm dark brown instead of pure black
             var viewport = contentContainer.parent;
             if (viewport != null)
             {
                 var vpImg = viewport.GetComponent<Image>();
-                if (vpImg != null && vpImg.color.r < 0.15f)
+                if (vpImg != null)
                 {
-                    vpImg.color = new Color(0.12f, 0.10f, 0.18f, 1f);
+                    vpImg.color = new Color(0.18f, 0.14f, 0.10f, 1f);
                 }
             }
-
-            // Full-coverage warm wash — simulates P&C's warm ambient lighting
-            var warmWash = new GameObject("WarmWash");
-            warmWash.transform.SetParent(contentContainer, false);
-            warmWash.transform.SetSiblingIndex(1); // above ground, below buildings
-            var washRect = warmWash.AddComponent<RectTransform>();
-            washRect.anchorMin = Vector2.zero;
-            washRect.anchorMax = Vector2.one;
-            washRect.offsetMin = Vector2.zero;
-            washRect.offsetMax = Vector2.zero;
-            var washImg = warmWash.AddComponent<Image>();
-            washImg.color = new Color(0.45f, 0.35f, 0.20f, 0.25f); // warm amber wash
-            washImg.raycastTarget = false;
 
             // Central radial glow — brighter center, softer edges (P&C focal lighting)
             var warmGlow = new GameObject("WarmGlow");
             warmGlow.transform.SetParent(contentContainer, false);
-            warmGlow.transform.SetSiblingIndex(2); // above wash, below buildings
+            warmGlow.transform.SetSiblingIndex(3); // above wash, below buildings
 
             var glowRect = warmGlow.AddComponent<RectTransform>();
             glowRect.anchorMin = new Vector2(0.10f, 0.10f);
@@ -21085,5 +21063,103 @@ namespace AshenThrone.Empire
             img.raycastTarget = false;
         }
 
+        // ============================================================
+        //  P&C: Auto-scatter terrain decorations (trees, rocks, grass)
+        //  Fills empty spaces between buildings to match P&C's dense,
+        //  richly decorated city terrain.
+        // ============================================================
+        private void ScatterTerrainDecorations()
+        {
+            if (contentContainer == null || _placements == null) return;
+
+            // Decoration container — below buildings
+            var decoRoot = new GameObject("TerrainDecorations");
+            decoRoot.transform.SetParent(contentContainer, false);
+            int buildingContainerIdx = buildingContainer != null ? buildingContainer.GetSiblingIndex() : 5;
+            decoRoot.transform.SetSiblingIndex(Mathf.Max(3, buildingContainerIdx - 1));
+
+            var rootRect = decoRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            // Build occupancy set from placed buildings
+            var occupied = new HashSet<long>();
+            foreach (var p in _placements)
+            {
+                for (int dx = 0; dx < p.Size.x; dx++)
+                    for (int dy = 0; dy < p.Size.y; dy++)
+                        occupied.Add(PackCoord(p.GridOrigin.x + dx, p.GridOrigin.y + dy));
+            }
+
+            // Decoration types with unicode icons and colors
+            var decoTypes = new[]
+            {
+                ("\u2742", new Color(0.30f, 0.65f, 0.25f, 0.55f), 0.6f),  // tree (green)
+                ("\u2618", new Color(0.35f, 0.70f, 0.30f, 0.45f), 0.45f), // bush (lighter green)
+                ("\u25C6", new Color(0.50f, 0.45f, 0.35f, 0.40f), 0.35f), // rock (brown)
+                ("\u2022", new Color(0.45f, 0.60f, 0.30f, 0.35f), 0.25f), // grass tuft (pale green)
+            };
+
+            var rng = new System.Random(42); // fixed seed for consistent layout
+            float cellW = CellSize;
+            int decoCount = 0;
+            int maxDecorations = 120; // limit for performance
+
+            // Scatter across the playable area (cells 4-42)
+            for (int gx = 4; gx < 43; gx += 2)
+            {
+                for (int gy = 4; gy < 43; gy += 2)
+                {
+                    if (decoCount >= maxDecorations) break;
+
+                    // Skip occupied cells and cells adjacent to buildings (leave 1-cell gap)
+                    if (IsNearBuilding(occupied, gx, gy)) continue;
+
+                    // 40% chance to place decoration
+                    if (rng.NextDouble() > 0.40) continue;
+
+                    var (icon, color, sizeMul) = decoTypes[rng.Next(decoTypes.Length)];
+                    Vector2 pos = GridToLocalCenter(new Vector2Int(gx, gy), Vector2Int.one);
+                    // Small random offset for natural look
+                    pos.x += (float)(rng.NextDouble() - 0.5) * cellW * 0.4f;
+                    pos.y += (float)(rng.NextDouble() - 0.5) * cellW * 0.2f;
+
+                    var decoGO = new GameObject("Deco");
+                    decoGO.transform.SetParent(decoRoot.transform, false);
+
+                    var decoRect = decoGO.AddComponent<RectTransform>();
+                    float size = cellW * sizeMul;
+                    decoRect.anchoredPosition = pos;
+                    decoRect.sizeDelta = new Vector2(size, size);
+
+                    var text = decoGO.AddComponent<Text>();
+                    text.text = icon;
+                    text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    text.fontSize = Mathf.RoundToInt(size * 0.8f);
+                    text.alignment = TextAnchor.MiddleCenter;
+                    text.color = color;
+                    text.raycastTarget = false;
+
+                    // Slight random rotation for variety
+                    float rot = (float)(rng.NextDouble() * 20 - 10);
+                    decoGO.transform.localRotation = Quaternion.Euler(0, 0, rot);
+
+                    decoCount++;
+                }
+            }
+        }
+
+        private static long PackCoord(int x, int y) => ((long)x << 32) | (uint)y;
+
+        private static bool IsNearBuilding(HashSet<long> occupied, int gx, int gy)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                    if (occupied.Contains(PackCoord(gx + dx, gy + dy)))
+                        return true;
+            return false;
+        }
     }
 }

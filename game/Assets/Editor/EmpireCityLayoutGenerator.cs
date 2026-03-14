@@ -217,7 +217,20 @@ namespace AshenThrone.Editor
             scroll.scrollSensitivity = 12f;
 
             // ================================================================
-            // 3. Ground background (rich terrain art, covers entire content)
+            // 3a. Warm stone base — P&C-style bright ground under terrain art
+            // ================================================================
+            var warmBase = CreateChild(content, "WarmBase");
+            var warmBaseRect = warmBase.AddComponent<RectTransform>();
+            warmBaseRect.anchorMin = Vector2.zero;
+            warmBaseRect.anchorMax = Vector2.one;
+            warmBaseRect.offsetMin = Vector2.zero;
+            warmBaseRect.offsetMax = Vector2.zero;
+            var warmBaseImg = warmBase.AddComponent<Image>();
+            warmBaseImg.color = new Color(0.45f, 0.35f, 0.22f, 1f); // warm stone
+            warmBaseImg.raycastTarget = false;
+
+            // ================================================================
+            // 3b. Ground background (terrain art at reduced opacity over warm base)
             // ================================================================
             var outerBG = CreateChild(content, "GroundBG");
             var outerRect = outerBG.AddComponent<RectTransform>();
@@ -227,8 +240,7 @@ namespace AshenThrone.Editor
             outerRect.offsetMax = Vector2.zero;
             var outerImg = outerBG.AddComponent<Image>();
 
-            // Use AI-generated terrain art — rich dark fantasy background with arcane paths,
-            // glowing lanterns, atmospheric fog. MUCH better than procedural noise.
+            // Use AI-generated terrain art — reduced opacity lets warm base show through
             string terrainPath = "Assets/Art/Environments/empire_terrain_bg.png";
             EnsureSpriteImportSettings(terrainPath);
             var terrainSprite = AssetDatabase.LoadAssetAtPath<Sprite>(terrainPath);
@@ -236,15 +248,28 @@ namespace AshenThrone.Editor
             {
                 outerImg.sprite = terrainSprite;
                 outerImg.type = Image.Type.Simple;
-                outerImg.preserveAspect = false; // stretch to fill content area
-                outerImg.color = Color.white;    // let the art speak for itself
+                outerImg.preserveAspect = false;
+                // P&C brightness: terrain at 50% opacity, warm base shows through dark areas
+                outerImg.color = new Color(1.3f, 1.2f, 1.0f, 0.50f);
             }
             else
             {
-                // Fallback: very dark background
-                outerImg.color = new Color(0.05f, 0.04f, 0.08f, 1f);
+                outerImg.color = new Color(0.35f, 0.28f, 0.18f, 1f);
             }
             outerImg.raycastTarget = true;
+
+            // ================================================================
+            // 3c. Warm amber wash — P&C ambient lighting
+            // ================================================================
+            var ambientWash = CreateChild(content, "AmbientWash");
+            var washRect = ambientWash.AddComponent<RectTransform>();
+            washRect.anchorMin = Vector2.zero;
+            washRect.anchorMax = Vector2.one;
+            washRect.offsetMin = Vector2.zero;
+            washRect.offsetMax = Vector2.zero;
+            var washImg = ambientWash.AddComponent<Image>();
+            washImg.color = new Color(0.50f, 0.38f, 0.20f, 0.18f);
+            washImg.raycastTarget = false;
 
             // ================================================================
             // 4. Edge fog vignette (P&C-style natural boundary fade)

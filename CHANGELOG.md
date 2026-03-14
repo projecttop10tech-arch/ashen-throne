@@ -4,12 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
-## [1.13.0] — 2026-03-13 (Empire: Warm Lighting, Chat Ticker, Road Paths)
+## [1.13.0] — 2026-03-13 (Empire: Warm Terrain Base, Chat Ticker, Roads, Decorations)
 
 ### ADDED
-- **Strong warm terrain lighting** — 1.6x terrain brightness multiplier, full-coverage amber wash overlay (0.25 alpha), and radial golden center glow (0.22 alpha). Dramatically closer to P&C's warm golden city ambiance.
+- **Warm stone terrain base** — Baked into generator: warm base layer (0.45, 0.35, 0.22) under terrain art at 50% opacity + ambient wash. Shifts terrain from dark purple to warm brown tones matching P&C.
 - **Scrolling alliance chat ticker** — Chat bar cycles through 8 fake alliance/world/system messages every 4.5s, matching P&C's live chat feed.
 - **Stone road paths** — Subtle brown paths connecting nearest-neighbor buildings (within 8 grid cells), matching P&C's road network.
+- **Terrain decorations** — Auto-scattered trees, bushes, rocks, grass tufts in empty spaces between buildings (120 max), matching P&C's densely decorated city terrain.
+- **Central radial glow** — Golden center glow at stronghold area for P&C focal lighting effect.
 
 ---
 
