@@ -1184,8 +1184,8 @@ namespace AshenThrone.Empire
             var img = gridOverlay.GetComponent<UnityEngine.UI.Image>();
             if (img != null)
                 img.color = visible
-                    ? new Color(0.40f, 0.25f, 0.65f, 0.30f)  // bright move-mode (dark fantasy purple)
-                    : new Color(0.30f, 0.20f, 0.50f, 0.15f);  // faint dark fantasy purple grid
+                    ? new Color(0.40f, 0.25f, 0.65f, 0.32f)  // bright move-mode (dark fantasy purple)
+                    : new Color(0.35f, 0.25f, 0.50f, 0.20f);  // P&C: slightly more visible faint grid
         }
 
         // ====================================================================
@@ -1292,6 +1292,18 @@ namespace AshenThrone.Empire
                 img.preserveAspect = true;
             }
             img.raycastTarget = true;
+
+            // P&C: Category-colored outline on building sprite for contrast against dark terrain
+            Color catOutlineColor = GetBuildingCategoryGlowColor(placement.BuildingId);
+            if (catOutlineColor.a > 0.01f)
+            {
+                var bldgOutline = go.AddComponent<Outline>();
+                bldgOutline.effectColor = new Color(catOutlineColor.r, catOutlineColor.g, catOutlineColor.b, 0.55f);
+                bldgOutline.effectDistance = new Vector2(1.2f, -1.2f);
+            }
+
+            // P&C: Bright rim highlight on top edge — simulates light hitting roof
+            CreateBuildingRimLight(go, placement.BuildingId);
 
             // P&C: Warm internal light overlay on building center
             CreateBuildingWarmLight(go);
@@ -1435,6 +1447,32 @@ namespace AshenThrone.Empire
                 rect.localScale = baseScale * breath;
                 yield return null;
             }
+        }
+
+        /// <summary>P&C: Bright rim light on building top edge — light hitting roof/spires.</summary>
+        private void CreateBuildingRimLight(GameObject building, string buildingId)
+        {
+            // Top rim — bright warm highlight simulating overhead light
+            var rimGO = new GameObject("RimLight");
+            rimGO.transform.SetParent(building.transform, false);
+            var rimRect = rimGO.AddComponent<RectTransform>();
+            rimRect.anchorMin = new Vector2(0.10f, 0.70f);
+            rimRect.anchorMax = new Vector2(0.90f, 0.98f);
+            rimRect.offsetMin = Vector2.zero;
+            rimRect.offsetMax = Vector2.zero;
+
+            var rimImg = rimGO.AddComponent<Image>();
+            var spr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (spr == null)
+                spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (spr != null) rimImg.sprite = spr;
+            // Stronghold gets golden rim, others get warm white
+            rimImg.color = buildingId == "stronghold"
+                ? new Color(1f, 0.85f, 0.35f, 0.18f)
+                : new Color(0.95f, 0.90f, 0.75f, 0.14f);
+            rimImg.raycastTarget = false;
         }
 
         /// <summary>P&C: Warm internal light overlay — simulates window/fire glow within buildings.</summary>

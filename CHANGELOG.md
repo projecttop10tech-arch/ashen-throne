@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.21.0] — 2026-03-13 (Empire: Building Visual Contrast — Outlines, Rim Light, Grid)
+
+### ADDED
+- **Category-colored building outlines** — Each building sprite now has a colored outline matching its category (red military, green resource, purple magic, blue defense, amber social, cyan knowledge). Dramatically improves building distinction against dark terrain.
+- **Building rim light** — Bright warm highlight on top edge of each building simulates overhead light hitting roofs/spires. Stronghold gets golden rim, others warm white. Uses radial_gradient sprite.
+
+### CHANGED
+- **Grid overlay slightly more visible** — Faint grid alpha boosted from 0.15 to 0.20 for P&C-style visible terrain texture in normal mode.
+
+---
+
 ## [1.20.0] — 2026-03-13 (Empire: Zoom Momentum + Smooth Zoom-to-Building)
 
 ### ADDED
