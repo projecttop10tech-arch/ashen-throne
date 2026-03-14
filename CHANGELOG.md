@@ -4,6 +4,13 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.18.0] — 2026-03-13 (Empire: Resource Bubble Bob + Pulse Animation Restored)
+
+### FIXED
+- **Resource bubble bob animation restored** — Bubbles now gently bob up/down and pulse in scale, matching P&C's floating resource icon behavior. Was previously disabled (static). Also fixes CS0414 warnings for `_bobSpeed`, `_bobAmplitude`, `_pulseSpeed` fields.
+
+---
+
 ## [1.17.0] — 2026-03-13 (Empire: P&C Interaction Polish — Building Cycling, Speedup Items)
 
 ### ADDED
