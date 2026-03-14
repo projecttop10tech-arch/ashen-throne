@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.31.0] — 2026-03-14 (Empire: Demolish Dialog & Info Popup Nav Arrow Polish)
+
+### CHANGED
+- **DemolishConfirmDialog upgraded to P&C quality** — Full rewrite with triple border (outer glow→gold→inner warning red), glass highlight, warm bottom danger glow, corner diamond accents, ornate header strip with gold separator, decorative warning accents. Ornate buttons with triple border + glass + gold edge. Text labels with outline+shadow, rich text for colored level/warning. Elastic pop-in animation (0→1.12→1.0 over 0.3s).
+- **BuildingInfoPopupController nav arrows upgraded** — Triple border (outer glow→gold→inner) with glass highlight on navigation arrow buttons. Text outline added for readability. Nav counter label now has outline+shadow.
+
+---
+
 ## [1.30.0] — 2026-03-14 (Empire: Recommendation Banner, Offline Popup, Upgrade Toast Polish)
 
 ### CHANGED

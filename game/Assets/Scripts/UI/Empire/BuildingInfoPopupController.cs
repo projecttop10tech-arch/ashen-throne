@@ -1019,6 +1019,10 @@ namespace AshenThrone.UI.Empire
             _navCountLabel.alignment = TextAnchor.MiddleRight;
             _navCountLabel.color = new Color(0.70f, 0.65f, 0.55f, 0.9f);
             _navCountLabel.raycastTarget = false;
+            counterGO.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.75f);
+            counterGO.GetComponent<Outline>().effectDistance = new Vector2(0.5f, -0.5f);
+            counterGO.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.50f);
+            counterGO.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.5f);
             counterGO.SetActive(false);
         }
 
@@ -1033,11 +1037,33 @@ namespace AshenThrone.UI.Empire
             rect.offsetMax = Vector2.zero;
 
             var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.08f, 0.05f, 0.14f, 0.85f);
+            bg.color = new Color(0.08f, 0.05f, 0.14f, 0.90f);
             bg.raycastTarget = true;
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
-            outline.effectDistance = new Vector2(1f, -1f);
+
+            // Triple border: outer glow → gold → inner
+            var outerGlow = go.AddComponent<Outline>();
+            outerGlow.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.25f);
+            outerGlow.effectDistance = new Vector2(2f, -2f);
+            var goldBorder = new GameObject("GoldBorder");
+            goldBorder.transform.SetParent(go.transform, false);
+            var gbRect = goldBorder.AddComponent<RectTransform>();
+            gbRect.anchorMin = Vector2.zero; gbRect.anchorMax = Vector2.one;
+            gbRect.offsetMin = Vector2.zero; gbRect.offsetMax = Vector2.zero;
+            var gbImg = goldBorder.AddComponent<Image>();
+            gbImg.color = new Color(0, 0, 0, 0); gbImg.raycastTarget = false;
+            goldBorder.AddComponent<Outline>().effectColor = new Color(0.78f, 0.62f, 0.22f, 0.70f);
+            goldBorder.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+
+            // Glass highlight
+            var glass = new GameObject("Glass");
+            glass.transform.SetParent(go.transform, false);
+            var glRect = glass.AddComponent<RectTransform>();
+            glRect.anchorMin = new Vector2(0f, 0.45f);
+            glRect.anchorMax = Vector2.one;
+            glRect.offsetMin = Vector2.zero; glRect.offsetMax = Vector2.zero;
+            var glImg = glass.AddComponent<Image>();
+            glImg.color = new Color(1f, 1f, 1f, 0.06f);
+            glImg.raycastTarget = false;
 
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = bg;
@@ -1057,6 +1083,8 @@ namespace AshenThrone.UI.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = new Color(0.83f, 0.66f, 0.26f, 1f);
             text.raycastTarget = false;
+            textGO.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.80f);
+            textGO.GetComponent<Outline>().effectDistance = new Vector2(0.6f, -0.6f);
 
             return go;
         }
