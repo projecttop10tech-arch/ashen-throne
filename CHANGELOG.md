@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.16.0] — 2026-03-13 (Empire: Building Scale, Brightness, and Glow Overhaul)
+
+### CHANGED
+- **Building brightness boosted to 1.65x** — Daylight tint increased from 1.35x to 1.65x for vivid, P&C-matching building visibility on dark terrain.
+- **Building scale increased** — Footprint fill raised from 0.90x to 1.0x, height ratio from 1.4x to 1.6x. Buildings now tower over their grid cells like P&C.
+- **Category glow alpha doubled** — Base glow halos increased from 0.25 to 0.40 alpha for dramatic colored light pools (red military, green resource, purple magic, etc.).
+- **Stronghold glow dramatically strengthened** — Outer glow wider (-15% to 115%) with 0.20 alpha pulse, inner glow at 0.15 alpha. Stronghold now radiates visible gold light matching P&C's focal centerpiece.
+- **Warm light overlay boosted** — Per-building warm interior glow increased from 0.12 to 0.22 alpha.
+
+---
+
 ## [1.15.0] — 2026-03-13 (Empire: Info Popup Visual Polish — Category Headers, Resource Icons, Recommendations)
 
 ### CHANGED

@@ -1107,11 +1107,11 @@ namespace AshenThrone.Empire
         public static Vector2 FootprintScreenSize(Vector2Int size)
         {
             // Diamond footprint width: (sizeX + sizeY) * HalfW is the exact isometric diamond width.
-            // Scale to 0.90x — buildings nearly fill their diamond for dense packed P&C city feel.
-            // Minimal terrain visible between buildings — city feels packed and alive.
-            float w = (size.x + size.y) * HalfW * 0.90f;
-            // Taller bounding box — P&C buildings rise well above their footprint
-            float h = w * 1.4f;
+            // Scale to 1.0x — buildings FILL their diamond for dense P&C city feel.
+            // P&C buildings overlap slightly, city feels packed and imposing.
+            float w = (size.x + size.y) * HalfW * 1.0f;
+            // Taller bounding box — P&C buildings tower above their footprint
+            float h = w * 1.6f;
             return new Vector2(w, h);
         }
 
@@ -1400,7 +1400,7 @@ namespace AshenThrone.Empire
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
             if (spr != null) lightImg.sprite = spr;
-            lightImg.color = new Color(1f, 0.80f, 0.45f, 0.12f); // subtle warm interior glow
+            lightImg.color = new Color(1f, 0.80f, 0.45f, 0.22f); // P&C warm interior glow — strong enough to see
             lightImg.raycastTarget = false;
         }
 
@@ -1436,25 +1436,25 @@ namespace AshenThrone.Empire
         }
 
         /// <summary>P&C IT102: Category color for building base glow aura.
-        /// Boosted to 0.25 alpha for visible light pools matching P&C's bright building lighting.</summary>
+        /// Boosted to 0.40 alpha for strong visible light pools matching P&C's dramatic building lighting.</summary>
         private static Color GetBuildingCategoryGlowColor(string buildingId) => buildingId switch
         {
             // Military — warm red
-            "barracks" or "training_ground" or "armory" => new Color(0.80f, 0.25f, 0.20f, 0.25f),
+            "barracks" or "training_ground" or "armory" => new Color(0.80f, 0.25f, 0.20f, 0.40f),
             // Resource — green
-            "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.25f, 0.70f, 0.30f, 0.25f),
+            "grain_farm" or "iron_mine" or "stone_quarry" => new Color(0.25f, 0.70f, 0.30f, 0.40f),
             // Magic — purple
-            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => new Color(0.55f, 0.30f, 0.80f, 0.25f),
+            "arcane_tower" or "enchanting_tower" or "observatory" or "laboratory" => new Color(0.55f, 0.30f, 0.80f, 0.40f),
             // Defense — blue
-            "wall" or "watch_tower" => new Color(0.25f, 0.50f, 0.85f, 0.25f),
+            "wall" or "watch_tower" => new Color(0.25f, 0.50f, 0.85f, 0.40f),
             // Social/trade — amber
-            "marketplace" or "guild_hall" or "embassy" => new Color(0.85f, 0.65f, 0.20f, 0.25f),
+            "marketplace" or "guild_hall" or "embassy" => new Color(0.85f, 0.65f, 0.20f, 0.40f),
             // Knowledge — cyan
-            "academy" or "library" or "archive" => new Color(0.30f, 0.70f, 0.80f, 0.25f),
+            "academy" or "library" or "archive" => new Color(0.30f, 0.70f, 0.80f, 0.40f),
             // Sacred — white-gold
-            "hero_shrine" => new Color(0.90f, 0.85f, 0.50f, 0.22f),
+            "hero_shrine" => new Color(0.90f, 0.85f, 0.50f, 0.38f),
             // Forge — orange
-            "forge" => new Color(0.90f, 0.50f, 0.15f, 0.25f),
+            "forge" => new Color(0.90f, 0.50f, 0.15f, 0.40f),
             _ => new Color(0, 0, 0, 0) // No glow for unknown
         };
 
@@ -1467,31 +1467,31 @@ namespace AshenThrone.Empire
                 spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
             #endif
 
-            // Layer 1: Subtle outer warm glow (reduced — was covering whole building)
+            // Layer 1: Wide outer warm glow — P&C stronghold radiates light outward
             var glow1 = new GameObject("StrongholdGlow_Outer");
             glow1.transform.SetParent(building.transform, false);
             glow1.transform.SetAsFirstSibling();
             var rect1 = glow1.AddComponent<RectTransform>();
-            rect1.anchorMin = new Vector2(0.10f, 0.05f);
-            rect1.anchorMax = new Vector2(0.90f, 0.70f);
+            rect1.anchorMin = new Vector2(-0.15f, -0.10f);
+            rect1.anchorMax = new Vector2(1.15f, 0.75f);
             rect1.offsetMin = Vector2.zero;
             rect1.offsetMax = Vector2.zero;
             var img1 = glow1.AddComponent<Image>();
-            img1.color = new Color(0.85f, 0.65f, 0.15f, 0.06f);
+            img1.color = new Color(0.85f, 0.65f, 0.15f, 0.20f);
             img1.raycastTarget = false;
             if (spr != null) img1.sprite = spr;
 
-            // Layer 2: Inner bright gold glow — just base area
+            // Layer 2: Inner bright gold glow — concentrated at base
             var glow2 = new GameObject("StrongholdGlow_Inner");
             glow2.transform.SetParent(building.transform, false);
             glow2.transform.SetSiblingIndex(1);
             var rect2 = glow2.AddComponent<RectTransform>();
-            rect2.anchorMin = new Vector2(0.20f, 0.10f);
-            rect2.anchorMax = new Vector2(0.80f, 0.55f);
+            rect2.anchorMin = new Vector2(0.10f, 0.05f);
+            rect2.anchorMax = new Vector2(0.90f, 0.55f);
             rect2.offsetMin = Vector2.zero;
             rect2.offsetMax = Vector2.zero;
             var img2 = glow2.AddComponent<Image>();
-            img2.color = new Color(1f, 0.85f, 0.30f, 0.05f);
+            img2.color = new Color(1f, 0.85f, 0.30f, 0.15f);
             img2.raycastTarget = false;
             if (spr != null) img2.sprite = spr;
 
@@ -1504,8 +1504,8 @@ namespace AshenThrone.Empire
             while (outer != null && inner != null)
             {
                 phase += Time.deltaTime * 1.2f;
-                float outerAlpha = 0.10f + 0.06f * Mathf.Sin(phase);
-                float innerAlpha = 0.06f + 0.04f * Mathf.Sin(phase * 1.5f + 1f);
+                float outerAlpha = 0.18f + 0.08f * Mathf.Sin(phase);
+                float innerAlpha = 0.13f + 0.06f * Mathf.Sin(phase * 1.5f + 1f);
                 outer.color = new Color(0.85f, 0.65f, 0.15f, outerAlpha);
                 inner.color = new Color(1f, 0.85f, 0.30f, innerAlpha);
                 yield return null;
@@ -15677,7 +15677,7 @@ namespace AshenThrone.Empire
             else if (isDawn)
                 buildingTint = new Color(0.92f, 0.82f, 0.70f, 1f); // Golden dawn
             else
-                buildingTint = new Color(1.35f, 1.25f, 1.15f, 1f); // P&C-style bright daylight — lifts dark sprites
+                buildingTint = new Color(1.65f, 1.50f, 1.35f, 1f); // P&C-style vivid daylight — aggressively lifts dark sprites
 
             foreach (var placement in _placements)
             {
