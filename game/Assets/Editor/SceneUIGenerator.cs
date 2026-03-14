@@ -2746,61 +2746,102 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingQuickActionMenu>();
             infoPopup.SetActive(false);
 
-            // P&C: Building Catalog Popup (shown when tapping empty ground)
+            // P&C: Building Catalog Popup — premium ornate (shown when tapping empty ground)
             var catalogPopup = new GameObject("BuildCatalogPopup");
             catalogPopup.transform.SetParent(canvasGo.transform, false);
             catalogPopup.AddComponent<RectTransform>();
-            var catBg = catalogPopup.AddComponent<Image>();
-            catBg.color = BgDark;
-            SetAnchors(catalogPopup, 0.05f, 0.15f, 0.95f, 0.85f);
-            // Inner frame
-            var catInner = new GameObject("CatalogInner");
-            catInner.transform.SetParent(catalogPopup.transform, false);
-            catInner.AddComponent<RectTransform>();
-            var catInnerBg = catInner.AddComponent<Image>();
-            catInnerBg.color = BgMid;
-            SetAnchors(catInner, 0.02f, 0.02f, 0.98f, 0.98f);
-            AddOutline(catInner, new Color(0.78f, 0.62f, 0.22f, 0.8f), 1.5f);
-            // Title
-            var catTitle = AddText(catInner, "CatalogTitle", "BUILD", 14, TextAnchor.MiddleCenter);
-            SetAnchors(catTitle, 0.10f, 0.88f, 0.90f, 0.98f);
-            catTitle.GetComponent<Text>().color = new Color(0.83f, 0.66f, 0.26f, 1f);
+            var catBgImg = catalogPopup.AddComponent<Image>();
+            catBgImg.color = new Color(0, 0, 0, 0); // transparent — overlay handles dimming
+            StretchToParent(catalogPopup);
+
+            // Dimmed overlay (tap to close, behind frame)
+            var catOverlay = AddPanel(catalogPopup, "CatalogOverlay", new Color(0, 0, 0, 0.65f));
+            StretchToParent(catOverlay);
+            catOverlay.AddComponent<Button>();
+
+            // Ornate frame panel
+            var catFrame = AddPanel(catalogPopup, "CatalogFrame", BgPanel);
+            SetAnchors(catFrame, 0.04f, 0.12f, 0.96f, 0.88f);
+            if (infoOrnateSpr != null) { catFrame.GetComponent<Image>().sprite = infoOrnateSpr; catFrame.GetComponent<Image>().type = Image.Type.Sliced; catFrame.GetComponent<Image>().color = new Color(0.70f, 0.58f, 0.38f, 1f); }
+            catFrame.AddComponent<Outline>().effectColor = new Color(0.83f, 0.66f, 0.26f, 0.60f);
+            catFrame.GetComponent<Outline>().effectDistance = new Vector2(2f, -2f);
+            catFrame.AddComponent<Shadow>().effectColor = new Color(0.83f, 0.66f, 0.26f, 0.15f);
+            catFrame.GetComponent<Shadow>().effectDistance = new Vector2(3f, -3f);
+
+            // Inner fill
+            var catInner = AddPanel(catFrame, "CatalogInner", new Color(0.05f, 0.03f, 0.09f, 0.96f));
+            SetAnchors(catInner, 0.015f, 0.012f, 0.985f, 0.988f);
+            var catEdgeT = AddPanel(catInner, "EdgeTop", new Color(0.83f, 0.66f, 0.26f, 0.07f));
+            SetAnchors(catEdgeT, 0f, 0.93f, 1f, 1f);
+            catEdgeT.GetComponent<Image>().raycastTarget = false;
+
+            // Header band
+            var catHeaderBand = AddPanel(catInner, "CatHeader", new Color(0.10f, 0.06f, 0.18f, 1f));
+            SetAnchors(catHeaderBand, 0f, 0.90f, 1f, 1f);
+            var catHdrGlass = AddPanel(catHeaderBand, "Glass", new Color(0.40f, 0.30f, 0.55f, 0.10f));
+            SetAnchors(catHdrGlass, 0f, 0.50f, 1f, 1f);
+            catHdrGlass.GetComponent<Image>().raycastTarget = false;
+            var catTitle = AddText(catHeaderBand, "CatalogTitle", "\u2726  BUILD  \u2726", 18, TextAnchor.MiddleCenter);
+            StretchToParent(catTitle);
+            catTitle.GetComponent<Text>().color = new Color(1f, 0.88f, 0.52f, 1f);
             catTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            // Tab container (HorizontalLayoutGroup)
+            catTitle.AddComponent<Outline>().effectColor = new Color(0.45f, 0.30f, 0.08f, 0.85f);
+            catTitle.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            catTitle.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.95f);
+            catTitle.GetComponent<Shadow>().effectDistance = new Vector2(1.2f, -1.2f);
+            var catHdrSep = AddPanel(catInner, "HeaderSep", new Color(0.83f, 0.66f, 0.26f, 0.55f));
+            SetAnchors(catHdrSep, 0.04f, 0.895f, 0.96f, 0.90f);
+            catHdrSep.GetComponent<Image>().raycastTarget = false;
+
+            // Tab container
             var tabContainer = new GameObject("TabContainer");
             tabContainer.transform.SetParent(catInner.transform, false);
             tabContainer.AddComponent<RectTransform>();
-            SetAnchors(tabContainer, 0.04f, 0.78f, 0.96f, 0.87f);
+            SetAnchors(tabContainer, 0.03f, 0.82f, 0.97f, 0.89f);
             var tabHLG = tabContainer.AddComponent<HorizontalLayoutGroup>();
-            tabHLG.spacing = 4;
+            tabHLG.spacing = 6;
             tabHLG.childForceExpandWidth = true;
             tabHLG.childForceExpandHeight = true;
-            // List container (VerticalLayoutGroup)
+
+            // List area — recessed panel background
+            var listBg = AddPanel(catInner, "ListBg", new Color(0.04f, 0.03f, 0.07f, 0.40f));
+            SetAnchors(listBg, 0.02f, 0.06f, 0.98f, 0.80f);
+            listBg.AddComponent<Outline>().effectColor = new Color(0.40f, 0.32f, 0.15f, 0.15f);
+            listBg.GetComponent<Outline>().effectDistance = new Vector2(0.6f, -0.6f);
+            listBg.GetComponent<Image>().raycastTarget = false;
             var listContainer = new GameObject("ListContainer");
             listContainer.transform.SetParent(catInner.transform, false);
             listContainer.AddComponent<RectTransform>();
-            SetAnchors(listContainer, 0.04f, 0.08f, 0.96f, 0.76f);
+            SetAnchors(listContainer, 0.03f, 0.07f, 0.97f, 0.79f);
             var listVLG = listContainer.AddComponent<VerticalLayoutGroup>();
-            listVLG.spacing = 4;
+            listVLG.spacing = 5;
             listVLG.childForceExpandWidth = true;
             listVLG.childForceExpandHeight = false;
-            listVLG.padding = new RectOffset(2, 2, 2, 2);
-            // Close button
-            var catCloseBtn = AddStyledButton(catInner, "CatalogCloseBtn", "X", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
-            SetAnchors(catCloseBtn, 0.88f, 0.88f, 0.97f, 0.98f);
-            catCloseBtn.transform.Find("Label").GetComponent<Text>().fontSize = 12;
-            // Overlay for tap-to-close
-            var catOverlay = new GameObject("CatalogOverlay");
-            catOverlay.transform.SetParent(catalogPopup.transform, false);
-            catOverlay.transform.SetAsFirstSibling();
-            var catOverlayRect = catOverlay.AddComponent<RectTransform>();
-            catOverlayRect.anchorMin = Vector2.zero;
-            catOverlayRect.anchorMax = Vector2.one;
-            catOverlayRect.offsetMin = Vector2.zero;
-            catOverlayRect.offsetMax = Vector2.zero;
-            var catOverlayImg = catOverlay.AddComponent<Image>();
-            catOverlayImg.color = new Color(0, 0, 0, 0.01f);
-            catOverlay.AddComponent<Button>();
+            listVLG.padding = new RectOffset(2, 2, 4, 4);
+
+            // Close button — ornate X
+            var catCloseBtn = AddPanel(catInner, "CatalogCloseBtn", new Color(0.22f, 0.18f, 0.28f, 1f));
+            SetAnchors(catCloseBtn, 0.89f, 0.90f, 0.98f, 0.99f);
+            SetButtonFeedback(catCloseBtn.AddComponent<Button>());
+            catCloseBtn.AddComponent<Outline>().effectColor = new Color(0.40f, 0.35f, 0.50f, 0.40f);
+            catCloseBtn.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var catCloseLbl = AddText(catCloseBtn, "Label", "\u2717", 14, TextAnchor.MiddleCenter);
+            StretchToParent(catCloseLbl);
+            catCloseLbl.GetComponent<Text>().color = new Color(0.80f, 0.70f, 0.75f, 1f);
+            catCloseLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            catCloseLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.80f);
+            catCloseLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Corner accents
+            float catCS = 0.03f;
+            float[][] catCornerPos = { new[]{0.01f, 0.96f}, new[]{0.96f, 0.96f}, new[]{0.01f, 0.01f}, new[]{0.96f, 0.01f} };
+            for (int cci = 0; cci < catCornerPos.Length; cci++)
+            {
+                var cc = AddPanel(catInner, $"CatCorner_{cci}", new Color(0.83f, 0.66f, 0.26f, 0.30f));
+                SetAnchors(cc, catCornerPos[cci][0], catCornerPos[cci][1], catCornerPos[cci][0] + catCS, catCornerPos[cci][1] + catCS);
+                cc.transform.localRotation = Quaternion.Euler(0, 0, 45);
+                cc.GetComponent<Image>().raycastTarget = false;
+            }
             catalogPopup.SetActive(false);
 
             SaveScene();

@@ -154,28 +154,59 @@ namespace AshenThrone.UI.Empire
             var entryGO = new GameObject($"Entry_{data.buildingId}");
             entryGO.transform.SetParent(_listContainer, false);
             var entryRect = entryGO.AddComponent<RectTransform>();
-            entryRect.sizeDelta = new Vector2(0, 44);
+            entryRect.sizeDelta = new Vector2(0, 52); // Taller for premium feel
 
             var entryImg = entryGO.AddComponent<Image>();
             entryImg.color = unlocked ? EntryUnlocked : EntryLocked;
 
-            // Gold border
+            // Gold border — brighter for unlocked
             var outline = entryGO.AddComponent<Outline>();
-            outline.effectColor = unlocked ? new Color(0.55f, 0.43f, 0.18f, 0.5f) : new Color(0.25f, 0.20f, 0.15f, 0.3f);
-            outline.effectDistance = new Vector2(1f, -1f);
+            outline.effectColor = unlocked
+                ? new Color(0.72f, 0.56f, 0.22f, 0.55f)
+                : new Color(0.25f, 0.20f, 0.15f, 0.25f);
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
 
-            // Building icon preview
+            // Glass highlight on top half (premium depth)
+            var entryGlass = new GameObject("Glass");
+            entryGlass.transform.SetParent(entryGO.transform, false);
+            var glassRect = entryGlass.AddComponent<RectTransform>();
+            glassRect.anchorMin = new Vector2(0f, 0.50f);
+            glassRect.anchorMax = new Vector2(1f, 1f);
+            glassRect.offsetMin = Vector2.zero;
+            glassRect.offsetMax = Vector2.zero;
+            var glassImg = entryGlass.AddComponent<Image>();
+            glassImg.color = unlocked
+                ? new Color(0.40f, 0.30f, 0.55f, 0.06f)
+                : new Color(0.20f, 0.18f, 0.22f, 0.04f);
+            glassImg.raycastTarget = false;
+
+            // Building icon preview — recessed with border
+            var iconBg = new GameObject("IconBg");
+            iconBg.transform.SetParent(entryGO.transform, false);
+            var iconBgRect = iconBg.AddComponent<RectTransform>();
+            iconBgRect.anchorMin = new Vector2(0.015f, 0.08f);
+            iconBgRect.anchorMax = new Vector2(0.17f, 0.92f);
+            iconBgRect.offsetMin = Vector2.zero;
+            iconBgRect.offsetMax = Vector2.zero;
+            var iconBgImg = iconBg.AddComponent<Image>();
+            iconBgImg.color = new Color(0.04f, 0.03f, 0.08f, 0.70f);
+            iconBgImg.raycastTarget = false;
+            var iconBgOutline = iconBg.AddComponent<Outline>();
+            iconBgOutline.effectColor = unlocked
+                ? new Color(0.55f, 0.43f, 0.18f, 0.40f)
+                : new Color(0.20f, 0.18f, 0.15f, 0.20f);
+            iconBgOutline.effectDistance = new Vector2(0.8f, -0.8f);
+
             var iconGO = new GameObject("Icon");
             iconGO.transform.SetParent(entryGO.transform, false);
             var iconRect = iconGO.AddComponent<RectTransform>();
-            iconRect.anchorMin = new Vector2(0.02f, 0.1f);
-            iconRect.anchorMax = new Vector2(0.18f, 0.9f);
+            iconRect.anchorMin = new Vector2(0.02f, 0.10f);
+            iconRect.anchorMax = new Vector2(0.16f, 0.90f);
             iconRect.offsetMin = Vector2.zero;
             iconRect.offsetMax = Vector2.zero;
             var iconImg = iconGO.AddComponent<Image>();
             iconImg.raycastTarget = false;
             iconImg.preserveAspect = true;
-            // Load tier 1 sprite
             #if UNITY_EDITOR
             var spr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Art/Buildings/{data.buildingId}_t1.png");
             if (spr != null) { iconImg.sprite = spr; iconImg.color = unlocked ? Color.white : new Color(0.4f, 0.4f, 0.4f, 0.6f); }
@@ -183,62 +214,82 @@ namespace AshenThrone.UI.Empire
             #endif
             { iconImg.color = unlocked ? GoldText : new Color(0.3f, 0.3f, 0.3f, 0.5f); }
 
-            // Name + count
+            // Name — larger, bolder
             var nameGO = new GameObject("Name");
             nameGO.transform.SetParent(entryGO.transform, false);
             var nameRect = nameGO.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0.20f, 0.5f);
-            nameRect.anchorMax = new Vector2(0.75f, 0.95f);
+            nameRect.anchorMin = new Vector2(0.19f, 0.50f);
+            nameRect.anchorMax = new Vector2(0.74f, 0.95f);
             nameRect.offsetMin = Vector2.zero;
             nameRect.offsetMax = Vector2.zero;
             var nameText = nameGO.AddComponent<Text>();
             nameText.text = string.IsNullOrEmpty(data.displayName) ? FormatName(data.buildingId) : data.displayName;
             nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = 11;
+            nameText.fontSize = 12;
             nameText.fontStyle = FontStyle.Bold;
             nameText.alignment = TextAnchor.MiddleLeft;
-            nameText.color = unlocked ? GoldText : new Color(0.50f, 0.45f, 0.40f, 0.7f);
+            nameText.color = unlocked ? new Color(1f, 0.88f, 0.52f, 1f) : new Color(0.50f, 0.45f, 0.40f, 0.7f);
             nameText.raycastTarget = false;
+            var nameOutline = nameGO.AddComponent<Outline>();
+            nameOutline.effectColor = new Color(0, 0, 0, 0.55f);
+            nameOutline.effectDistance = new Vector2(0.6f, -0.6f);
             var nameShadow = nameGO.AddComponent<Shadow>();
-            nameShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            nameShadow.effectColor = new Color(0, 0, 0, 0.85f);
             nameShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Count / status line
+            // Status line
             var statusGO = new GameObject("Status");
             statusGO.transform.SetParent(entryGO.transform, false);
             var statusRect = statusGO.AddComponent<RectTransform>();
-            statusRect.anchorMin = new Vector2(0.20f, 0.05f);
-            statusRect.anchorMax = new Vector2(0.75f, 0.50f);
+            statusRect.anchorMin = new Vector2(0.19f, 0.05f);
+            statusRect.anchorMax = new Vector2(0.74f, 0.50f);
             statusRect.offsetMin = Vector2.zero;
             statusRect.offsetMax = Vector2.zero;
             var statusText = statusGO.AddComponent<Text>();
             if (unlocked)
                 statusText.text = $"Built: {count}/{max}";
             else
-                statusText.text = $"<color=#FF6644>Requires SH Lv.{data.strongholdLevelRequired + 1}</color>";
+                statusText.text = $"<color=#FF6644>\u26D4 Requires SH Lv.{data.strongholdLevelRequired + 1}</color>";
             statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            statusText.fontSize = 9;
+            statusText.fontSize = 10;
             statusText.alignment = TextAnchor.MiddleLeft;
-            statusText.color = new Color(0.70f, 0.65f, 0.58f, 0.8f);
+            statusText.color = new Color(0.70f, 0.65f, 0.58f, 0.85f);
             statusText.raycastTarget = false;
             statusText.supportRichText = true;
+            var statusShadow = statusGO.AddComponent<Shadow>();
+            statusShadow.effectColor = new Color(0, 0, 0, 0.60f);
+            statusShadow.effectDistance = new Vector2(0.3f, -0.3f);
 
-            // BUILD button on right
+            // BUILD button — premium green with glow
             if (unlocked)
             {
                 var btnGO = new GameObject("BuildBtn");
                 btnGO.transform.SetParent(entryGO.transform, false);
                 var btnRect = btnGO.AddComponent<RectTransform>();
-                btnRect.anchorMin = new Vector2(0.76f, 0.15f);
-                btnRect.anchorMax = new Vector2(0.97f, 0.85f);
+                btnRect.anchorMin = new Vector2(0.76f, 0.12f);
+                btnRect.anchorMax = new Vector2(0.98f, 0.88f);
                 btnRect.offsetMin = Vector2.zero;
                 btnRect.offsetMax = Vector2.zero;
                 var btnImg = btnGO.AddComponent<Image>();
-                btnImg.color = new Color(0.20f, 0.72f, 0.35f, 1f);
+                btnImg.color = new Color(0.15f, 0.58f, 0.28f, 1f);
+                var btnOutline = btnGO.AddComponent<Outline>();
+                btnOutline.effectColor = new Color(0.25f, 0.82f, 0.40f, 0.40f);
+                btnOutline.effectDistance = new Vector2(1f, -1f);
                 var btn = btnGO.AddComponent<Button>();
                 btn.targetGraphic = btnImg;
                 var buildingId = data.buildingId;
                 btn.onClick.AddListener(() => OnBuildPressed(buildingId));
+
+                // Glass highlight on button
+                var btnGlass = new GameObject("BtnGlass");
+                btnGlass.transform.SetParent(btnGO.transform, false);
+                var btnGlassRect = btnGlass.AddComponent<RectTransform>();
+                btnGlassRect.anchorMin = new Vector2(0f, 0.50f);
+                btnGlassRect.anchorMax = Vector2.one;
+                btnGlassRect.offsetMin = Vector2.zero;
+                btnGlassRect.offsetMax = Vector2.zero;
+                btnGlass.AddComponent<Image>().color = new Color(0.55f, 1f, 0.65f, 0.10f);
+                btnGlass.GetComponent<Image>().raycastTarget = false;
 
                 var btnLabel = new GameObject("Label");
                 btnLabel.transform.SetParent(btnGO.transform, false);
@@ -250,11 +301,16 @@ namespace AshenThrone.UI.Empire
                 var btnText = btnLabel.AddComponent<Text>();
                 btnText.text = "BUILD";
                 btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                btnText.fontSize = 10;
+                btnText.fontSize = 11;
                 btnText.fontStyle = FontStyle.Bold;
                 btnText.alignment = TextAnchor.MiddleCenter;
                 btnText.color = Color.white;
                 btnText.raycastTarget = false;
+                var btnLabelOutline = btnLabel.AddComponent<Outline>();
+                btnLabelOutline.effectColor = new Color(0.05f, 0.25f, 0.08f, 0.70f);
+                btnLabelOutline.effectDistance = new Vector2(0.6f, -0.6f);
+                btnLabel.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.85f);
+                btnLabel.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
             }
         }
 

@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.25.0] — 2026-03-14 (Empire: Premium Build Catalog & Entry Row Redesign)
+
+### CHANGED
+- **BuildCatalogPopup completely redesigned** — Full-screen dimmed overlay, ornate gold frame with triple border, glass header band with warm gold title, recessed list panel background, ornate close button, decorative corner diamond accents. Matches BuildingInfoPopup premium quality.
+- **Build catalog entry rows upgraded** — Taller entries (52px), recessed icon background with gold border, glass highlight top-half, larger/bolder building name in warm gold with outline+shadow, premium BUILD button with green glow and glass highlight. Locked entries show red-tinted requirement text.
+
+---
+
 ## [1.24.0] — 2026-03-14 (Empire: Premium Building Popup & Upgrade Confirm Redesign)
 
 ### CHANGED
