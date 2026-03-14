@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.24.0] — 2026-03-14 (Empire: Premium Building Popup & Upgrade Confirm Redesign)
+
+### CHANGED
+- **BuildingInfoPopup completely redesigned** — Now fills nearly the entire screen (4%-96% x 12%-88%) with premium P&C-quality visual treatment. Triple gold border with glow, ornate corner diamond accents, glass highlight layers, warm edge glow effects, dark recessed inner fill.
+- **Building preview area enlarged** — Left side panel now occupies 40% width with radial glow behind sprite, double-layer gold border, inner vignette. Level badge repositioned with ornate gold frame and warm text.
+- **Cost section redesigned** — Ornate "UPGRADE COST" header with diamond center accent, gold separators, recessed dark cost panel for contrast. Resource symbols use P&C-style Unicode glyphs.
+- **Buttons redesigned as premium ornate** — Each button now has glass highlight, dark overlay bottom half, colored glow outline, text outline+shadow for depth. UPGRADE button has green glow accent; SPEED UP has blue glow. All match P&C premium button style.
+- **UpgradeConfirmDialog completely redesigned** — Larger panel (6%-94% x 18%-82%), ornate gold frame with corner accents, recessed cost panel with row backgrounds (green tint for affordable, red for unaffordable), check/X marks per resource, premium UPGRADE button with green glow and glass highlight, subtle CANCEL button.
+- **Timer section improved** — Progress bar with gold border and green fill glow shadow, bright sky-blue time text.
+
+---
+
 ## [1.23.0] — 2026-03-13 (Empire: P&C City Density — Tighter Zoom, Taller Buildings)
 
 ### CHANGED

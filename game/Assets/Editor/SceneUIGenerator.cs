@@ -2384,106 +2384,346 @@ namespace AshenThrone.Editor
 
             resPopup.SetActive(false);
 
-            // === BUILDING INFO POPUP — P&C style (hidden, shown on building tap) ===
+            // === BUILDING INFO POPUP — Premium P&C-quality (hidden, shown on building tap) ===
             var infoPopup = AddPanel(canvasGo, "BuildingInfoPopup", new Color(0, 0, 0, 0));
             StretchToParent(infoPopup);
-            var infoOverlay = AddPanel(infoPopup, "Overlay", new Color(0, 0, 0, 0.55f));
+            var infoOverlay = AddPanel(infoPopup, "Overlay", new Color(0, 0, 0, 0.65f));
             StretchToParent(infoOverlay);
             infoOverlay.AddComponent<Button>();
+
+            // --- Main frame: taller, wider for premium feel ---
             var infoFrame = AddPanel(infoPopup, "Frame", BgPanel);
-            SetAnchors(infoFrame, 0.08f, 0.22f, 0.92f, 0.78f);
+            SetAnchors(infoFrame, 0.04f, 0.12f, 0.96f, 0.88f);
             var infoOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/panel_ornate_gen.png");
-            if (infoOrnateSpr != null) { infoFrame.GetComponent<Image>().sprite = infoOrnateSpr; infoFrame.GetComponent<Image>().type = Image.Type.Sliced; infoFrame.GetComponent<Image>().color = new Color(0.65f, 0.58f, 0.48f, 1f); }
-            else { AddOutlinePanel(infoFrame, Gold); }
-            var infoInner = AddPanel(infoFrame, "InnerFill", new Color(0.06f, 0.04f, 0.10f, 0.92f));
-            SetAnchors(infoInner, 0.02f, 0.02f, 0.98f, 0.98f);
+            if (infoOrnateSpr != null) { infoFrame.GetComponent<Image>().sprite = infoOrnateSpr; infoFrame.GetComponent<Image>().type = Image.Type.Sliced; infoFrame.GetComponent<Image>().color = new Color(0.70f, 0.58f, 0.38f, 1f); }
+            // Triple gold border: outer glow → mid gold → inner edge
+            var frameGlowBorder = AddPanel(infoFrame, "FrameGlow", new Color(0.83f, 0.66f, 0.26f, 0.18f));
+            SetAnchors(frameGlowBorder, -0.005f, -0.003f, 1.005f, 1.003f);
+            var frameOuterBorder = AddPanel(infoFrame, "FrameOuterBorder", new Color(0.83f, 0.66f, 0.26f, 0.65f));
+            SetAnchors(frameOuterBorder, 0f, 0f, 1f, 1f);
+            frameOuterBorder.AddComponent<Outline>().effectColor = new Color(0.90f, 0.72f, 0.30f, 0.70f);
+            frameOuterBorder.GetComponent<Outline>().effectDistance = new Vector2(2f, -2f);
+            frameOuterBorder.GetComponent<Image>().raycastTarget = false;
 
-            var infoHeader = AddPanel(infoInner, "Header", new Color(0.12f, 0.08f, 0.20f, 1f));
-            SetAnchors(infoHeader, 0f, 0.88f, 1f, 1f);
-            var infoTitle = AddText(infoHeader, "BuildingName", "BARRACKS", 22, TextAnchor.MiddleCenter);
+            // Inner fill: deep dark with subtle warm gradient
+            var infoInner = AddPanel(infoFrame, "InnerFill", new Color(0.05f, 0.03f, 0.09f, 0.96f));
+            SetAnchors(infoInner, 0.015f, 0.012f, 0.985f, 0.988f);
+            // Inner warm edge glow (lit from above)
+            var innerEdgeTop = AddPanel(infoInner, "InnerEdgeTop", new Color(0.83f, 0.66f, 0.26f, 0.08f));
+            SetAnchors(innerEdgeTop, 0f, 0.92f, 1f, 1f);
+            innerEdgeTop.GetComponent<Image>().raycastTarget = false;
+            var innerEdgeBot = AddPanel(infoInner, "InnerEdgeBot", new Color(0.03f, 0.02f, 0.06f, 0.30f));
+            SetAnchors(innerEdgeBot, 0f, 0f, 1f, 0.06f);
+            innerEdgeBot.GetComponent<Image>().raycastTarget = false;
+
+            // === HEADER BAND: ornate dark purple with gold accents ===
+            var infoHeader = AddPanel(infoInner, "Header", new Color(0.10f, 0.06f, 0.18f, 1f));
+            SetAnchors(infoHeader, 0f, 0.89f, 1f, 1f);
+            // Header gradient highlight (glass effect from top)
+            var headerGlass = AddPanel(infoHeader, "HeaderGlass", new Color(0.40f, 0.30f, 0.55f, 0.12f));
+            SetAnchors(headerGlass, 0f, 0.50f, 1f, 1f);
+            headerGlass.GetComponent<Image>().raycastTarget = false;
+            // Header warmth layer
+            var headerWarmth = AddPanel(infoHeader, "HeaderWarmth", new Color(0.83f, 0.55f, 0.18f, 0.06f));
+            SetAnchors(headerWarmth, 0.10f, 0.10f, 0.90f, 0.90f);
+            headerWarmth.GetComponent<Image>().raycastTarget = false;
+
+            // Building name — large gold with strong glow
+            var infoTitle = AddText(infoHeader, "BuildingName", "BARRACKS", 24, TextAnchor.MiddleCenter);
             StretchToParent(infoTitle);
-            infoTitle.GetComponent<Text>().color = Gold;
+            infoTitle.GetComponent<Text>().color = new Color(1f, 0.88f, 0.52f, 1f); // Bright warm gold
             infoTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var infoTitleOutline = infoTitle.AddComponent<Outline>();
+            infoTitleOutline.effectColor = new Color(0.45f, 0.30f, 0.08f, 0.90f);
+            infoTitleOutline.effectDistance = new Vector2(1.2f, -1.2f);
             var infoTitleSh = infoTitle.AddComponent<Shadow>();
-            infoTitleSh.effectColor = new Color(0, 0, 0, 0.85f);
-            infoTitleSh.effectDistance = new Vector2(1f, -1f);
-            var infoHeaderBorder = AddPanel(infoInner, "HeaderBorder", Gold);
-            SetAnchors(infoHeaderBorder, 0.03f, 0.875f, 0.97f, 0.88f);
+            infoTitleSh.effectColor = new Color(0, 0, 0, 0.95f);
+            infoTitleSh.effectDistance = new Vector2(1.5f, -1.5f);
 
-            // Building preview (left)
-            var infoPreview = AddPanel(infoInner, "BuildingPreview", new Color(0.08f, 0.06f, 0.14f, 0.80f));
-            SetAnchors(infoPreview, 0.04f, 0.52f, 0.36f, 0.86f);
-            AddOutlinePanel(infoPreview, new Color(0.50f, 0.40f, 0.22f, 0.60f));
+            // Gold separator line below header
+            var infoHeaderBorder = AddPanel(infoInner, "HeaderBorder", new Color(0.83f, 0.66f, 0.26f, 0.70f));
+            SetAnchors(infoHeaderBorder, 0.04f, 0.885f, 0.96f, 0.892f);
+            infoHeaderBorder.GetComponent<Image>().raycastTarget = false;
+            // Subtle glow under separator
+            var headerBorderGlow = AddPanel(infoInner, "HeaderBorderGlow", new Color(0.83f, 0.66f, 0.26f, 0.10f));
+            SetAnchors(headerBorderGlow, 0.08f, 0.87f, 0.92f, 0.89f);
+            headerBorderGlow.GetComponent<Image>().raycastTarget = false;
+
+            // === BUILDING PREVIEW: large left panel with ornate frame + radial glow ===
+            // Preview outer glow
+            var previewGlow = AddPanel(infoInner, "PreviewGlow", new Color(0.55f, 0.40f, 0.20f, 0.12f));
+            SetAnchors(previewGlow, 0.01f, 0.42f, 0.42f, 0.87f);
+            previewGlow.GetComponent<Image>().raycastTarget = false;
+            var radialSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            if (radialSpr != null) { previewGlow.GetComponent<Image>().sprite = radialSpr; }
+            // Preview recessed panel
+            var infoPreview = AddPanel(infoInner, "BuildingPreview", new Color(0.06f, 0.04f, 0.12f, 0.90f));
+            SetAnchors(infoPreview, 0.03f, 0.44f, 0.40f, 0.86f);
+            var previewOutline = infoPreview.AddComponent<Outline>();
+            previewOutline.effectColor = new Color(0.72f, 0.56f, 0.22f, 0.65f);
+            previewOutline.effectDistance = new Vector2(1.5f, -1.5f);
+            // Second border layer
+            var previewBorder2 = infoPreview.AddComponent<Shadow>();
+            previewBorder2.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.25f);
+            previewBorder2.effectDistance = new Vector2(2.5f, -2.5f);
             var previewSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Buildings/barracks_t1.png");
             if (previewSpr != null) { infoPreview.GetComponent<Image>().sprite = previewSpr; infoPreview.GetComponent<Image>().preserveAspect = true; infoPreview.GetComponent<Image>().color = Color.white; }
+            // Inner vignette on preview
+            var previewVignette = AddPanel(infoPreview, "Vignette", new Color(0.03f, 0.02f, 0.06f, 0f));
+            StretchToParent(previewVignette);
+            previewVignette.GetComponent<Image>().raycastTarget = false;
+            previewVignette.AddComponent<Outline>().effectColor = new Color(0.03f, 0.02f, 0.06f, 0.40f);
+            previewVignette.GetComponent<Outline>().effectDistance = new Vector2(4f, -4f);
 
-            // Level badge overlapping preview
-            var infoLvlBadge = AddPanel(infoInner, "LevelBadgeFrame", new Color(0.72f, 0.56f, 0.22f, 1f));
-            SetAnchors(infoLvlBadge, 0.10f, 0.50f, 0.30f, 0.56f);
-            AddOutlinePanel(infoLvlBadge, new Color(0.45f, 0.34f, 0.12f, 0.9f));
-            var infoLvl = AddText(infoLvlBadge, "LevelBadge", "Level 5", 12, TextAnchor.MiddleCenter);
+            // Level badge: ornate gold shield overlapping preview bottom
+            var infoLvlBadge = AddPanel(infoInner, "LevelBadgeFrame", new Color(0.14f, 0.10f, 0.22f, 0.96f));
+            SetAnchors(infoLvlBadge, 0.08f, 0.42f, 0.35f, 0.48f);
+            var lvlBadgeBorder = infoLvlBadge.AddComponent<Outline>();
+            lvlBadgeBorder.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.80f);
+            lvlBadgeBorder.effectDistance = new Vector2(1.2f, -1.2f);
+            // Badge inner gold bar
+            var lvlBadgeInner = AddPanel(infoLvlBadge, "BadgeInner", new Color(0.83f, 0.66f, 0.26f, 0.15f));
+            SetAnchors(lvlBadgeInner, 0.04f, 0.10f, 0.96f, 0.90f);
+            lvlBadgeInner.GetComponent<Image>().raycastTarget = false;
+            var infoLvl = AddText(infoLvlBadge, "LevelBadge", "Level 5", 13, TextAnchor.MiddleCenter);
             StretchToParent(infoLvl);
-            infoLvl.GetComponent<Text>().color = TextWhite;
+            infoLvl.GetComponent<Text>().color = new Color(1f, 0.90f, 0.55f, 1f);
             infoLvl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var lvlSh = infoLvl.AddComponent<Shadow>();
+            lvlSh.effectColor = new Color(0, 0, 0, 0.90f);
+            lvlSh.effectDistance = new Vector2(0.8f, -0.8f);
 
-            // Description (right of preview)
-            var infoDesc = AddText(infoInner, "Description", "Trains military units.\nIncreases army capacity by 50 per level.", 13, TextAnchor.UpperLeft);
-            SetAnchors(infoDesc, 0.38f, 0.56f, 0.96f, 0.86f);
+            // === DESCRIPTION: right of preview, generous space ===
+            var infoDesc = AddText(infoInner, "Description", "Trains military units.\nIncreases army capacity by 50 per level.", 14, TextAnchor.UpperLeft);
+            SetAnchors(infoDesc, 0.43f, 0.52f, 0.97f, 0.86f);
             infoDesc.GetComponent<Text>().color = TextLight;
+            infoDesc.GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Wrap;
+            infoDesc.GetComponent<Text>().verticalOverflow = VerticalWrapMode.Truncate;
+            var infoDescOutline = infoDesc.AddComponent<Outline>();
+            infoDescOutline.effectColor = new Color(0, 0, 0, 0.60f);
+            infoDescOutline.effectDistance = new Vector2(0.8f, -0.8f);
             var infoDescSh = infoDesc.AddComponent<Shadow>();
-            infoDescSh.effectColor = new Color(0, 0, 0, 0.5f);
+            infoDescSh.effectColor = new Color(0, 0, 0, 0.70f);
             infoDescSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Upgrade cost section
-            var infoCostHeader = AddText(infoInner, "CostHeader", "UPGRADE COST", 11, TextAnchor.MiddleLeft);
-            SetAnchors(infoCostHeader, 0.04f, 0.42f, 0.50f, 0.50f);
-            infoCostHeader.GetComponent<Text>().color = GoldDim;
+            // === UPGRADE COST SECTION: ornate header + separator + cost grid ===
+            // Section separator: ornate gold line with diamond center
+            var costSectionLine = AddPanel(infoInner, "CostSectionLine", new Color(0.83f, 0.66f, 0.26f, 0.40f));
+            SetAnchors(costSectionLine, 0.04f, 0.405f, 0.96f, 0.41f);
+            costSectionLine.GetComponent<Image>().raycastTarget = false;
+            // Diamond accent at center of separator
+            var costDiamond = AddPanel(infoInner, "CostDiamond", new Color(0.83f, 0.66f, 0.26f, 0.55f));
+            SetAnchors(costDiamond, 0.46f, 0.395f, 0.54f, 0.42f);
+            costDiamond.transform.localRotation = Quaternion.Euler(0, 0, 45);
+            costDiamond.GetComponent<Image>().raycastTarget = false;
+
+            var infoCostHeader = AddText(infoInner, "CostHeader", "\u2726  UPGRADE COST  \u2726", 12, TextAnchor.MiddleCenter);
+            SetAnchors(infoCostHeader, 0.04f, 0.36f, 0.96f, 0.405f);
+            infoCostHeader.GetComponent<Text>().color = new Color(0.90f, 0.72f, 0.30f, 1f);
             infoCostHeader.GetComponent<Text>().fontStyle = FontStyle.Bold;
-            var infoCostSep = AddPanel(infoInner, "CostSep", new Color(0.72f, 0.56f, 0.22f, 0.30f));
-            SetAnchors(infoCostSep, 0.04f, 0.415f, 0.96f, 0.42f);
-            var infoCosts = AddText(infoInner, "CostText", "\u2713 \u25C9 1.2K Stone\n\u2713 \u25C9 800 Iron\n\u2713 \u25C9 600 Grain", 12, TextAnchor.MiddleLeft);
-            SetAnchors(infoCosts, 0.04f, 0.22f, 0.96f, 0.42f);
+            var costHeaderSh = infoCostHeader.AddComponent<Shadow>();
+            costHeaderSh.effectColor = new Color(0, 0, 0, 0.80f);
+            costHeaderSh.effectDistance = new Vector2(0.5f, -0.5f);
+
+            var infoCostSep = AddPanel(infoInner, "CostSep", new Color(0.83f, 0.66f, 0.26f, 0.20f));
+            SetAnchors(infoCostSep, 0.08f, 0.355f, 0.92f, 0.358f);
+            infoCostSep.GetComponent<Image>().raycastTarget = false;
+
+            // Cost text area: dark recessed panel for contrast
+            var costPanel = AddPanel(infoInner, "CostPanel", new Color(0.04f, 0.03f, 0.08f, 0.50f));
+            SetAnchors(costPanel, 0.03f, 0.20f, 0.97f, 0.355f);
+            costPanel.AddComponent<Outline>().effectColor = new Color(0.40f, 0.32f, 0.15f, 0.20f);
+            costPanel.GetComponent<Outline>().effectDistance = new Vector2(0.8f, -0.8f);
+            costPanel.GetComponent<Image>().raycastTarget = false;
+            var infoCosts = AddText(costPanel, "CostText", "\u2713 \u25C8 1.2K Stone      \u2713 \u2666 800 Iron\n\u2713 \u2740 600 Grain       \u2713 \u2726 50 Arcane", 13, TextAnchor.MiddleCenter);
+            StretchToParent(infoCosts);
             infoCosts.GetComponent<Text>().color = TextWhite;
+            infoCosts.GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Wrap;
+            var infoCostsOutline = infoCosts.AddComponent<Outline>();
+            infoCostsOutline.effectColor = new Color(0, 0, 0, 0.65f);
+            infoCostsOutline.effectDistance = new Vector2(0.6f, -0.6f);
             var infoCostsSh = infoCosts.AddComponent<Shadow>();
-            infoCostsSh.effectColor = new Color(0, 0, 0, 0.5f);
+            infoCostsSh.effectColor = new Color(0, 0, 0, 0.70f);
             infoCostsSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Timer progress bar (shown during upgrade)
-            var timerBarBg = AddPanel(infoInner, "TimerBarBg", new Color(0.05f, 0.04f, 0.08f, 0.90f));
-            SetAnchors(timerBarBg, 0.04f, 0.26f, 0.96f, 0.30f);
-            AddOutlinePanel(timerBarBg, new Color(0.50f, 0.40f, 0.22f, 0.50f));
-            var timerBarFill = AddPanel(timerBarBg, "TimerBarFill", new Color(0.20f, 0.78f, 0.35f, 1f));
-            SetAnchors(timerBarFill, 0f, 0f, 0.5f, 1f); // 50% default
-
-            var infoTime = AddText(infoInner, "TimeText", "\u23F1  2h 30m", 13, TextAnchor.MiddleCenter);
-            SetAnchors(infoTime, 0.04f, 0.18f, 0.96f, 0.23f);
-            infoTime.GetComponent<Text>().color = Sky;
+            // === TIMER SECTION: ornate progress bar with glow ===
+            var timerSection = AddPanel(infoInner, "TimerSection", new Color(0, 0, 0, 0));
+            SetAnchors(timerSection, 0.03f, 0.13f, 0.97f, 0.20f);
+            timerSection.GetComponent<Image>().raycastTarget = false;
+            // Timer bar: rounded dark bg with gold border
+            var timerBarBg = AddPanel(timerSection, "TimerBarBg", new Color(0.04f, 0.03f, 0.08f, 0.95f));
+            SetAnchors(timerBarBg, 0f, 0.35f, 1f, 0.95f);
+            var timerBorder = timerBarBg.AddComponent<Outline>();
+            timerBorder.effectColor = new Color(0.72f, 0.56f, 0.22f, 0.55f);
+            timerBorder.effectDistance = new Vector2(1f, -1f);
+            // Glow fill bar
+            var timerBarFill = AddPanel(timerBarBg, "TimerBarFill", new Color(0.25f, 0.82f, 0.40f, 1f));
+            SetAnchors(timerBarFill, 0.005f, 0.08f, 0.50f, 0.92f); // 50% default, inset slightly
+            var fillGlow = timerBarFill.AddComponent<Shadow>();
+            fillGlow.effectColor = new Color(0.25f, 0.82f, 0.40f, 0.35f);
+            fillGlow.effectDistance = new Vector2(0, -2f);
+            // Time text below bar
+            var infoTime = AddText(timerSection, "TimeText", "\u23F1  2h 30m remaining", 12, TextAnchor.MiddleCenter);
+            SetAnchors(infoTime, 0f, -0.15f, 1f, 0.35f);
+            infoTime.GetComponent<Text>().color = new Color(0.50f, 0.75f, 1f, 1f); // Bright sky
+            infoTime.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var infoTimeSh = infoTime.AddComponent<Shadow>();
-            infoTimeSh.effectColor = new Color(0, 0, 0, 0.5f);
+            infoTimeSh.effectColor = new Color(0, 0, 0, 0.80f);
             infoTimeSh.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Idle state: Upgrade + Move + Demolish + Close buttons (P&C 4-button layout)
-            var infoUpBtn = AddStyledButton(infoInner, "UpgradeBtn", "UPGRADE", new Color(0.20f, 0.72f, 0.35f, 1f), new Color(0.12f, 0.50f, 0.22f, 1f));
-            SetAnchors(infoUpBtn, 0.03f, 0.04f, 0.27f, 0.18f);
-            var moveBtn = AddStyledButton(infoInner, "MoveBtn", "MOVE", new Color(0.55f, 0.45f, 0.20f, 1f), new Color(0.38f, 0.30f, 0.12f, 1f));
-            SetAnchors(moveBtn, 0.29f, 0.04f, 0.50f, 0.18f);
-            var demolishBtn = AddStyledButton(infoInner, "DemolishBtn", "DEMOLISH", new Color(0.50f, 0.18f, 0.18f, 1f), new Color(0.35f, 0.10f, 0.10f, 1f));
-            SetAnchors(demolishBtn, 0.52f, 0.04f, 0.73f, 0.18f);
-            var infoClose = AddStyledButton(infoInner, "CloseBtn", "CLOSE", new Color(0.30f, 0.25f, 0.35f, 1f), BgMid);
-            SetAnchors(infoClose, 0.75f, 0.04f, 0.97f, 0.18f);
+            // === BUTTON ROW: Premium ornate buttons with glow ===
+            // Idle state: Upgrade (wide green) + Move (gold) + Demolish (red) + Close (gray)
+            var infoBtnRow = AddPanel(infoInner, "BtnRow", new Color(0, 0, 0, 0));
+            SetAnchors(infoBtnRow, 0.02f, 0.02f, 0.98f, 0.12f);
+            infoBtnRow.GetComponent<Image>().raycastTarget = false;
 
-            // Upgrading state: Speed Up + Cancel buttons (hidden by default)
-            var speedUpBtn = AddStyledButton(infoInner, "SpeedUpBtn", "SPEED UP", new Color(0.30f, 0.75f, 0.95f, 1f), new Color(0.18f, 0.50f, 0.70f, 1f));
-            SetAnchors(speedUpBtn, 0.06f, 0.04f, 0.48f, 0.18f);
+            // UPGRADE button — premium green with glow accent
+            var infoUpBtn = AddPanel(infoBtnRow, "UpgradeBtn", new Color(0.15f, 0.58f, 0.28f, 1f));
+            SetAnchors(infoUpBtn, 0f, 0f, 0.32f, 1f);
+            SetButtonFeedback(infoUpBtn.AddComponent<Button>());
+            var upBtnGlow = infoUpBtn.AddComponent<Outline>();
+            upBtnGlow.effectColor = new Color(0.25f, 0.82f, 0.40f, 0.45f);
+            upBtnGlow.effectDistance = new Vector2(1.5f, -1.5f);
+            var upBtnShadow = infoUpBtn.AddComponent<Shadow>();
+            upBtnShadow.effectColor = new Color(0.08f, 0.35f, 0.15f, 0.80f);
+            upBtnShadow.effectDistance = new Vector2(0, -2f);
+            var upBtnGlass = AddPanel(infoUpBtn, "Glass", new Color(0.55f, 1f, 0.65f, 0.12f));
+            SetAnchors(upBtnGlass, 0f, 0.50f, 1f, 1f);
+            upBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var upBtnDark = AddPanel(infoUpBtn, "DarkOverlay", new Color(0.08f, 0.30f, 0.12f, 0.35f));
+            SetAnchors(upBtnDark, 0f, 0f, 1f, 0.45f);
+            upBtnDark.GetComponent<Image>().raycastTarget = false;
+            var upLbl = AddText(infoUpBtn, "Label", "UPGRADE", 14, TextAnchor.MiddleCenter);
+            StretchToParent(upLbl);
+            upLbl.GetComponent<Text>().color = Color.white;
+            upLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            upLbl.AddComponent<Outline>().effectColor = new Color(0.05f, 0.25f, 0.08f, 0.80f);
+            upLbl.GetComponent<Outline>().effectDistance = new Vector2(0.8f, -0.8f);
+            upLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.90f);
+            upLbl.GetComponent<Shadow>().effectDistance = new Vector2(1f, -1f);
+
+            // MOVE button — warm gold
+            var moveBtn = AddPanel(infoBtnRow, "MoveBtn", new Color(0.55f, 0.42f, 0.18f, 1f));
+            SetAnchors(moveBtn, 0.34f, 0f, 0.54f, 1f);
+            SetButtonFeedback(moveBtn.AddComponent<Button>());
+            moveBtn.AddComponent<Outline>().effectColor = new Color(0.72f, 0.56f, 0.22f, 0.45f);
+            moveBtn.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var moveBtnGlass = AddPanel(moveBtn, "Glass", new Color(0.80f, 0.65f, 0.30f, 0.10f));
+            SetAnchors(moveBtnGlass, 0f, 0.50f, 1f, 1f);
+            moveBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var moveBtnDark = AddPanel(moveBtn, "DarkOverlay", new Color(0.30f, 0.22f, 0.08f, 0.35f));
+            SetAnchors(moveBtnDark, 0f, 0f, 1f, 0.45f);
+            moveBtnDark.GetComponent<Image>().raycastTarget = false;
+            var moveLbl = AddText(moveBtn, "Label", "MOVE", 13, TextAnchor.MiddleCenter);
+            StretchToParent(moveLbl);
+            moveLbl.GetComponent<Text>().color = new Color(1f, 0.93f, 0.75f, 1f);
+            moveLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            moveLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.85f);
+            moveLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.8f, -0.8f);
+
+            // DEMOLISH button — deep red
+            var demolishBtn = AddPanel(infoBtnRow, "DemolishBtn", new Color(0.55f, 0.14f, 0.14f, 1f));
+            SetAnchors(demolishBtn, 0.56f, 0f, 0.76f, 1f);
+            SetButtonFeedback(demolishBtn.AddComponent<Button>());
+            demolishBtn.AddComponent<Outline>().effectColor = new Color(0.75f, 0.22f, 0.22f, 0.45f);
+            demolishBtn.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var demBtnGlass = AddPanel(demolishBtn, "Glass", new Color(1f, 0.40f, 0.40f, 0.10f));
+            SetAnchors(demBtnGlass, 0f, 0.50f, 1f, 1f);
+            demBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var demBtnDark = AddPanel(demolishBtn, "DarkOverlay", new Color(0.30f, 0.06f, 0.06f, 0.35f));
+            SetAnchors(demBtnDark, 0f, 0f, 1f, 0.45f);
+            demBtnDark.GetComponent<Image>().raycastTarget = false;
+            var demLbl = AddText(demolishBtn, "Label", "DEMOLISH", 11, TextAnchor.MiddleCenter);
+            StretchToParent(demLbl);
+            demLbl.GetComponent<Text>().color = new Color(1f, 0.80f, 0.80f, 1f);
+            demLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            demLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.85f);
+            demLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.8f, -0.8f);
+
+            // CLOSE button — subtle dark
+            var infoClose = AddPanel(infoBtnRow, "CloseBtn", new Color(0.22f, 0.18f, 0.28f, 1f));
+            SetAnchors(infoClose, 0.78f, 0f, 0.98f, 1f);
+            SetButtonFeedback(infoClose.AddComponent<Button>());
+            infoClose.AddComponent<Outline>().effectColor = new Color(0.40f, 0.35f, 0.50f, 0.40f);
+            infoClose.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var closeBtnGlass = AddPanel(infoClose, "Glass", new Color(0.50f, 0.45f, 0.60f, 0.08f));
+            SetAnchors(closeBtnGlass, 0f, 0.50f, 1f, 1f);
+            closeBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var closeBtnDark = AddPanel(infoClose, "DarkOverlay", new Color(0.10f, 0.08f, 0.14f, 0.30f));
+            SetAnchors(closeBtnDark, 0f, 0f, 1f, 0.45f);
+            closeBtnDark.GetComponent<Image>().raycastTarget = false;
+            var closeLbl = AddText(infoClose, "Label", "CLOSE", 12, TextAnchor.MiddleCenter);
+            StretchToParent(closeLbl);
+            closeLbl.GetComponent<Text>().color = new Color(0.80f, 0.75f, 0.85f, 1f);
+            closeLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            closeLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.80f);
+            closeLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Upgrading state: Speed Up (wide blue glow) + Cancel (red) + Help (gold)
+            var speedUpBtn = AddPanel(infoBtnRow, "SpeedUpBtn", new Color(0.18f, 0.55f, 0.85f, 1f));
+            SetAnchors(speedUpBtn, 0f, 0f, 0.48f, 1f);
+            SetButtonFeedback(speedUpBtn.AddComponent<Button>());
+            speedUpBtn.AddComponent<Outline>().effectColor = new Color(0.35f, 0.75f, 1f, 0.50f);
+            speedUpBtn.GetComponent<Outline>().effectDistance = new Vector2(1.5f, -1.5f);
+            var spBtnGlass = AddPanel(speedUpBtn, "Glass", new Color(0.50f, 0.80f, 1f, 0.12f));
+            SetAnchors(spBtnGlass, 0f, 0.50f, 1f, 1f);
+            spBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var spBtnDark = AddPanel(speedUpBtn, "DarkOverlay", new Color(0.08f, 0.25f, 0.45f, 0.35f));
+            SetAnchors(spBtnDark, 0f, 0f, 1f, 0.45f);
+            spBtnDark.GetComponent<Image>().raycastTarget = false;
+            var spLbl = AddText(speedUpBtn, "Label", "SPEED UP", 14, TextAnchor.MiddleCenter);
+            StretchToParent(spLbl);
+            spLbl.GetComponent<Text>().color = Color.white;
+            spLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            spLbl.AddComponent<Outline>().effectColor = new Color(0.05f, 0.20f, 0.40f, 0.80f);
+            spLbl.GetComponent<Outline>().effectDistance = new Vector2(0.8f, -0.8f);
+            spLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.90f);
+            spLbl.GetComponent<Shadow>().effectDistance = new Vector2(1f, -1f);
             speedUpBtn.SetActive(false);
-            var cancelBtn = AddStyledButton(infoInner, "CancelBtn", "CANCEL", new Color(0.75f, 0.20f, 0.22f, 1f), new Color(0.50f, 0.12f, 0.14f, 1f));
-            SetAnchors(cancelBtn, 0.52f, 0.04f, 0.72f, 0.18f);
+
+            var cancelBtn = AddPanel(infoBtnRow, "CancelBtn", new Color(0.65f, 0.16f, 0.18f, 1f));
+            SetAnchors(cancelBtn, 0.50f, 0f, 0.73f, 1f);
+            SetButtonFeedback(cancelBtn.AddComponent<Button>());
+            cancelBtn.AddComponent<Outline>().effectColor = new Color(0.80f, 0.25f, 0.25f, 0.45f);
+            cancelBtn.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var canBtnDark = AddPanel(cancelBtn, "DarkOverlay", new Color(0.35f, 0.06f, 0.08f, 0.35f));
+            SetAnchors(canBtnDark, 0f, 0f, 1f, 0.45f);
+            canBtnDark.GetComponent<Image>().raycastTarget = false;
+            var canLbl = AddText(cancelBtn, "Label", "CANCEL", 13, TextAnchor.MiddleCenter);
+            StretchToParent(canLbl);
+            canLbl.GetComponent<Text>().color = new Color(1f, 0.82f, 0.82f, 1f);
+            canLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            canLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.85f);
+            canLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.8f, -0.8f);
             cancelBtn.SetActive(false);
 
-            // P&C: Alliance Help button (shown during upgrade, next to cancel)
-            var helpBtn = AddStyledButton(infoInner, "HelpBtn", "HELP", new Color(0.72f, 0.56f, 0.22f, 1f), new Color(0.50f, 0.38f, 0.15f, 1f));
-            SetAnchors(helpBtn, 0.74f, 0.04f, 0.94f, 0.18f);
+            // Alliance Help button
+            var helpBtn = AddPanel(infoBtnRow, "HelpBtn", new Color(0.62f, 0.48f, 0.18f, 1f));
+            SetAnchors(helpBtn, 0.75f, 0f, 0.98f, 1f);
+            SetButtonFeedback(helpBtn.AddComponent<Button>());
+            helpBtn.AddComponent<Outline>().effectColor = new Color(0.83f, 0.66f, 0.26f, 0.50f);
+            helpBtn.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+            var helpBtnGlass = AddPanel(helpBtn, "Glass", new Color(0.90f, 0.75f, 0.35f, 0.10f));
+            SetAnchors(helpBtnGlass, 0f, 0.50f, 1f, 1f);
+            helpBtnGlass.GetComponent<Image>().raycastTarget = false;
+            var helpLbl = AddText(helpBtn, "Label", "HELP", 13, TextAnchor.MiddleCenter);
+            StretchToParent(helpLbl);
+            helpLbl.GetComponent<Text>().color = new Color(1f, 0.93f, 0.65f, 1f);
+            helpLbl.GetComponent<Text>().fontStyle = FontStyle.Bold;
+            helpLbl.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.85f);
+            helpLbl.GetComponent<Shadow>().effectDistance = new Vector2(0.8f, -0.8f);
             helpBtn.SetActive(false);
+
+            // === Decorative corner accents (gold diamonds at frame corners) ===
+            float cornerSize = 0.035f;
+            float[][] corners = { new[]{0.01f, 0.97f}, new[]{0.97f, 0.97f}, new[]{0.01f, 0.01f}, new[]{0.97f, 0.01f} };
+            for (int ci = 0; ci < corners.Length; ci++)
+            {
+                var corner = AddPanel(infoInner, $"CornerAccent_{ci}", new Color(0.83f, 0.66f, 0.26f, 0.35f));
+                SetAnchors(corner, corners[ci][0], corners[ci][1], corners[ci][0] + cornerSize, corners[ci][1] + cornerSize);
+                corner.transform.localRotation = Quaternion.Euler(0, 0, 45);
+                corner.GetComponent<Image>().raycastTarget = false;
+            }
 
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingInfoPopupController>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.ResourceFlyToHUD>();
