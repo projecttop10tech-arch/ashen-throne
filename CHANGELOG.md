@@ -4,6 +4,18 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.15.0] — 2026-03-13 (Empire: Info Popup Visual Polish — Category Headers, Resource Icons, Recommendations)
+
+### CHANGED
+- **Category-colored popup headers** — BuildingInfoPopup header bg now tints by category: red (military), green (resource), blue (research), amber (defense), purple (crafting), gold (stronghold). Matches P&C's color-coded building panels.
+- **Resource cost display** — Costs now show on separate lines with colored resource circle icons (◉) per type + green ✓ / red ✗ affordability marks. Replaced single-line "•"-separated format.
+- **Cost area layout expanded** — SceneUIGenerator allocates more vertical space for multi-line cost display.
+
+### ADDED
+- **"★ Recommended!" tag** — Shown on level badge for Stronghold, tier-0 buildings, and buildings falling behind Stronghold level. Guides players to most impactful upgrades (P&C pattern).
+
+---
+
 ## [1.14.0] — 2026-03-13 (Empire: Building Brightness + Warm Glow Effects)
 
 ### CHANGED

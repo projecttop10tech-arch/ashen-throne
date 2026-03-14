@@ -214,17 +214,26 @@ namespace AshenThrone.UI.Empire
             _buildingDataCache?.TryGetValue(evt.BuildingId, out data);
 
             if (_nameLabel != null)
+            {
                 _nameLabel.text = displayName.ToUpper();
+                // P&C: Category-colored header — tint the header bg by building type
+                ApplyCategoryHeaderColor(evt.BuildingId);
+            }
 
             if (_levelLabel != null)
             {
                 // P&C: Show building count for non-unique buildings (e.g., "Level 3 | 2/5")
                 int buildingCount = CountBuildings(evt.BuildingId);
                 bool isUnique = data != null && data.isUniquePerCity;
+
+                // P&C: "Recommended!" tag for stronghold or lowest-level buildings
+                string recTag = IsRecommendedUpgrade(evt.BuildingId, evt.Tier)
+                    ? "  <color=#FFD966>\u2605 Recommended!</color>" : "";
+
                 if (!isUnique && buildingCount > 1)
-                    _levelLabel.text = $"Level {displayLevel}  |  {buildingCount} built";
+                    _levelLabel.text = $"Level {displayLevel}  |  {buildingCount} built{recTag}";
                 else
-                    _levelLabel.text = $"Level {displayLevel}";
+                    _levelLabel.text = $"Level {displayLevel}{recTag}";
             }
 
             if (_descLabel != null)
@@ -370,7 +379,38 @@ namespace AshenThrone.UI.Empire
                 _timerBarBg.gameObject.SetActive(false);
         }
 
-        /// <summary>P&C: Format costs with checkmark (green) or X (red) based on current resources.</summary>
+        /// <summary>
+        /// P&C: Apply category-based color tint to the popup header background.
+        /// Military=red, Resource=green, Research=blue, Defense=orange, Crafting=purple.
+        /// </summary>
+        private void ApplyCategoryHeaderColor(string buildingId)
+        {
+            if (_popup == null) return;
+            var header = FindDeepChild(_popup.transform, "Header");
+            if (header == null) return;
+            var headerImg = header.GetComponent<Image>();
+            if (headerImg == null) return;
+
+            Color catColor;
+            if (buildingId.Contains("barracks") || buildingId.Contains("training") || buildingId.Contains("armory"))
+                catColor = new Color(0.28f, 0.08f, 0.08f, 1f); // Military — deep red
+            else if (buildingId.Contains("farm") || buildingId.Contains("mine") || buildingId.Contains("quarry"))
+                catColor = new Color(0.08f, 0.22f, 0.08f, 1f); // Resource — deep green
+            else if (buildingId.Contains("academy") || buildingId.Contains("library") || buildingId.Contains("laboratory") || buildingId.Contains("observatory"))
+                catColor = new Color(0.08f, 0.12f, 0.28f, 1f); // Research — deep blue
+            else if (buildingId.Contains("wall") || buildingId.Contains("watch_tower"))
+                catColor = new Color(0.28f, 0.18f, 0.06f, 1f); // Defense — deep amber
+            else if (buildingId.Contains("forge") || buildingId.Contains("enchanting"))
+                catColor = new Color(0.20f, 0.08f, 0.28f, 1f); // Crafting — deep purple
+            else if (buildingId.Contains("stronghold"))
+                catColor = new Color(0.22f, 0.16f, 0.06f, 1f); // Stronghold — regal gold
+            else
+                catColor = new Color(0.12f, 0.08f, 0.20f, 1f); // Default — dark purple
+
+            headerImg.color = catColor;
+        }
+
+        /// <summary>P&C: Format costs with colored resource icons and checkmark/X affordability.</summary>
         private string FormatCostWithChecks(BuildingTierData tier)
         {
             ResourceManager rm = null;
@@ -389,25 +429,26 @@ namespace AshenThrone.UI.Empire
                 };
             }
 
-            string FormatRes(int cost, string name, ResourceType type)
+            // P&C: Each resource has a colored circle icon + affordability check
+            string FormatRes(int cost, string name, ResourceType type, string iconColor, string icon)
             {
                 if (cost <= 0) return null;
                 bool canAfford = GetRes(type) >= cost;
                 string mark = canAfford ? "<color=#44FF66>\u2713</color>" : "<color=#FF4444>\u2717</color>";
-                return $"{mark} {FormatNumber(cost)} {name}";
+                return $"{mark} <color={iconColor}>{icon}</color> {FormatNumber(cost)} <color={iconColor}>{name}</color>";
             }
 
             var parts = new System.Collections.Generic.List<string>();
-            var s = FormatRes(tier.stoneCost, "Stone", ResourceType.Stone);
+            var s = FormatRes(tier.stoneCost, "Stone", ResourceType.Stone, "#D4C8B4", "\u25C9");
             if (s != null) parts.Add(s);
-            var i = FormatRes(tier.ironCost, "Iron", ResourceType.Iron);
+            var i = FormatRes(tier.ironCost, "Iron", ResourceType.Iron, "#C8CCE6", "\u25C9");
             if (i != null) parts.Add(i);
-            var g = FormatRes(tier.grainCost, "Grain", ResourceType.Grain);
+            var g = FormatRes(tier.grainCost, "Grain", ResourceType.Grain, "#FFE844", "\u25C9");
             if (g != null) parts.Add(g);
-            var a = FormatRes(tier.arcaneEssenceCost, "Arcane", ResourceType.ArcaneEssence);
+            var a = FormatRes(tier.arcaneEssenceCost, "Arcane", ResourceType.ArcaneEssence, "#CC88FF", "\u25C9");
             if (a != null) parts.Add(a);
 
-            return parts.Count > 0 ? string.Join("  ", parts) : "Free";
+            return parts.Count > 0 ? string.Join("\n", parts) : "Free";
         }
 
         /// <summary>P&C: Show per-hour production rate for resource buildings.</summary>
@@ -911,6 +952,22 @@ namespace AshenThrone.UI.Empire
         {
             return buildingId != null && (buildingId.Contains("farm") || buildingId.Contains("mine")
                 || buildingId.Contains("quarry") || buildingId.Contains("arcane_tower"));
+        }
+
+        /// <summary>
+        /// P&C: Determines if a building upgrade is "Recommended" — shown for Stronghold
+        /// (always a bottleneck) and buildings at tier 0 (not yet upgraded).
+        /// </summary>
+        private bool IsRecommendedUpgrade(string buildingId, int currentTier)
+        {
+            // Stronghold is always recommended (gates everything else)
+            if (buildingId == "stronghold") return true;
+            // Tier 0 buildings are recommended to upgrade first
+            if (currentTier == 0) return true;
+            // Buildings below Stronghold level - 2 are falling behind
+            int shLevel = GetStrongholdLevel();
+            if (shLevel >= 2 && currentTier < shLevel - 1) return true;
+            return false;
         }
 
         /// <summary>P&C-style power estimate: tier × base power per building category.</summary>

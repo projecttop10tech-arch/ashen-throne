@@ -2439,8 +2439,8 @@ namespace AshenThrone.Editor
             infoCostHeader.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var infoCostSep = AddPanel(infoInner, "CostSep", new Color(0.72f, 0.56f, 0.22f, 0.30f));
             SetAnchors(infoCostSep, 0.04f, 0.415f, 0.96f, 0.42f);
-            var infoCosts = AddText(infoInner, "CostText", "1,200 Stone  \u2022  800 Iron  \u2022  600 Grain", 14, TextAnchor.MiddleCenter);
-            SetAnchors(infoCosts, 0.04f, 0.30f, 0.96f, 0.42f);
+            var infoCosts = AddText(infoInner, "CostText", "\u2713 \u25C9 1.2K Stone\n\u2713 \u25C9 800 Iron\n\u2713 \u25C9 600 Grain", 12, TextAnchor.MiddleLeft);
+            SetAnchors(infoCosts, 0.04f, 0.22f, 0.96f, 0.42f);
             infoCosts.GetComponent<Text>().color = TextWhite;
             var infoCostsSh = infoCosts.AddComponent<Shadow>();
             infoCostsSh.effectColor = new Color(0, 0, 0, 0.5f);
@@ -2454,7 +2454,7 @@ namespace AshenThrone.Editor
             SetAnchors(timerBarFill, 0f, 0f, 0.5f, 1f); // 50% default
 
             var infoTime = AddText(infoInner, "TimeText", "\u23F1  2h 30m", 13, TextAnchor.MiddleCenter);
-            SetAnchors(infoTime, 0.04f, 0.20f, 0.96f, 0.27f);
+            SetAnchors(infoTime, 0.04f, 0.18f, 0.96f, 0.23f);
             infoTime.GetComponent<Text>().color = Sky;
             var infoTimeSh = infoTime.AddComponent<Shadow>();
             infoTimeSh.effectColor = new Color(0, 0, 0, 0.5f);
