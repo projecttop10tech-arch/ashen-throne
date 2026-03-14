@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -7,9 +8,8 @@ using AshenThrone.Empire;
 namespace AshenThrone.UI.Empire
 {
     /// <summary>
-    /// Compact resource bar (P&C style) — icon + abbreviated number for each resource.
-    /// Subscribes to ResourceChangedEvent for real-time updates.
-    /// Tapping a resource slot opens the ResourceDetailPopup.
+    /// P&C-quality resource bar — icon + abbreviated number for each resource.
+    /// Vault overflow: color warning + scale pulse. Detail popup with pop-in animation.
     /// </summary>
     public class ResourceHUD : MonoBehaviour
     {
@@ -30,7 +30,8 @@ namespace AshenThrone.UI.Empire
 
         private EventSubscription _resourceChangedSub;
         private ResourceManager _resourceManager;
-        private long _gems; // Premium currency — tracked separately
+        private long _gems;
+        private Coroutine _popupAnim;
 
         private void Awake()
         {
@@ -56,11 +57,10 @@ namespace AshenThrone.UI.Empire
 
         // P&C: Vault overflow warning colors
         private static readonly Color NormalColor = Color.white;
-        private static readonly Color WarningColor = new(1f, 0.65f, 0.20f, 1f);  // Orange at 80%
-        private static readonly Color CriticalColor = new(1f, 0.25f, 0.25f, 1f); // Red at 95%
-        private static readonly Color FullColor = new(1f, 0.15f, 0.15f, 1f);     // Bright red at 100%
+        private static readonly Color WarningColor = new(1f, 0.65f, 0.20f, 1f);
+        private static readonly Color CriticalColor = new(1f, 0.25f, 0.25f, 1f);
+        private static readonly Color FullColor = new(1f, 0.15f, 0.15f, 1f);
 
-        // P&C: Flashing icon pulse for vault overflow
         private float _flashPhase;
 
         private void Update()
@@ -81,9 +81,15 @@ namespace AshenThrone.UI.Empire
             float ratio = (float)current / max;
             if (ratio >= 0.95f)
             {
-                // Pulse alpha between 0.5 and 1.0 for critical/full state
+                // P&C: Alpha pulse + scale pulse for critical/full state
                 var c = label.color;
                 label.color = new Color(c.r, c.g, c.b, 0.5f + 0.5f * flash);
+                float scale = 1f + 0.05f * flash;
+                label.transform.localScale = Vector3.one * scale;
+            }
+            else
+            {
+                label.transform.localScale = Vector3.one;
             }
         }
 
@@ -111,10 +117,6 @@ namespace AshenThrone.UI.Empire
             UpdateResourceDisplay(label, evt.NewValue, max);
         }
 
-        /// <summary>
-        /// P&C: Update resource display with vault overflow color warning.
-        /// Orange at 80%, red at 95%, bright red at 100%.
-        /// </summary>
         private static void UpdateResourceDisplay(TextMeshProUGUI label, long current, long max)
         {
             if (label == null) return;
@@ -128,10 +130,7 @@ namespace AshenThrone.UI.Empire
             else label.color = NormalColor;
         }
 
-        /// <summary>
-        /// Show the resource detail popup for a specific resource.
-        /// Called from UI button OnClick events on each resource slot.
-        /// </summary>
+        /// <summary>P&C: Show resource detail popup with elastic pop-in animation.</summary>
         public void ShowDetail(int resourceIndex)
         {
             if (_detailPopup == null || _resourceManager == null) return;
@@ -156,6 +155,31 @@ namespace AshenThrone.UI.Empire
             if (_detailCapacityFill != null && max > 0)
                 _detailCapacityFill.fillAmount = Mathf.Clamp01((float)current / max);
             _detailPopup.SetActive(true);
+
+            // P&C: Elastic pop-in animation on the frame
+            if (_popupAnim != null) StopCoroutine(_popupAnim);
+            _popupAnim = StartCoroutine(PopInDetailPopup());
+        }
+
+        private IEnumerator PopInDetailPopup()
+        {
+            var frame = _detailPopup.transform.Find("Frame");
+            var target = frame != null ? frame : _detailPopup.transform;
+
+            float duration = 0.3f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scale = t < 0.55f
+                    ? Mathf.Lerp(0.7f, 1.08f, t / 0.55f)
+                    : Mathf.Lerp(1.08f, 1f, (t - 0.55f) / 0.45f);
+                target.localScale = Vector3.one * scale;
+                yield return null;
+            }
+            target.localScale = Vector3.one;
+            _popupAnim = null;
         }
 
         public void HideDetail()
@@ -163,22 +187,14 @@ namespace AshenThrone.UI.Empire
             if (_detailPopup != null) _detailPopup.SetActive(false);
         }
 
-        // ---------------------------------------------------------------
-        // Number abbreviation: 1000 → 1K, 1500000 → 1.50M, 2300000000 → 2.30B
-        // ---------------------------------------------------------------
-
-        /// <summary>
-        /// Abbreviates a number for compact display.
-        /// Under 1,000: exact number.  1K–999K.  1.00M–999M.  1.00B+.
-        /// </summary>
         public static string Abbreviate(long value)
         {
             if (value < 0) return "-" + Abbreviate(-value);
             if (value < 1_000) return value.ToString();
-            if (value < 10_000) return $"{value / 1_000f:F2}K";          // 1.23K
-            if (value < 1_000_000) return $"{value / 1_000f:F0}K";       // 365K
-            if (value < 1_000_000_000L) return $"{value / 1_000_000f:F2}M"; // 8.37M
-            return $"{value / 1_000_000_000f:F2}B";                      // 2.30B
+            if (value < 10_000) return $"{value / 1_000f:F2}K";
+            if (value < 1_000_000) return $"{value / 1_000f:F0}K";
+            if (value < 1_000_000_000L) return $"{value / 1_000_000f:F2}M";
+            return $"{value / 1_000_000_000f:F2}B";
         }
 
         private static void SetText(TextMeshProUGUI label, string text)

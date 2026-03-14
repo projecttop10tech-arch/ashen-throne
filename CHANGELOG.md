@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.28.0] — 2026-03-14 (Empire: Resource Detail Popup, Notification Badges, Vault Overflow Polish)
+
+### CHANGED
+- **ResourceHUD detail popup upgraded to ornate P&C quality** — Triple gold border (glow→outer→inner), inner fill with warm edge glow and shadow, glass highlight, ornate header band with gold title (outline+shadow), gold separator, decorative corner diamond accents, ornate close button with glass highlight. Elastic pop-in scale animation on open.
+- **ResourceHUD vault overflow enhanced** — Labels now scale pulse (1.0→1.05×) in addition to alpha pulse when at 95%+ capacity, making overflow more noticeable.
+- **BuildingNotificationBadge upgraded** — Radial glow ring behind badges (color-matched to state), double border (gold outer + dark inner), larger 24px badges. State-specific animations: UpgradeReady pulses fast (5Hz), JustCompleted bounces gently (3Hz), Idle breathes slowly (2.5Hz). Glow alpha breathes independently. Elastic pop-in spawn animation. Per-badge random phase offset for organic feel.
+
+---
+
 ## [1.27.0] — 2026-03-14 (Empire: Animated Indicators, Ambient FX, Move Mode & Collect All Polish)
 
 ### CHANGED

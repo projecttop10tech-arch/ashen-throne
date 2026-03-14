@@ -2278,33 +2278,62 @@ namespace AshenThrone.Editor
             AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 10, SceneName.Alliance);
             AddNavItem(navLayoutRight, "NavRank", "RANK", EmberDim, false, 0, SceneName.Lobby);
 
-            // === RESOURCE DETAIL POPUP (hidden, full screen overlay) ===
-            var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.6f));
+            // === RESOURCE DETAIL POPUP — Premium P&C-quality (hidden, full screen overlay) ===
+            var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.65f));
             StretchToParent(resPopup);
 
-            var resFrame = AddPanel(resPopup, "Frame", ResBarBg);
-            SetAnchors(resFrame, 0.08f, 0.30f, 0.92f, 0.80f);
+            var resFrame = AddPanel(resPopup, "Frame", BgPanel);
+            SetAnchors(resFrame, 0.06f, 0.28f, 0.94f, 0.82f);
             var resOrnateSpr = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Generated/panel_ornate_gen.png");
             if (resOrnateSpr != null) { resFrame.GetComponent<Image>().sprite = resOrnateSpr; resFrame.GetComponent<Image>().type = Image.Type.Sliced; resFrame.GetComponent<Image>().color = new Color(0.65f, 0.58f, 0.48f, 1f); }
-            else { AddOutlinePanel(resFrame, GoldDim); }
 
-            // Glass highlight
-            var resGlass = AddPanel(resFrame, "GlassTop", new Color(0.20f, 0.18f, 0.28f, 0.15f));
-            SetAnchors(resGlass, 0.03f, 0.92f, 0.97f, 0.99f);
+            // P&C: Triple gold border (glow → outer → inner)
+            var resFrameGlow = resFrame.AddComponent<Shadow>();
+            resFrameGlow.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.35f);
+            resFrameGlow.effectDistance = new Vector2(2.5f, -2.5f);
+            var resFrameOutline = resFrame.AddComponent<Outline>();
+            resFrameOutline.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.80f);
+            resFrameOutline.effectDistance = new Vector2(1.2f, -1.2f);
 
-            // Header
-            var resHeader = AddPanel(resFrame, "Header", new Color(0.08f, 0.10f, 0.18f, 1f));
-            SetAnchors(resHeader, 0f, 0.88f, 1f, 1f);
-            var resTitle = AddText(resHeader, "Title", "STONE", 18, TextAnchor.MiddleCenter);
+            // P&C: Inner fill with warm edge glow
+            var resInnerFill = AddPanel(resFrame, "InnerFill", new Color(0.06f, 0.04f, 0.10f, 0.92f));
+            SetAnchors(resInnerFill, 0.015f, 0.015f, 0.985f, 0.985f);
+            var resWarmTop = AddPanel(resInnerFill, "WarmEdgeGlow", new Color(0.83f, 0.66f, 0.26f, 0.06f));
+            SetAnchors(resWarmTop, 0f, 0.92f, 1f, 1f);
+            var resEdgeShadow = AddPanel(resInnerFill, "EdgeShadow", new Color(0, 0, 0, 0.12f));
+            SetAnchors(resEdgeShadow, 0f, 0f, 1f, 0.05f);
+
+            // P&C: Glass highlight on top
+            var resGlass = AddPanel(resFrame, "GlassTop", new Color(1f, 0.95f, 0.80f, 0.08f));
+            SetAnchors(resGlass, 0.03f, 0.50f, 0.97f, 0.99f);
+
+            // P&C: Header band with glass
+            var resHeader = AddPanel(resFrame, "Header", new Color(0.06f, 0.08f, 0.16f, 1f));
+            SetAnchors(resHeader, 0.015f, 0.88f, 0.985f, 0.985f);
+            var resHeaderGlass = AddPanel(resHeader, "HeaderGlass", new Color(1f, 0.95f, 0.80f, 0.06f));
+            SetAnchors(resHeaderGlass, 0f, 0.45f, 1f, 1f);
+            var resTitle = AddText(resHeader, "Title", "STONE", 20, TextAnchor.MiddleCenter);
             StretchToParent(resTitle);
             resTitle.GetComponent<Text>().color = Gold;
             resTitle.GetComponent<Text>().fontStyle = FontStyle.Bold;
             var rtSh2 = resTitle.AddComponent<Shadow>();
             rtSh2.effectColor = new Color(0, 0, 0, 0.85f);
             rtSh2.effectDistance = new Vector2(1f, -1f);
-            // Header bottom border
-            var resHeaderBorder = AddPanel(resFrame, "HeaderBorder", GoldDim);
-            SetAnchors(resHeaderBorder, 0.03f, 0.875f, 0.97f, 0.88f);
+            var rtOutline = resTitle.AddComponent<Outline>();
+            rtOutline.effectColor = new Color(0, 0, 0, 0.6f);
+            rtOutline.effectDistance = new Vector2(0.5f, -0.5f);
+            // Header bottom gold border
+            var resHeaderBorder = AddPanel(resFrame, "HeaderBorder", Gold);
+            SetAnchors(resHeaderBorder, 0.03f, 0.875f, 0.97f, 0.882f);
+
+            // P&C: Decorative corner diamond accents
+            float[,] resCorners = { {0.015f, 0.96f}, {0.94f, 0.96f}, {0.015f, 0.015f}, {0.94f, 0.015f} };
+            for (int ci = 0; ci < 4; ci++)
+            {
+                var corner = AddPanel(resFrame, $"Corner{ci}", new Color(0.83f, 0.66f, 0.26f, 0.55f));
+                SetAnchors(corner, resCorners[ci, 0], resCorners[ci, 1], resCorners[ci, 0] + 0.045f, resCorners[ci, 1] + 0.025f);
+                corner.transform.localRotation = Quaternion.Euler(0, 0, 45f);
+            }
 
             // Current amount row
             var resCurrentLabel = AddText(resFrame, "CurrentLabel", "Current:", 12, TextAnchor.MiddleLeft);
@@ -2376,10 +2405,21 @@ namespace AshenThrone.Editor
             SetAnchors(resSrc2Val, 0.60f, 0.06f, 0.95f, 0.14f);
             resSrc2Val.GetComponent<Text>().color = Teal;
 
-            // Close button
-            var resCloseBtn = AddStyledButton(resFrame, "CloseBtn", "CLOSE", new Color(0.25f, 0.22f, 0.30f), BgMid);
-            SetAnchors(resCloseBtn, 0.35f, 0.01f, 0.65f, 0.08f);
-            resCloseBtn.transform.Find("Label").GetComponent<Text>().fontSize = 11;
+            // P&C: Ornate close button
+            var resCloseBtn = AddStyledButton(resFrame, "CloseBtn", "CLOSE", new Color(0.18f, 0.15f, 0.25f), BgMid);
+            SetAnchors(resCloseBtn, 0.30f, 0.02f, 0.70f, 0.08f);
+            resCloseBtn.transform.Find("Label").GetComponent<Text>().fontSize = 12;
+            resCloseBtn.transform.Find("Label").GetComponent<Text>().fontStyle = FontStyle.Bold;
+            var resCloseSh = resCloseBtn.AddComponent<Shadow>();
+            resCloseSh.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.30f);
+            resCloseSh.effectDistance = new Vector2(1f, -1f);
+            var resCloseOut = resCloseBtn.AddComponent<Outline>();
+            resCloseOut.effectColor = new Color(0.70f, 0.55f, 0.22f, 0.55f);
+            resCloseOut.effectDistance = new Vector2(0.8f, -0.8f);
+            // Glass highlight on close button
+            var resCloseGlass = AddPanel(resCloseBtn, "Glass", new Color(1f, 0.95f, 0.80f, 0.08f));
+            SetAnchors(resCloseGlass, 0.02f, 0.48f, 0.98f, 0.96f);
+            resCloseGlass.GetComponent<Image>().raycastTarget = false;
             AddSceneNav(resCloseBtn, SceneName.Empire);
 
             resPopup.SetActive(false);

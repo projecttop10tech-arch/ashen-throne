@@ -185,20 +185,38 @@ namespace AshenThrone.UI.Empire
             badgeGO.transform.SetParent(placement.VisualGO.transform, false);
 
             var rect = badgeGO.AddComponent<RectTransform>();
-            // Top-right corner of building
             rect.anchorMin = new Vector2(0.75f, 0.75f);
             rect.anchorMax = new Vector2(0.75f, 0.75f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(22, 22);
+            rect.sizeDelta = new Vector2(24, 24);
 
-            // Circle background
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+
+            // P&C: Glow ring behind badge
+            var glowGO = new GameObject("Glow");
+            glowGO.transform.SetParent(badgeGO.transform, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.40f, -0.40f);
+            glowRect.anchorMax = new Vector2(1.40f, 1.40f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = new Color(1f, 0.3f, 0.2f, 0.25f);
+            glowImg.raycastTarget = false;
+            if (radialSpr != null) glowImg.sprite = radialSpr;
+
+            // Circle background with radial gradient
             var bg = badgeGO.AddComponent<Image>();
             bg.raycastTarget = false;
+            if (radialSpr != null) { bg.sprite = radialSpr; bg.type = Image.Type.Simple; }
 
-            // Border
+            // P&C: Double border
+            var outerShadow = badgeGO.AddComponent<Shadow>();
+            outerShadow.effectColor = new Color(0.83f, 0.66f, 0.26f, 0.55f);
+            outerShadow.effectDistance = new Vector2(1.2f, -1.2f);
             var outline = badgeGO.AddComponent<Outline>();
-            outline.effectColor = new Color(0, 0, 0, 0.8f);
-            outline.effectDistance = new Vector2(1f, -1f);
+            outline.effectColor = new Color(0, 0, 0, 0.85f);
+            outline.effectDistance = new Vector2(0.8f, -0.8f);
 
             // Symbol text
             var textGO = new GameObject("Symbol");
@@ -210,14 +228,17 @@ namespace AshenThrone.UI.Empire
             textRect.offsetMax = Vector2.zero;
             var text = textGO.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 14;
+            text.fontSize = 15;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
-            var shadow = textGO.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0, 0, 0, 0.7f);
-            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+            var textShadow = textGO.AddComponent<Shadow>();
+            textShadow.effectColor = new Color(0, 0, 0, 0.85f);
+            textShadow.effectDistance = new Vector2(0.6f, -0.6f);
+
+            // P&C: Start small for spawn pop
+            badgeGO.transform.localScale = Vector3.zero;
 
             _badges[placement.InstanceId] = badgeGO;
             UpdateBadgeAppearance(badgeGO, state);
@@ -267,14 +288,55 @@ namespace AshenThrone.UI.Empire
             }
         }
 
+        private readonly Dictionary<string, float> _badgePhases = new();
+
         private void LateUpdate()
         {
-            // Animate pulse on all active badges
+            float time = Time.time;
             foreach (var kvp in _badges)
             {
                 if (kvp.Value == null) continue;
-                float pulse = 1f + 0.12f * Mathf.Sin(Time.time * 4f);
-                kvp.Value.transform.localScale = Vector3.one * pulse;
+
+                if (!_badgePhases.TryGetValue(kvp.Key, out float phase))
+                {
+                    phase = Random.Range(0f, Mathf.PI * 2f);
+                    _badgePhases[kvp.Key] = phase;
+                }
+
+                // Pop-in animation
+                if (kvp.Value.transform.localScale.x < 0.95f)
+                {
+                    float cur = kvp.Value.transform.localScale.x;
+                    float next = Mathf.MoveTowards(cur, 1.15f, Time.deltaTime * 6f);
+                    if (next >= 1.12f) next = Mathf.MoveTowards(next, 1f, Time.deltaTime * 4f);
+                    kvp.Value.transform.localScale = Vector3.one * next;
+                    continue;
+                }
+
+                // P&C: State-specific pulse
+                string badgeName = kvp.Value.name;
+                float baseScale;
+                if (badgeName.Contains("UpgradeReady"))
+                    baseScale = 1f + 0.15f * Mathf.Sin((time + phase) * 5f);
+                else if (badgeName.Contains("JustCompleted"))
+                    baseScale = 1f + 0.10f * Mathf.Abs(Mathf.Sin((time + phase) * 3f));
+                else
+                    baseScale = 1f + 0.08f * Mathf.Sin((time + phase) * 2.5f);
+
+                kvp.Value.transform.localScale = Vector3.one * baseScale;
+
+                // P&C: Glow breathe
+                var glow = kvp.Value.transform.Find("Glow");
+                if (glow != null)
+                {
+                    var glowImg = glow.GetComponent<Image>();
+                    if (glowImg != null)
+                    {
+                        var c = glowImg.color;
+                        float glowPulse = Mathf.Sin((time + phase) * 3.5f) * 0.5f + 0.5f;
+                        glowImg.color = new Color(c.r, c.g, c.b, Mathf.Lerp(0.12f, 0.40f, glowPulse));
+                    }
+                }
             }
         }
 
