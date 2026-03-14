@@ -1185,9 +1185,10 @@ namespace AshenThrone.Editor
             AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3, SceneName.Lobby);
             AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5, SceneName.Lobby);
             AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 10, SceneName.Alliance);
+            AddNavItem(navLayoutRight, "NavRank", "RANK", EmberDim, false, 0, SceneName.Lobby);
 
             SaveScene();
-            Debug.Log("[SceneUIGenerator] Lobby scene: P&C-quality main menu hub — v28 polish");
+            Debug.Log("[SceneUIGenerator] Lobby scene: P&C-quality main menu hub — v29 with RANK nav");
         }
 
         // ===================================================================
@@ -2275,6 +2276,7 @@ namespace AshenThrone.Editor
             AddNavItem(navLayoutRight, "NavBag", "BAG", GoldDim, false, 3, SceneName.Lobby);
             AddNavItem(navLayoutRight, "NavMail", "MAIL", Sky, false, 5, SceneName.Lobby);
             AddNavItem(navLayoutRight, "NavAlliance", "ALLIANCE", TealDim, false, 10, SceneName.Alliance);
+            AddNavItem(navLayoutRight, "NavRank", "RANK", EmberDim, false, 0, SceneName.Lobby);
 
             // === RESOURCE DETAIL POPUP (hidden, full screen overlay) ===
             var resPopup = AddPanel(canvasGo, "ResourceDetailPopup", new Color(0, 0, 0, 0.6f));

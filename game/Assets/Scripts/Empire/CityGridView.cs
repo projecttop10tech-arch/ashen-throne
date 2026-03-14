@@ -20421,6 +20421,7 @@ namespace AshenThrone.Empire
                 ("VS Battle", "\u2694", "10:04:49", new Color(0.65f, 0.18f, 0.15f, 0.92f), new Color(0.95f, 0.40f, 0.25f)),
                 ("Rewards",   "\u2605", "",         new Color(0.55f, 0.40f, 0.12f, 0.92f), new Color(0.95f, 0.80f, 0.25f)),
                 ("Offer",     "\u2666", "23:59:52", new Color(0.50f, 0.20f, 0.55f, 0.92f), new Color(0.80f, 0.50f, 0.90f)),
+                ("Gifts",     "\u2661", "10:04:49", new Color(0.18f, 0.45f, 0.55f, 0.92f), new Color(0.35f, 0.80f, 0.90f)),
             };
 
             for (int i = 0; i < offers.Length; i++)
@@ -21082,12 +21083,12 @@ namespace AshenThrone.Empire
             float angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
 
             rect.anchoredPosition = mid;
-            rect.sizeDelta = new Vector2(length, cellWidth * 0.18f); // thin road
+            rect.sizeDelta = new Vector2(length, cellWidth * 0.22f); // P&C visible stone path
             rect.localRotation = Quaternion.Euler(0, 0, angle);
             rect.pivot = new Vector2(0.5f, 0.5f);
 
             var img = road.AddComponent<Image>();
-            img.color = new Color(0.35f, 0.28f, 0.18f, 0.30f); // subtle brown stone path
+            img.color = new Color(0.45f, 0.38f, 0.25f, 0.45f); // P&C warm stone path — more visible
             img.raycastTarget = false;
         }
 
@@ -21124,16 +21125,17 @@ namespace AshenThrone.Empire
             // Decoration types with unicode icons and colors
             var decoTypes = new[]
             {
-                ("\u2742", new Color(0.30f, 0.65f, 0.25f, 0.55f), 0.6f),  // tree (green)
-                ("\u2618", new Color(0.35f, 0.70f, 0.30f, 0.45f), 0.45f), // bush (lighter green)
-                ("\u25C6", new Color(0.50f, 0.45f, 0.35f, 0.40f), 0.35f), // rock (brown)
-                ("\u2022", new Color(0.45f, 0.60f, 0.30f, 0.35f), 0.25f), // grass tuft (pale green)
+                ("\u2742", new Color(0.35f, 0.75f, 0.30f, 0.70f), 0.7f),  // tree (vivid green)
+                ("\u2618", new Color(0.40f, 0.80f, 0.35f, 0.60f), 0.50f), // bush (bright green)
+                ("\u25C6", new Color(0.60f, 0.52f, 0.40f, 0.55f), 0.38f), // rock (warm brown)
+                ("\u2022", new Color(0.50f, 0.70f, 0.35f, 0.50f), 0.28f), // grass tuft (P&C bright green)
+                ("\u2740", new Color(0.85f, 0.55f, 0.80f, 0.50f), 0.30f), // flower (pink accent)
             };
 
             var rng = new System.Random(42); // fixed seed for consistent layout
             float cellW = CellSize;
             int decoCount = 0;
-            int maxDecorations = 120; // limit for performance
+            int maxDecorations = 160; // P&C: denser terrain for lush feel
 
             // Scatter across the playable area (cells 4-42)
             for (int gx = 4; gx < 43; gx += 2)
@@ -21145,8 +21147,8 @@ namespace AshenThrone.Empire
                     // Skip occupied cells and cells adjacent to buildings (leave 1-cell gap)
                     if (IsNearBuilding(occupied, gx, gy)) continue;
 
-                    // 40% chance to place decoration
-                    if (rng.NextDouble() > 0.40) continue;
+                    // 50% chance to place decoration — P&C terrain feels lush and full
+                    if (rng.NextDouble() > 0.50) continue;
 
                     var (icon, color, sizeMul) = decoTypes[rng.Next(decoTypes.Length)];
                     Vector2 pos = GridToLocalCenter(new Vector2Int(gx, gy), Vector2Int.one);

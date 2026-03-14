@@ -226,7 +226,7 @@ namespace AshenThrone.Editor
             warmBaseRect.offsetMin = Vector2.zero;
             warmBaseRect.offsetMax = Vector2.zero;
             var warmBaseImg = warmBase.AddComponent<Image>();
-            warmBaseImg.color = new Color(0.45f, 0.35f, 0.22f, 1f); // warm stone
+            warmBaseImg.color = new Color(0.55f, 0.44f, 0.30f, 1f); // P&C brighter warm stone base
             warmBaseImg.raycastTarget = false;
 
             // ================================================================
@@ -250,7 +250,7 @@ namespace AshenThrone.Editor
                 outerImg.type = Image.Type.Simple;
                 outerImg.preserveAspect = false;
                 // P&C brightness: terrain at 50% opacity, warm base shows through dark areas
-                outerImg.color = new Color(1.3f, 1.2f, 1.0f, 0.50f);
+                outerImg.color = new Color(1.45f, 1.30f, 1.10f, 0.55f); // P&C: brighter terrain overlay
             }
             else
             {
@@ -268,7 +268,7 @@ namespace AshenThrone.Editor
             washRect.offsetMin = Vector2.zero;
             washRect.offsetMax = Vector2.zero;
             var washImg = ambientWash.AddComponent<Image>();
-            washImg.color = new Color(0.50f, 0.38f, 0.20f, 0.18f);
+            washImg.color = new Color(0.55f, 0.42f, 0.22f, 0.22f); // P&C: stronger warm ambient
             washImg.raycastTarget = false;
 
             // ================================================================

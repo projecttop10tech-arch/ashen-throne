@@ -4,6 +4,22 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.19.0] — 2026-03-13 (Empire: Terrain Brightness, Nav RANK, Lush Decorations)
+
+### ADDED
+- **RANK nav button** — Nav bar now has 7+1 items matching P&C: WORLD, HERO, QUEST, [EMPIRE], BAG, MAIL, ALLIANCE, RANK. Added to both Empire and Lobby scenes.
+- **Gifts event icon** — Right-side special offer panel now has 4 items (VS Battle, Rewards, Offer, Gifts) with countdown timers, matching P&C's event sidebar.
+- **Flower terrain decorations** — Pink flower accents added to terrain decoration palette for color variety.
+
+### CHANGED
+- **Terrain base brightened** — Warm stone base color increased from (0.45, 0.35, 0.22) to (0.55, 0.44, 0.30) for warmer, more P&C-like ground.
+- **Terrain art overlay boosted** — Tint raised from (1.3, 1.2, 1.0) at 50% to (1.45, 1.30, 1.10) at 55% opacity for brighter terrain textures.
+- **Ambient wash strengthened** — Warm amber overlay increased from 0.18 to 0.22 alpha for richer ambient lighting.
+- **Stone road paths more visible** — Width from 0.18x to 0.22x cell size, alpha from 0.30 to 0.45 with warmer color.
+- **Terrain decorations lush** — Colors boosted (alpha 0.50-0.70 up from 0.35-0.55), density increased to 50% spawn rate with 160 cap. Trees and bushes now clearly visible.
+
+---
+
 ## [1.18.0] — 2026-03-13 (Empire: Resource Bubble Bob + Pulse Animation Restored)
 
 ### FIXED
