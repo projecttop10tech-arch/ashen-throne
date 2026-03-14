@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.20.0] — 2026-03-13 (Empire: Zoom Momentum + Smooth Zoom-to-Building)
+
+### ADDED
+- **Pinch zoom momentum** — Zoom continues with deceleration after releasing pinch, matching P&C's fling-zoom feel. Velocity tracked during pinch and applied as momentum on release.
+- **Smooth zoom-to-building** — `ZoomToBuildingSmooth()` combines smooth pan + zoom in a single 0.45s ease-out-cubic animation. Replaces hard instant `CenterOnBuilding` in info popup navigation arrows, queue slot taps, and build queue HUD.
+
+---
+
 ## [1.19.0] — 2026-03-13 (Empire: Terrain Brightness, Nav RANK, Lush Decorations)
 
 ### ADDED

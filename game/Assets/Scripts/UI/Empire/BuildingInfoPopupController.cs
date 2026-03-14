@@ -243,10 +243,10 @@ namespace AshenThrone.UI.Empire
             var evt = new BuildingTappedEvent(_currentBuildingId, instanceId, tier, default);
             PopulatePopup(evt);
 
-            // P&C: Center camera on the new building
+            // P&C: Smooth zoom + pan to the new building
             var cityGrid = Object.FindFirstObjectByType<CityGridView>();
             if (cityGrid != null)
-                cityGrid.CenterOnBuilding(instanceId);
+                cityGrid.ZoomToBuildingSmooth(instanceId);
         }
 
         private void OnUpgradeCompleted(BuildingUpgradeCompletedEvent evt)

@@ -139,6 +139,11 @@ namespace AshenThrone.Empire
         private float _lastPinchDistance;
         private int _touchCount;
 
+        // P&C: Zoom momentum — fling zoom continues after pinch release
+        private float _zoomVelocity;
+        private const float ZoomMomentumDecay = 4.5f; // deceleration rate
+        private const float ZoomMomentumMin = 0.01f;  // velocity threshold to stop
+
         // P&C: Zoom level indicator
         private GameObject _zoomIndicator;
         private Text _zoomIndicatorText;
@@ -606,8 +611,12 @@ namespace AshenThrone.Empire
                 else
                 {
                     float delta = dist - _lastPinchDistance;
+                    // P&C: Track zoom velocity for momentum on release
+                    float dt = Time.deltaTime > 0.001f ? Time.deltaTime : 0.016f;
+                    _zoomVelocity = delta * ZoomSpeed / dt;
                     float newZoom = Mathf.Clamp(_currentZoom + delta * ZoomSpeed, ZoomMin, ZoomMax);
-                    ApplyZoom(newZoom, (t0.position + t1.position) * 0.5f);
+                    _zoomPivotScreen = (t0.position + t1.position) * 0.5f;
+                    ApplyZoom(newZoom, _zoomPivotScreen);
                     _targetZoom = _currentZoom; // Sync target with direct pinch
                     _lastPinchDistance = dist;
                 }
@@ -616,6 +625,8 @@ namespace AshenThrone.Empire
             {
                 _isPinching = false;
                 if (scrollRect != null && !_moveMode) scrollRect.enabled = true;
+                // P&C: Apply momentum — fling zoom continues after pinch release
+                _targetZoom = Mathf.Clamp(_currentZoom + _zoomVelocity * 0.15f, ZoomMin, ZoomMax);
             }
 
             // Mouse scroll zoom (editor / desktop testing) — P&C: smooth interpolated
@@ -987,6 +998,52 @@ namespace AshenThrone.Empire
             // Start hidden — UpdateZoomDetailVisibility controls visibility
             bool visible = _currentZoom >= 0.6f && _currentZoom < 1.3f;
             iconGO.SetActive(visible);
+        }
+
+        /// <summary>P&C: Smooth zoom + pan to center on a building. Used for popup navigation arrows, recommendations.</summary>
+        public void ZoomToBuildingSmooth(string placedId, float targetZoom = 1.8f)
+        {
+            CityBuildingPlacement target = null;
+            foreach (var p in _placements)
+                if (p.InstanceId == placedId) { target = p; break; }
+            if (target?.VisualGO == null || contentContainer == null) return;
+            if (_softCenterCoroutine != null) StopCoroutine(_softCenterCoroutine);
+            _softCenterCoroutine = StartCoroutine(ZoomToBuildingRoutine(target, targetZoom));
+        }
+
+        private IEnumerator ZoomToBuildingRoutine(CityBuildingPlacement target, float targetZoom)
+        {
+            var buildingRect = target.VisualGO.GetComponent<RectTransform>();
+            if (buildingRect == null) yield break;
+
+            Vector2 startPos = contentContainer.anchoredPosition;
+            float startZoom = _currentZoom;
+            float clampedZoom = Mathf.Clamp(targetZoom, ZoomMin, ZoomMax);
+            const float duration = 0.45f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Ease-out cubic for smooth deceleration
+                float ease = 1f - (1f - t) * (1f - t) * (1f - t);
+
+                float z = Mathf.Lerp(startZoom, clampedZoom, ease);
+                Vector2 fullCenter = -(buildingRect.anchoredPosition * z);
+                contentContainer.anchoredPosition = Vector2.Lerp(startPos, fullCenter, ease);
+                ApplyZoom(z, Vector2.zero);
+                _targetZoom = z;
+                yield return null;
+            }
+
+            ApplyZoom(clampedZoom, Vector2.zero);
+            _targetZoom = clampedZoom;
+            contentContainer.anchoredPosition = -(buildingRect.anchoredPosition * clampedZoom);
+
+            ShowBuildingFootprint(target);
+            StartCoroutine(BounceBuilding(target.VisualGO.transform));
+            _softCenterCoroutine = null;
         }
 
         /// <summary>P&C: Gently nudge viewport toward tapped building without zoom change.</summary>
@@ -8791,7 +8848,7 @@ namespace AshenThrone.Empire
                         string capturedId = entry.PlacedId;
                         var slotBtn = slotGO.AddComponent<Button>();
                         slotBtn.targetGraphic = slotBg;
-                        slotBtn.onClick.AddListener(() => CenterOnBuilding(capturedId));
+                        slotBtn.onClick.AddListener(() => ZoomToBuildingSmooth(capturedId));
 
                         // Timer text
                         int secs = Mathf.CeilToInt(entry.RemainingSeconds);

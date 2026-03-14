@@ -473,7 +473,7 @@ namespace AshenThrone.UI.Empire
         {
             var gridView = FindFirstObjectByType<CityGridView>();
             if (gridView != null)
-                gridView.CenterOnBuilding(placedId);
+                gridView.ZoomToBuildingSmooth(placedId);
         }
 
         private void OnCancelSlotPressed(string placedId)
