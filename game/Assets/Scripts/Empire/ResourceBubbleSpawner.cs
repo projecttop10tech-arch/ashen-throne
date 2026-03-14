@@ -16,8 +16,8 @@ namespace AshenThrone.Empire
         [SerializeField] private CityGridView cityGrid;
         [SerializeField] private RectTransform bubbleContainer;
 
-        public const float SpawnInterval = 20f;     // seconds between bubble spawns
-        private const int MaxBubblesPerBuilding = 1;  // keep it clean — one per building
+        public const float SpawnInterval = 12f;     // P&C: frequent spawns for active city feel
+        private const int MaxBubblesPerBuilding = 3;  // P&C: multiple bubbles accumulate per building
         private const long BaseCollectAmount = 50;    // base amount per bubble
 
         private float _spawnTimer;
