@@ -26,8 +26,10 @@ namespace AshenThrone.UI.Empire
         private Vector2Int _targetGridPos;
         private BuildingCategory _selectedCategory = BuildingCategory.Resource;
 
-        private static readonly Color TabActiveColor = new(0.78f, 0.62f, 0.22f, 1f);
-        private static readonly Color TabInactiveColor = new(0.25f, 0.20f, 0.30f, 0.8f);
+        private static readonly Color TabActiveColor = new(0.72f, 0.56f, 0.22f, 1f);
+        private static readonly Color TabActiveBorder = new(0.90f, 0.72f, 0.30f, 0.65f);
+        private static readonly Color TabInactiveColor = new(0.12f, 0.08f, 0.18f, 0.90f);
+        private static readonly Color TabInactiveBorder = new(0.35f, 0.28f, 0.18f, 0.35f);
         private static readonly Color EntryUnlocked = new(0.10f, 0.08f, 0.16f, 0.90f);
         private static readonly Color EntryLocked = new(0.06f, 0.04f, 0.10f, 0.70f);
         private static readonly Color GoldText = new(0.83f, 0.66f, 0.26f, 1f);
@@ -69,7 +71,7 @@ namespace AshenThrone.UI.Empire
 
             _catalogPopup.SetActive(true);
             if (_titleLabel != null)
-                _titleLabel.text = $"BUILD AT ({_targetGridPos.x}, {_targetGridPos.y})";
+                _titleLabel.text = "\u2726  BUILD  \u2726";
 
             PopulateTabs();
             PopulateList();
@@ -89,20 +91,40 @@ namespace AshenThrone.UI.Empire
                 Destroy(_tabContainer.GetChild(i).gameObject);
 
             var categories = new[] { BuildingCategory.Resource, BuildingCategory.Military, BuildingCategory.Research, BuildingCategory.HeroDistrict };
-            string[] labels = { "RESOURCE", "MILITARY", "RESEARCH", "HERO" };
+            string[] labels = { "\u25C8 RESOURCE", "\u2694 MILITARY", "\u2726 RESEARCH", "\u2605 HERO" };
 
             for (int idx = 0; idx < categories.Length; idx++)
             {
                 var cat = categories[idx];
                 var label = labels[idx];
+                bool active = cat == _selectedCategory;
 
                 var tabGO = new GameObject($"Tab_{cat}");
                 tabGO.transform.SetParent(_tabContainer, false);
                 var tabRect = tabGO.AddComponent<RectTransform>();
-                tabRect.sizeDelta = new Vector2(0, 30); // Height; width from layout
+                tabRect.sizeDelta = new Vector2(0, 32);
 
                 var tabImg = tabGO.AddComponent<Image>();
-                tabImg.color = cat == _selectedCategory ? TabActiveColor : TabInactiveColor;
+                tabImg.color = active ? TabActiveColor : TabInactiveColor;
+
+                // Gold border — brighter for active tab
+                var tabOutline = tabGO.AddComponent<Outline>();
+                tabOutline.effectColor = active ? TabActiveBorder : TabInactiveBorder;
+                tabOutline.effectDistance = new Vector2(1f, -1f);
+
+                // Glass highlight on active tab
+                if (active)
+                {
+                    var glassGO = new GameObject("Glass");
+                    glassGO.transform.SetParent(tabGO.transform, false);
+                    var glassRect = glassGO.AddComponent<RectTransform>();
+                    glassRect.anchorMin = new Vector2(0f, 0.50f);
+                    glassRect.anchorMax = Vector2.one;
+                    glassRect.offsetMin = Vector2.zero;
+                    glassRect.offsetMax = Vector2.zero;
+                    glassGO.AddComponent<Image>().color = new Color(1f, 0.90f, 0.55f, 0.12f);
+                    glassGO.GetComponent<Image>().raycastTarget = false;
+                }
 
                 var btn = tabGO.AddComponent<Button>();
                 btn.targetGraphic = tabImg;
@@ -119,11 +141,16 @@ namespace AshenThrone.UI.Empire
                 var text = textGO.AddComponent<Text>();
                 text.text = label;
                 text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                text.fontSize = 10;
+                text.fontSize = 11;
                 text.fontStyle = FontStyle.Bold;
                 text.alignment = TextAnchor.MiddleCenter;
-                text.color = cat == _selectedCategory ? Color.black : Color.white;
+                text.color = active ? new Color(0.12f, 0.08f, 0.04f, 1f) : new Color(0.70f, 0.65f, 0.58f, 0.85f);
                 text.raycastTarget = false;
+                var textShadow = textGO.AddComponent<Shadow>();
+                textShadow.effectColor = active
+                    ? new Color(0.90f, 0.72f, 0.30f, 0.25f)
+                    : new Color(0, 0, 0, 0.70f);
+                textShadow.effectDistance = new Vector2(0.3f, -0.3f);
             }
         }
 

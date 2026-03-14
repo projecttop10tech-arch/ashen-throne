@@ -207,18 +207,57 @@ namespace AshenThrone.UI.Empire
 
             var rect = btnGO.AddComponent<RectTransform>();
             rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(44, 44);
+            rect.sizeDelta = new Vector2(50, 50); // Larger for easier tapping
             rect.localScale = Vector3.zero; // Start invisible for animation
+
+            // Outer glow ring (radial gradient)
+            var glowGO = new GameObject("Glow");
+            glowGO.transform.SetParent(btnGO.transform, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.20f, -0.20f);
+            glowRect.anchorMax = new Vector2(1.20f, 1.20f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = enabled
+                ? new Color(iconColor.r, iconColor.g, iconColor.b, 0.20f)
+                : new Color(0.3f, 0.25f, 0.20f, 0.08f);
+            glowImg.raycastTarget = false;
+            var radialSpr = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (radialSpr == null)
+                radialSpr = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (radialSpr != null) glowImg.sprite = radialSpr;
 
             // Circular background
             var bg = btnGO.AddComponent<Image>();
             bg.color = enabled ? ButtonBg : new Color(0.06f, 0.04f, 0.08f, 0.75f);
             bg.raycastTarget = true;
 
-            // Gold border
+            // Double border: outer gold glow + inner gold border
+            var outerGlow = btnGO.AddComponent<Shadow>();
+            outerGlow.effectColor = enabled
+                ? new Color(iconColor.r * 0.8f, iconColor.g * 0.8f, iconColor.b * 0.6f, 0.25f)
+                : new Color(0, 0, 0, 0);
+            outerGlow.effectDistance = new Vector2(2f, -2f);
             var outline = btnGO.AddComponent<Outline>();
-            outline.effectColor = enabled ? ButtonBorder : new Color(0.4f, 0.35f, 0.25f, 0.5f);
-            outline.effectDistance = new Vector2(1.2f, -1.2f);
+            outline.effectColor = enabled ? ButtonBorder : new Color(0.4f, 0.35f, 0.25f, 0.4f);
+            outline.effectDistance = new Vector2(1.3f, -1.3f);
+
+            // Glass highlight (top half)
+            var glassGO = new GameObject("Glass");
+            glassGO.transform.SetParent(btnGO.transform, false);
+            var glassRect = glassGO.AddComponent<RectTransform>();
+            glassRect.anchorMin = new Vector2(0.08f, 0.50f);
+            glassRect.anchorMax = new Vector2(0.92f, 0.92f);
+            glassRect.offsetMin = Vector2.zero;
+            glassRect.offsetMax = Vector2.zero;
+            var glassImg = glassGO.AddComponent<Image>();
+            glassImg.color = enabled
+                ? new Color(iconColor.r * 0.5f + 0.5f, iconColor.g * 0.5f + 0.5f, iconColor.b * 0.5f + 0.5f, 0.10f)
+                : new Color(0.30f, 0.28f, 0.25f, 0.04f);
+            glassImg.raycastTarget = false;
 
             // Button component
             var btn = btnGO.AddComponent<Button>();
@@ -227,41 +266,47 @@ namespace AshenThrone.UI.Empire
             if (onClick != null)
                 btn.onClick.AddListener(() => onClick());
 
-            // Icon text
+            // Icon text — larger, with outline for clarity
             var iconGO = new GameObject("Icon");
             iconGO.transform.SetParent(btnGO.transform, false);
             var iconRect = iconGO.AddComponent<RectTransform>();
-            iconRect.anchorMin = new Vector2(0f, 0.25f);
-            iconRect.anchorMax = new Vector2(1f, 0.95f);
+            iconRect.anchorMin = new Vector2(0f, 0.22f);
+            iconRect.anchorMax = new Vector2(1f, 0.92f);
             iconRect.offsetMin = Vector2.zero;
             iconRect.offsetMax = Vector2.zero;
             var iconText = iconGO.AddComponent<Text>();
             iconText.text = icon;
             iconText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            iconText.fontSize = 16;
+            iconText.fontSize = 18;
             iconText.alignment = TextAnchor.MiddleCenter;
             iconText.color = enabled ? iconColor : LockedColor;
             iconText.raycastTarget = false;
+            var iconOutline = iconGO.AddComponent<Outline>();
+            iconOutline.effectColor = new Color(0, 0, 0, 0.70f);
+            iconOutline.effectDistance = new Vector2(0.8f, -0.8f);
             var iconShadow = iconGO.AddComponent<Shadow>();
-            iconShadow.effectColor = new Color(0, 0, 0, 0.8f);
+            iconShadow.effectColor = new Color(0, 0, 0, 0.90f);
             iconShadow.effectDistance = new Vector2(0.5f, -0.5f);
 
-            // Label text
+            // Label text — slightly larger
             var labelGO = new GameObject("Label");
             labelGO.transform.SetParent(btnGO.transform, false);
             var labelRect = labelGO.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0f, 0f);
-            labelRect.anchorMax = new Vector2(1f, 0.30f);
+            labelRect.anchorMin = new Vector2(-0.10f, -0.05f);
+            labelRect.anchorMax = new Vector2(1.10f, 0.25f);
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
             var labelText = labelGO.AddComponent<Text>();
             labelText.text = label;
             labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            labelText.fontSize = 7;
+            labelText.fontSize = 8;
             labelText.fontStyle = FontStyle.Bold;
             labelText.alignment = TextAnchor.MiddleCenter;
             labelText.color = enabled ? Color.white : LockedColor;
             labelText.raycastTarget = false;
+            var labelOutline = labelGO.AddComponent<Outline>();
+            labelOutline.effectColor = new Color(0, 0, 0, 0.80f);
+            labelOutline.effectDistance = new Vector2(0.5f, -0.5f);
 
             return btnGO;
         }

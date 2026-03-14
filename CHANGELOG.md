@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.26.0] — 2026-03-14 (Empire: Catalog Tabs & Quick Action Menu Polish)
+
+### CHANGED
+- **Build catalog tabs upgraded** — Icon labels per category (◈ RESOURCE, ⚔ MILITARY, ✦ RESEARCH, ★ HERO), gold borders, glass highlight on active tab, text shadow, improved color hierarchy.
+- **Quick action menu buttons upgraded** — Larger 50px buttons with radial gradient glow behind (color-matched per action), double border (outer glow + inner gold), glass highlight top-half, icon outline+shadow, wider label area with outline text for readability.
+- **Catalog title** — Changed to ornate "✦ BUILD ✦" matching popup header style.
+
+---
+
 ## [1.25.0] — 2026-03-14 (Empire: Premium Build Catalog & Entry Row Redesign)
 
 ### CHANGED
