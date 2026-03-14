@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.29.0] — 2026-03-14 (Empire: Build Queue HUD, Quick Upgrade Toast, Busy Indicator Polish)
+
+### CHANGED
+- **BuildQueueHUDIndicator upgraded to P&C quality** — Ornate triple-bordered gold-framed slots (glow→gold→inner), glass highlight, warm inner edge glow. Progress bars now have animated shimmer sweep + pulsing glow aura underneath. Timer text shows color warnings (normal→amber→urgent red pulse). Elastic spawn pop-in on all slots. Empty slots have decorative diamond pattern. Locked premium slot pulses with radial glow and animated "+" label. Header pill with ornate bg + gold border + hammer icon.
+- **QuickUpgradeHandler toast upgraded** — Slide-up entrance with elastic pop-in (0.7→1.12→1.0), triple border with color-matched glow, glass highlight, left accent glow strip, text with outline+shadow. Smooth slide-up fade-out exit instead of simple alpha fade.
+- **BuildingBusyIndicator upgraded** — Research progress bars now have triple gold border, animated shimmer sweep across fill, pulsing glow aura behind bar, pulsing/scaling activity icon with outline. Military badges upgraded with faction-colored triple border, animated radial glow rings (breathing alpha), glass highlight, separate icon + capacity text with outlines, per-badge random phase for organic feel.
+
+---
+
 ## [1.28.0] — 2026-03-14 (Empire: Resource Detail Popup, Notification Badges, Vault Overflow Polish)
 
 ### CHANGED
