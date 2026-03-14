@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.23.0] — 2026-03-13 (Empire: P&C City Density — Tighter Zoom, Taller Buildings)
+
+### CHANGED
+- **Default zoom increased** — City starts at 1.8x zoom (was 1.3x) for P&C-style tight view where the stronghold dominates the viewport. Buildings appear larger and city feels more packed/imposing.
+- **Building height ratio increased** — Building sprite height multiplier raised from 1.6x to 1.8x of footprint width. Buildings tower more imposingly above their isometric diamond, matching P&C's vertical emphasis.
+- **Center on stronghold** — `CenterOnStronghold()` now actually locates the stronghold placement and centers the viewport on it at the current zoom, instead of just resetting to (0,0).
+
+---
+
 ## [1.22.0] — 2026-03-13 (Empire: P&C Art Style + Upgrade Confirmation Dialog)
 
 ### ADDED

@@ -131,7 +131,7 @@ namespace AshenThrone.Empire
         private const float ZoomSpeed = 0.005f; // per pixel of pinch delta
         private const float MouseScrollZoomSpeed = 0.15f;
         private const float ZoomLerpSpeed = 8f; // P&C: smooth zoom interpolation
-        private const float DefaultZoom = 1.3f;
+        private const float DefaultZoom = 1.8f; // P&C: city starts zoomed in tight on stronghold
         private float _currentZoom = DefaultZoom;
         private float _targetZoom = DefaultZoom;
         private Vector2 _zoomPivotScreen;
@@ -353,6 +353,21 @@ namespace AshenThrone.Empire
         private void CenterOnStronghold()
         {
             if (scrollRect == null || contentContainer == null) return;
+            // P&C: Center viewport on the stronghold at default zoom
+            CityBuildingPlacement stronghold = null;
+            foreach (var p in _placements)
+            {
+                if (p.BuildingId == "stronghold") { stronghold = p; break; }
+            }
+            if (stronghold?.VisualGO != null)
+            {
+                var buildingRect = stronghold.VisualGO.GetComponent<RectTransform>();
+                if (buildingRect != null)
+                {
+                    contentContainer.anchoredPosition = -(buildingRect.anchoredPosition * _currentZoom);
+                    return;
+                }
+            }
             contentContainer.anchoredPosition = Vector2.zero;
         }
 
@@ -1168,7 +1183,7 @@ namespace AshenThrone.Empire
             // P&C buildings overlap slightly, city feels packed and imposing.
             float w = (size.x + size.y) * HalfW * 1.0f;
             // Taller bounding box — P&C buildings tower above their footprint
-            float h = w * 1.6f;
+            float h = w * 1.8f; // P&C: buildings tower imposingly above footprint
             return new Vector2(w, h);
         }
 
