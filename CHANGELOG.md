@@ -4,6 +4,19 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.22.0] — 2026-03-13 (Empire: P&C Art Style + Upgrade Confirmation Dialog)
+
+### ADDED
+- **Upgrade confirmation dialog** — New `UpgradeConfirmDialog.cs` shows P&C-style cost breakdown before starting a building upgrade. Displays resource costs (green/red for affordable/not), build time, bonus description, queue status, and confirm/cancel buttons. Quick action menu now routes through this dialog instead of calling StartUpgrade directly.
+- **UpgradeConfirmRequestedEvent** — New EventBus event published by quick action menu, consumed by confirmation dialog. Clean separation of concerns.
+
+### CHANGED
+- **All 63 building sprites regenerated** (21 types × 3 tiers) with warm P&C-style art. New `PC_BUILDING_STYLE` prompt uses warm golden/amber lighting, vibrant colors, and bright fire effects instead of the old dark gothic purple style (`DARK_FANTASY_STYLE`). Background removal applied to all sprites.
+- **Building tier descriptions updated** — Tier prompts now describe warm/bright progression (wooden→reinforced stone→grand masterwork) instead of dark gothic progression (purple runes→gothic→obsidian).
+- **generate-art.mjs updated** — Building generation now uses `PC_BUILDING_STYLE` with negative prompt for "dark, too dark, monochrome, dull, flat lighting". `negativeExtra` parameter added to `generateImage()` for per-category negative prompts.
+
+---
+
 ## [1.21.0] — 2026-03-13 (Empire: Building Visual Contrast — Outlines, Rim Light, Grid)
 
 ### ADDED

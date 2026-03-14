@@ -20,6 +20,7 @@ const MODEL = 'runware:100@1';
 const STYLE_PREFIX = 'dark fantasy game art, painterly digital illustration, rich colors, dramatic lighting, ';
 const EMPIRE_STYLE_PREFIX = 'mobile strategy game art, vibrant painterly digital illustration, bright saturated colors, warm golden daylight, colorful and inviting, ';
 const DARK_FANTASY_STYLE = 'dark fantasy mobile strategy game art, highly detailed painterly illustration, dramatic purple and amber lighting, deep shadows with arcane purple glows, mystical atmosphere, gothic medieval architecture, rich ornate textures, professional AAA mobile game quality, ';
+const PC_BUILDING_STYLE = 'mobile strategy game building art, highly detailed painterly illustration, warm golden and amber lighting, rich vibrant colors, dark fantasy medieval architecture with bright glowing windows and warm fire effects, ornate detailed textures, professional AAA mobile game quality, ';
 const STYLE_SUFFIX = ', high detail, professional game asset, transparent background where applicable';
 
 // -------------------------------------------------------------------
@@ -123,7 +124,7 @@ const EMPIRE_UI_ASSETS = [
 // API helpers
 // -------------------------------------------------------------------
 
-async function generateImage(prompt, width, height, { stylePrefix = STYLE_PREFIX } = {}) {
+async function generateImage(prompt, width, height, { stylePrefix = STYLE_PREFIX, negativeExtra = '' } = {}) {
     const taskUUID = randomUUID();
     const fullPrompt = stylePrefix + prompt + STYLE_SUFFIX;
 
@@ -131,11 +132,13 @@ async function generateImage(prompt, width, height, { stylePrefix = STYLE_PREFIX
     width = Math.round(width / 64) * 64;
     height = Math.round(height / 64) * 64;
 
+    const negPrompt = 'blurry, low quality, text, watermark, signature, ugly, deformed, amateur, pixelated' + (negativeExtra ? ', ' + negativeExtra : '');
+
     const body = [{
         taskType: 'imageInference',
         taskUUID,
         positivePrompt: fullPrompt,
-        negativePrompt: 'blurry, low quality, text, watermark, signature, ugly, deformed, amateur, pixelated',
+        negativePrompt: negPrompt,
         model: MODEL,
         width,
         height,
@@ -263,20 +266,20 @@ async function generateBuildings() {
     await ensureDir(dir);
 
     const tiers = [
-        { suffix: 't1', desc: 'rustic wooden with faint purple torchlight, basic dark stone construction, few glowing runes,' },
-        { suffix: 't2', desc: 'reinforced dark stone with pulsing arcane purple runes, tattered banners, ornate gothic details, glowing crystal accents,' },
-        { suffix: 't3', desc: 'grand towering gothic masterwork, intense magical purple auras, gold and obsidian accents, arcane conduits, masterwork dark architecture,' },
+        { suffix: 't1', desc: 'basic stone construction with wooden elements, modest size, a few lit windows and small torches,' },
+        { suffix: 't2', desc: 'reinforced stone with iron fittings, taller towers, glowing runic accents, flying banners, warm amber window glow,' },
+        { suffix: 't3', desc: 'grand towering masterwork, multiple spires with golden tips, intense magical auras, rich gold and stone accents, blazing beacon fires, ornate banners and flags, magnificent scale,' },
     ];
 
     for (const building of BUILDINGS) {
         console.log(`\n  Building: ${building.id}`);
         for (const tier of tiers) {
             try {
-                // Generate with dark fantasy purple style
+                // Generate with P&C-style warm vibrant art
                 const genUrl = await generateImage(
-                    `${tier.desc} ${building.prompt}, dark fantasy gothic architecture, isometric game building sprite, top-down 3/4 view, deep purple and amber magical lighting, dark moody atmosphere, glowing arcane details, highly detailed textures, isolated single building on plain white background`,
+                    `${tier.desc} ${building.prompt}, isometric game building sprite, top-down 3/4 view, warm golden lighting with some magical purple accents, isolated single building on plain white background`,
                     768, 768,
-                    { stylePrefix: DARK_FANTASY_STYLE }
+                    { stylePrefix: PC_BUILDING_STYLE, negativeExtra: 'dark, too dark, monochrome, dull, flat lighting' }
                 );
                 // Remove background for clean transparent sprite
                 console.log(`    removing background...`);

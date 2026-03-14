@@ -321,16 +321,11 @@ namespace AshenThrone.UI.Empire
         private void OnUpgradePressed()
         {
             DismissMenu();
-            // Try direct upgrade — publish tap event so info popup can handle
-            if (_buildingManager != null && _activeInstanceId != null)
+            // P&C: Show upgrade confirmation dialog with cost breakdown
+            if (_activeInstanceId != null)
             {
-                // Quick upgrade: start immediately if affordable
-                bool started = _buildingManager.StartUpgrade(_activeInstanceId);
-                if (!started)
-                {
-                    // Can't afford or other issue — open info popup for details
-                    OpenInfoPopup();
-                }
+                EventBus.Publish(new UpgradeConfirmRequestedEvent(
+                    _activeInstanceId, _activeBuildingId, _activeTier));
             }
         }
 

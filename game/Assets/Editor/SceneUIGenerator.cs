@@ -2492,6 +2492,7 @@ namespace AshenThrone.Editor
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildCatalogController>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.CityPowerHUD>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.SpeedupConfirmDialog>();
+            canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeConfirmDialog>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.ResourceProductionSummary>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.UpgradeRecommendationBanner>();
             canvasGo.AddComponent<AshenThrone.UI.Empire.BuildingNotificationBadge>();
