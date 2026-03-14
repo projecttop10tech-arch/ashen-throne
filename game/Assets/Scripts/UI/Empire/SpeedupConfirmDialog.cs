@@ -131,6 +131,40 @@ namespace AshenThrone.UI.Empire
             _messageText.raycastTarget = false;
             _messageText.supportRichText = true;
 
+            // P&C: Speedup item shortcuts (5m, 15m, 1h, 3h)
+            float[] itemMinutes = { 5, 15, 60, 180 };
+            string[] itemLabels = { "5m", "15m", "1h", "3h" };
+            float itemBtnWidth = 0.22f;
+            float itemStartX = 0.03f;
+            for (int idx = 0; idx < itemMinutes.Length; idx++)
+            {
+                float mins = itemMinutes[idx];
+                string label = itemLabels[idx];
+                bool hasItem = mins <= 60; // Simulate: player has 5m, 15m, 1h items
+                var itemGO = new GameObject($"SpeedItem_{label}");
+                itemGO.transform.SetParent(panel.transform, false);
+                var itemRect = itemGO.AddComponent<RectTransform>();
+                float xStart = itemStartX + idx * (itemBtnWidth + 0.015f);
+                itemRect.anchorMin = new Vector2(xStart, 0.48f);
+                itemRect.anchorMax = new Vector2(xStart + itemBtnWidth, 0.62f);
+                itemRect.offsetMin = Vector2.zero;
+                itemRect.offsetMax = Vector2.zero;
+                var itemImg = itemGO.AddComponent<Image>();
+                itemImg.color = hasItem ? new Color(0.18f, 0.45f, 0.22f, 0.90f) : new Color(0.20f, 0.18f, 0.22f, 0.60f);
+                var itemOutline = itemGO.AddComponent<Outline>();
+                itemOutline.effectColor = hasItem ? new Color(0.30f, 0.70f, 0.35f, 0.7f) : new Color(0.30f, 0.28f, 0.32f, 0.4f);
+                itemOutline.effectDistance = new Vector2(0.8f, -0.8f);
+                var itemBtn = itemGO.AddComponent<Button>();
+                itemBtn.targetGraphic = itemImg;
+                itemBtn.interactable = hasItem;
+                float capturedMins = mins;
+                itemBtn.onClick.AddListener(() => OnUseSpeedupItem(capturedMins));
+                AddButtonLabel(itemGO, $"\u23F1{label}");
+                var itemLabelText = itemGO.GetComponentInChildren<Text>();
+                if (itemLabelText != null)
+                    itemLabelText.color = hasItem ? Color.white : new Color(0.50f, 0.48f, 0.45f, 0.7f);
+            }
+
             // Gem cost display
             var costGO = new GameObject("Cost");
             costGO.transform.SetParent(panel.transform, false);
@@ -180,6 +214,16 @@ namespace AshenThrone.UI.Empire
             cancelBtn.targetGraphic = cancelImg;
             cancelBtn.onClick.AddListener(CloseDialog);
             AddButtonLabel(cancelGO, "CANCEL");
+        }
+
+        /// <summary>P&C: Use a speedup item (5m, 15m, 1h, 3h) to reduce build time.</summary>
+        private void OnUseSpeedupItem(float minutes)
+        {
+            if (_buildingManager == null || string.IsNullOrEmpty(_pendingPlacedId)) return;
+            int seconds = Mathf.CeilToInt(minutes * 60f);
+            _buildingManager.ApplySpeedup(_pendingPlacedId, seconds);
+            Debug.Log($"[SpeedupConfirm] Used {minutes}m speedup item on {_pendingPlacedId}.");
+            CloseDialog();
         }
 
         private void OnConfirm()

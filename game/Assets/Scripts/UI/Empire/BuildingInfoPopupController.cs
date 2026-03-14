@@ -50,6 +50,13 @@ namespace AshenThrone.UI.Empire
         // Gems per minute of speedup (P&C-style scaling)
         private const int GemsPerMinute = 10;
 
+        // P&C: Navigation arrows to cycle between same-type buildings
+        private Button _prevBtn;
+        private Button _nextBtn;
+        private Text _navCountLabel;
+        private List<(string instanceId, int tier)> _sameTypeList = new();
+        private int _sameTypeIndex;
+
         private EventSubscription _tapSub;
         private EventSubscription _infoRequestSub;
         private EventSubscription _completedSub;
@@ -166,9 +173,80 @@ namespace AshenThrone.UI.Empire
             _currentInstanceId = instanceId;
             _currentTier = tier;
 
+            // P&C: Build same-type list for arrow navigation
+            BuildSameTypeList(buildingId, instanceId);
+
             var tapEvt = new BuildingTappedEvent(buildingId, instanceId, tier, default);
             PopulatePopup(tapEvt);
             _popup.SetActive(true);
+        }
+
+        /// <summary>P&C: Build a list of all instances of the same building type for cycling.</summary>
+        private void BuildSameTypeList(string buildingId, string currentInstanceId)
+        {
+            _sameTypeList.Clear();
+            _sameTypeIndex = 0;
+
+            if (_buildingManager == null) return;
+
+            foreach (var kvp in _buildingManager.PlacedBuildings)
+            {
+                if (kvp.Value.Data != null && kvp.Value.Data.buildingId == buildingId)
+                    _sameTypeList.Add((kvp.Key, kvp.Value.CurrentTier));
+            }
+
+            // Find current index
+            for (int i = 0; i < _sameTypeList.Count; i++)
+            {
+                if (_sameTypeList[i].instanceId == currentInstanceId)
+                {
+                    _sameTypeIndex = i;
+                    break;
+                }
+            }
+
+            // Show/hide navigation arrows
+            bool showNav = _sameTypeList.Count > 1;
+            if (_prevBtn != null) _prevBtn.gameObject.SetActive(showNav);
+            if (_nextBtn != null) _nextBtn.gameObject.SetActive(showNav);
+            if (_navCountLabel != null)
+            {
+                _navCountLabel.gameObject.SetActive(showNav);
+                if (showNav)
+                    _navCountLabel.text = $"{_sameTypeIndex + 1}/{_sameTypeList.Count}";
+            }
+        }
+
+        private void OnPrevBuilding()
+        {
+            if (_sameTypeList.Count < 2) return;
+            _sameTypeIndex = (_sameTypeIndex - 1 + _sameTypeList.Count) % _sameTypeList.Count;
+            NavigateToBuilding();
+        }
+
+        private void OnNextBuilding()
+        {
+            if (_sameTypeList.Count < 2) return;
+            _sameTypeIndex = (_sameTypeIndex + 1) % _sameTypeList.Count;
+            NavigateToBuilding();
+        }
+
+        private void NavigateToBuilding()
+        {
+            var (instanceId, tier) = _sameTypeList[_sameTypeIndex];
+            _currentInstanceId = instanceId;
+            _currentTier = tier;
+
+            if (_navCountLabel != null)
+                _navCountLabel.text = $"{_sameTypeIndex + 1}/{_sameTypeList.Count}";
+
+            var evt = new BuildingTappedEvent(_currentBuildingId, instanceId, tier, default);
+            PopulatePopup(evt);
+
+            // P&C: Center camera on the new building
+            var cityGrid = Object.FindFirstObjectByType<CityGridView>();
+            if (cityGrid != null)
+                cityGrid.CenterOnBuilding(instanceId);
         }
 
         private void OnUpgradeCompleted(BuildingUpgradeCompletedEvent evt)
@@ -902,6 +980,85 @@ namespace AshenThrone.UI.Empire
                 if (overlayBtn != null)
                     overlayBtn.onClick.AddListener(ClosePopup);
             }
+
+            // P&C: Create navigation arrows for same-type building cycling
+            CreateNavigationArrows(popupTransform);
+        }
+
+        /// <summary>P&C: Create left/right arrow buttons for cycling between same-type buildings.</summary>
+        private void CreateNavigationArrows(Transform popupRoot)
+        {
+            var frame = FindDeepChild(popupRoot, "Frame");
+            if (frame == null) return;
+
+            // Left arrow (< previous)
+            var prevGO = CreateNavArrowButton(frame, "PrevBuildingBtn", "\u25C0", new Vector2(-0.02f, 0.44f), new Vector2(0.06f, 0.56f));
+            _prevBtn = prevGO.GetComponent<Button>();
+            if (_prevBtn != null) _prevBtn.onClick.AddListener(OnPrevBuilding);
+            prevGO.SetActive(false);
+
+            // Right arrow (> next)
+            var nextGO = CreateNavArrowButton(frame, "NextBuildingBtn", "\u25B6", new Vector2(0.94f, 0.44f), new Vector2(1.02f, 0.56f));
+            _nextBtn = nextGO.GetComponent<Button>();
+            if (_nextBtn != null) _nextBtn.onClick.AddListener(OnNextBuilding);
+            nextGO.SetActive(false);
+
+            // Counter label ("2/5") at top-right of header
+            var counterGO = new GameObject("NavCount");
+            counterGO.transform.SetParent(frame, false);
+            var counterRect = counterGO.AddComponent<RectTransform>();
+            counterRect.anchorMin = new Vector2(0.75f, 0.90f);
+            counterRect.anchorMax = new Vector2(0.98f, 0.98f);
+            counterRect.offsetMin = Vector2.zero;
+            counterRect.offsetMax = Vector2.zero;
+            _navCountLabel = counterGO.AddComponent<Text>();
+            _navCountLabel.text = "1/1";
+            _navCountLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _navCountLabel.fontSize = 11;
+            _navCountLabel.fontStyle = FontStyle.Bold;
+            _navCountLabel.alignment = TextAnchor.MiddleRight;
+            _navCountLabel.color = new Color(0.70f, 0.65f, 0.55f, 0.9f);
+            _navCountLabel.raycastTarget = false;
+            counterGO.SetActive(false);
+        }
+
+        private static GameObject CreateNavArrowButton(Transform parent, string name, string symbol, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.05f, 0.14f, 0.85f);
+            bg.raycastTarget = true;
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.7f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = bg;
+
+            var textGO = new GameObject("Label");
+            textGO.transform.SetParent(go.transform, false);
+            var textRect = textGO.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.text = symbol;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 14;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.83f, 0.66f, 0.26f, 1f);
+            text.raycastTarget = false;
+
+            return go;
         }
 
         private static void WireButton(Transform parent, string name, ref Button btn, UnityEngine.Events.UnityAction action)

@@ -4,6 +4,14 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.17.0] — 2026-03-13 (Empire: P&C Interaction Polish — Building Cycling, Speedup Items)
+
+### ADDED
+- **Same-type building cycling** — Info popup now shows ◀/▶ arrows and "2/5" counter when viewing buildings with multiple instances (e.g., grain farms). Arrows cycle between instances and center camera on each. Matches P&C's swipe-between-buildings pattern.
+- **Speedup item shortcuts** — SpeedupConfirmDialog now shows 5m/15m/1h/3h speedup item buttons above the gem cost. One-tap to apply partial speedup without spending gems. Matches P&C's item-first speedup flow.
+
+---
+
 ## [1.16.0] — 2026-03-13 (Empire: Building Scale, Brightness, and Glow Overhaul)
 
 ### CHANGED
