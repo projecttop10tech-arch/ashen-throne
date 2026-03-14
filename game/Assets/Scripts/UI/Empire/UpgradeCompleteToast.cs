@@ -16,11 +16,12 @@ namespace AshenThrone.UI.Empire
         private EventSubscription _completedSub;
         private BuildingManager _buildingManager;
 
-        private static readonly Color ToastBg = new(0.06f, 0.04f, 0.10f, 0.92f);
-        private static readonly Color ToastBorder = new(0.83f, 0.66f, 0.26f, 0.80f);
-        private static readonly Color TextGold = new(0.83f, 0.66f, 0.26f, 1f);
-        private static readonly Color StarColor = new(1f, 0.90f, 0.40f, 1f);
-        private static readonly Color LevelUpGlow = new(0.90f, 0.75f, 0.20f, 0.40f);
+        private static readonly Color ToastBg = new(0.05f, 0.03f, 0.09f, 0.94f);
+        private static readonly Color ToastBorderGold = new(0.85f, 0.68f, 0.26f, 0.85f);
+        private static readonly Color ToastBorderGlow = new(0.92f, 0.75f, 0.28f, 0.30f);
+        private static readonly Color TextGold = new(0.90f, 0.72f, 0.28f, 1f);
+        private static readonly Color StarColor = new(1f, 0.92f, 0.40f, 1f);
+        private static readonly Color LevelUpGlow = new(0.92f, 0.78f, 0.22f, 0.35f);
 
         private void Awake()
         {
@@ -66,27 +67,59 @@ namespace AshenThrone.UI.Empire
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            // Glow behind toast
+            // Radial glow behind toast
             var glowGO = new GameObject("Glow");
             glowGO.transform.SetParent(toast.transform, false);
             var glowRect = glowGO.AddComponent<RectTransform>();
-            glowRect.anchorMin = new Vector2(-0.05f, -0.4f);
-            glowRect.anchorMax = new Vector2(1.05f, 1.4f);
+            glowRect.anchorMin = new Vector2(-0.08f, -0.6f);
+            glowRect.anchorMax = new Vector2(1.08f, 1.6f);
             glowRect.offsetMin = Vector2.zero;
             glowRect.offsetMax = Vector2.zero;
             var glowImg = glowGO.AddComponent<Image>();
             glowImg.color = LevelUpGlow;
             glowImg.raycastTarget = false;
+            var radial = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            if (radial != null) { glowImg.sprite = radial; glowImg.type = Image.Type.Simple; }
 
             // Background
             var bg = toast.AddComponent<Image>();
             bg.color = ToastBg;
             bg.raycastTarget = false;
 
-            // Gold border
-            var outline = toast.AddComponent<Outline>();
-            outline.effectColor = ToastBorder;
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            // Triple border: outer glow → gold → inner
+            var glowBorder = new GameObject("GlowBorder");
+            glowBorder.transform.SetParent(toast.transform, false);
+            var gbRect = glowBorder.AddComponent<RectTransform>();
+            gbRect.anchorMin = Vector2.zero; gbRect.anchorMax = Vector2.one;
+            gbRect.offsetMin = Vector2.zero; gbRect.offsetMax = Vector2.zero;
+            var gbImg = glowBorder.AddComponent<Image>();
+            gbImg.color = new Color(0, 0, 0, 0); gbImg.raycastTarget = false;
+            var gbOut = glowBorder.AddComponent<Outline>();
+            gbOut.effectColor = ToastBorderGlow;
+            gbOut.effectDistance = new Vector2(2.5f, -2.5f);
+
+            var goldBorder = new GameObject("GoldBorder");
+            goldBorder.transform.SetParent(toast.transform, false);
+            var goldr = goldBorder.AddComponent<RectTransform>();
+            goldr.anchorMin = Vector2.zero; goldr.anchorMax = Vector2.one;
+            goldr.offsetMin = Vector2.zero; goldr.offsetMax = Vector2.zero;
+            var goldi = goldBorder.AddComponent<Image>();
+            goldi.color = new Color(0, 0, 0, 0); goldi.raycastTarget = false;
+            var goldo = goldBorder.AddComponent<Outline>();
+            goldo.effectColor = ToastBorderGold;
+            goldo.effectDistance = new Vector2(1.2f, -1.2f);
+
+            // Glass highlight
+            var glass = new GameObject("Glass");
+            glass.transform.SetParent(toast.transform, false);
+            var glassRect = glass.AddComponent<RectTransform>();
+            glassRect.anchorMin = new Vector2(0f, 0.45f);
+            glassRect.anchorMax = Vector2.one;
+            glassRect.offsetMin = Vector2.zero;
+            glassRect.offsetMax = Vector2.zero;
+            var glassImg = glass.AddComponent<Image>();
+            glassImg.color = new Color(1f, 1f, 1f, 0.06f);
+            glassImg.raycastTarget = false;
 
             // Building icon on left
             var iconGO = new GameObject("Icon");
@@ -155,7 +188,7 @@ namespace AshenThrone.UI.Empire
                 starGO.transform.localRotation = Quaternion.Euler(0, 0, angle);
             }
 
-            // "LEVEL UP!" header
+            // "LEVEL UP!" header with outline
             var headerGO = new GameObject("Header");
             headerGO.transform.SetParent(toast.transform, false);
             var headerRect = headerGO.AddComponent<RectTransform>();
@@ -164,18 +197,21 @@ namespace AshenThrone.UI.Empire
             headerRect.offsetMin = Vector2.zero;
             headerRect.offsetMax = Vector2.zero;
             var headerText = headerGO.AddComponent<Text>();
-            headerText.text = $"LEVEL UP!  {buildingName}";
+            headerText.text = $"\u2726 LEVEL UP!  {buildingName}";
             headerText.fontSize = 13;
             headerText.fontStyle = FontStyle.Bold;
             headerText.alignment = TextAnchor.MiddleLeft;
             headerText.color = Color.white;
             headerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             headerText.raycastTarget = false;
+            var headerOutline = headerGO.AddComponent<Outline>();
+            headerOutline.effectColor = new Color(0, 0, 0, 0.9f);
+            headerOutline.effectDistance = new Vector2(0.8f, -0.8f);
             var headerShadow = headerGO.AddComponent<Shadow>();
-            headerShadow.effectColor = new Color(0, 0, 0, 0.85f);
-            headerShadow.effectDistance = new Vector2(1f, -1f);
+            headerShadow.effectColor = new Color(0, 0, 0, 0.5f);
+            headerShadow.effectDistance = new Vector2(0.4f, -0.8f);
 
-            // Sub-line: "Now Level X"
+            // Sub-line: "Now Level X" with outline
             var subGO = new GameObject("SubText");
             subGO.transform.SetParent(toast.transform, false);
             var subRect = subGO.AddComponent<RectTransform>();
@@ -184,12 +220,15 @@ namespace AshenThrone.UI.Empire
             subRect.offsetMin = Vector2.zero;
             subRect.offsetMax = Vector2.zero;
             var subText = subGO.AddComponent<Text>();
-            subText.text = $"Now Level {level}  —  New abilities unlocked!";
+            subText.text = $"Now Level {level}  \u2014  New abilities unlocked!";
             subText.fontSize = 10;
             subText.alignment = TextAnchor.MiddleLeft;
-            subText.color = new Color(0.70f, 0.65f, 0.58f, 0.9f);
+            subText.color = new Color(0.72f, 0.68f, 0.60f, 0.95f);
             subText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             subText.raycastTarget = false;
+            var subOutline = subGO.AddComponent<Outline>();
+            subOutline.effectColor = new Color(0, 0, 0, 0.7f);
+            subOutline.effectDistance = new Vector2(0.5f, -0.5f);
 
             var cg = toast.AddComponent<CanvasGroup>();
             StartCoroutine(AnimateToast(toast, rect, cg));
@@ -229,26 +268,59 @@ namespace AshenThrone.UI.Empire
             cg.alpha = 1f;
             toast.transform.localScale = Vector3.one;
 
-            // Star burst shimmer — pulse stars for a moment
-            float shimmerTime = 0.6f;
+            // Star burst shimmer — rapid shimmer + scale burst + glow pulse
+            float shimmerTime = 0.8f;
             elapsed = 0f;
             var stars = new System.Collections.Generic.List<Image>();
             foreach (Transform child in toast.transform)
                 if (child.name.StartsWith("Star_"))
                     stars.Add(child.GetComponent<Image>());
+
+            // Also pulse the background glow
+            var glowTransform = toast.transform.Find("Glow");
+            Image backgroundGlow = glowTransform != null ? glowTransform.GetComponent<Image>() : null;
+
             while (elapsed < shimmerTime)
             {
                 elapsed += Time.deltaTime;
-                float pulse = 0.5f + 0.5f * Mathf.Sin(elapsed * 12f);
-                foreach (var star in stars)
-                    if (star != null)
-                        star.color = new Color(StarColor.r, StarColor.g, StarColor.b, pulse);
+                float fastPulse = 0.5f + 0.5f * Mathf.Sin(elapsed * 14f);
+                float burstScale = elapsed < 0.3f
+                    ? Mathf.Lerp(0.5f, 1.4f, elapsed / 0.3f)
+                    : Mathf.Lerp(1.4f, 1f, (elapsed - 0.3f) / 0.5f);
+
+                for (int i = 0; i < stars.Count; i++)
+                {
+                    if (stars[i] == null) continue;
+                    // Stagger each star's shimmer
+                    float stagger = Mathf.Sin(elapsed * 14f + i * 1.5f) * 0.5f + 0.5f;
+                    stars[i].color = new Color(StarColor.r, StarColor.g, StarColor.b, stagger);
+                    stars[i].transform.localScale = Vector3.one * burstScale;
+                }
+
+                // Glow pulse during fanfare
+                if (backgroundGlow != null)
+                    backgroundGlow.color = new Color(LevelUpGlow.r, LevelUpGlow.g, LevelUpGlow.b,
+                        LevelUpGlow.a + 0.15f * fastPulse);
+
                 yield return null;
             }
-            // Fade stars out
+            // Fade stars out with scale shrink
+            float fadeStarTime = 0.3f;
+            elapsed = 0f;
+            while (elapsed < fadeStarTime)
+            {
+                elapsed += Time.deltaTime;
+                float t2 = elapsed / fadeStarTime;
+                foreach (var star in stars)
+                {
+                    if (star == null) continue;
+                    star.color = new Color(StarColor.r, StarColor.g, StarColor.b, 1f - t2);
+                    star.transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.3f, t2);
+                }
+                yield return null;
+            }
             foreach (var star in stars)
-                if (star != null)
-                    star.color = new Color(StarColor.r, StarColor.g, StarColor.b, 0f);
+                if (star != null) star.color = new Color(StarColor.r, StarColor.g, StarColor.b, 0f);
 
             // Hold visible
             yield return new WaitForSeconds(2.0f);

@@ -4,6 +4,15 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.30.0] — 2026-03-14 (Empire: Recommendation Banner, Offline Popup, Upgrade Toast Polish)
+
+### CHANGED
+- **UpgradeRecommendationBanner upgraded to P&C quality** — Triple border (glow→gold→inner), glass highlight, warm inner glow on left edge, pulsing arrow with scale animation, ornate GO button with triple border + glass + gold edge + scale pulse. Text with outline+shadow.
+- **OfflineEarningsPopup upgraded to P&C quality** — Ornate triple-bordered gold frame with corner diamond accents, glass highlight, warm bottom glow, gold separator under title, decorative title. Resource rows with tinted border + left accent strip. Ornate collect button with triple border + glass. Elastic pop-in animation (0→1.1→1.0 over 0.35s).
+- **UpgradeCompleteToast upgraded** — Triple border (glow→gold→inner) instead of single outline, glass highlight, radial gradient glow behind toast. Text with outlines. Enhanced star burst fanfare: staggered shimmer per star, scale burst (0.5→1.4→1.0), glow pulse during fanfare, smooth star fade-out with scale shrink.
+
+---
+
 ## [1.29.0] — 2026-03-14 (Empire: Build Queue HUD, Quick Upgrade Toast, Busy Indicator Polish)
 
 ### CHANGED
