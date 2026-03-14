@@ -4,6 +4,17 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.32.0] — 2026-03-14 (Empire: Speedup Dialog, Production Summary, Toast, Toggle, Badge Polish)
+
+### CHANGED
+- **SpeedupConfirmDialog upgraded to P&C quality** — Full rewrite with triple border (outer glow→gold→purple inner), glass highlight, corner diamond accents, ornate header strip with gold separator, warm purple bottom glow. Ornate item shortcut buttons (5m/15m/1h/3h) and confirm/cancel buttons with triple border + glass. All text with outline+shadow. Elastic pop-in animation.
+- **ResourceProductionSummary upgraded to P&C quality** — Triple border (outer glow→gold→inner), glass highlight, corner diamond accents, ornate header strip with gold separator, ornate close button. All text upgraded with shadow. Added CreateOrnateText helper for header labels.
+- **ResourceFlyToHUD toast upgraded** — Collection toast now has triple border (outer glow→gold→inner), glass highlight. Text upgraded with both outline+shadow for readability.
+- **AutoUpgradeToggle upgraded** — Double border (outer glow→gold), glass highlight on toggle button. Label text with outline for readability.
+- **BuildingNotificationBadge text upgraded** — Symbol text now has Outline in addition to existing Shadow for full P&C text quality.
+
+---
+
 ## [1.31.0] — 2026-03-14 (Empire: Demolish Dialog & Info Popup Nav Arrow Polish)
 
 ### CHANGED

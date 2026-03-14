@@ -233,8 +233,10 @@ namespace AshenThrone.UI.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
+            textGO.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.90f);
+            textGO.GetComponent<Outline>().effectDistance = new Vector2(0.5f, -0.5f);
             var textShadow = textGO.AddComponent<Shadow>();
-            textShadow.effectColor = new Color(0, 0, 0, 0.85f);
+            textShadow.effectColor = new Color(0, 0, 0, 0.70f);
             textShadow.effectDistance = new Vector2(0.6f, -0.6f);
 
             // P&C: Start small for spawn pop

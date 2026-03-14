@@ -346,12 +346,31 @@ namespace AshenThrone.UI.Empire
             rect.offsetMax = Vector2.zero;
 
             var bg = toastGO.AddComponent<Image>();
-            bg.color = new Color(0.06f, 0.04f, 0.10f, 0.85f);
+            bg.color = new Color(0.06f, 0.04f, 0.10f, 0.90f);
             bg.raycastTarget = false;
 
-            var outline = toastGO.AddComponent<Outline>();
-            outline.effectColor = new Color(0.78f, 0.62f, 0.22f, 0.6f);
-            outline.effectDistance = new Vector2(1f, -1f);
+            // Triple border: outer glow → gold → inner
+            var outerGlow = toastGO.AddComponent<Outline>();
+            outerGlow.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.22f);
+            outerGlow.effectDistance = new Vector2(2f, -2f);
+            var goldBorderGO = new GameObject("GoldBorder");
+            goldBorderGO.transform.SetParent(toastGO.transform, false);
+            var gbRect = goldBorderGO.AddComponent<RectTransform>();
+            gbRect.anchorMin = Vector2.zero; gbRect.anchorMax = Vector2.one;
+            gbRect.offsetMin = Vector2.zero; gbRect.offsetMax = Vector2.zero;
+            goldBorderGO.AddComponent<Image>().color = new Color(0, 0, 0, 0);
+            goldBorderGO.GetComponent<Image>().raycastTarget = false;
+            goldBorderGO.AddComponent<Outline>().effectColor = new Color(0.78f, 0.62f, 0.22f, 0.60f);
+            goldBorderGO.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
+
+            // Glass highlight
+            var glassGO = new GameObject("Glass");
+            glassGO.transform.SetParent(toastGO.transform, false);
+            var glRect = glassGO.AddComponent<RectTransform>();
+            glRect.anchorMin = new Vector2(0f, 0.45f); glRect.anchorMax = Vector2.one;
+            glRect.offsetMin = Vector2.zero; glRect.offsetMax = Vector2.zero;
+            glassGO.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.05f);
+            glassGO.GetComponent<Image>().raycastTarget = false;
 
             var textGO = new GameObject("Text");
             textGO.transform.SetParent(toastGO.transform, false);
@@ -370,9 +389,11 @@ namespace AshenThrone.UI.Empire
             text.raycastTarget = false;
             text.supportRichText = true;
 
+            textGO.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.80f);
+            textGO.GetComponent<Outline>().effectDistance = new Vector2(0.6f, -0.6f);
             var shadow = textGO.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0, 0, 0, 0.8f);
-            shadow.effectDistance = new Vector2(0.5f, -0.5f);
+            shadow.effectColor = new Color(0, 0, 0, 0.70f);
+            shadow.effectDistance = new Vector2(0.4f, -0.6f);
 
             // Auto-destroy after 2 seconds with fade
             var cg = toastGO.AddComponent<CanvasGroup>();

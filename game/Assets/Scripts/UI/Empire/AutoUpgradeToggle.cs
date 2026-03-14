@@ -84,9 +84,22 @@ namespace AshenThrone.UI.Empire
             bg.color = isEnabled ? EnabledColor : DisabledColor;
             bg.raycastTarget = true;
 
-            var outline = btnGO.AddComponent<Outline>();
-            outline.effectColor = GoldBorder;
-            outline.effectDistance = new Vector2(0.5f, -0.5f);
+            // Double border: outer glow → gold
+            var outerGlow = btnGO.AddComponent<Outline>();
+            outerGlow.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.20f);
+            outerGlow.effectDistance = new Vector2(1.2f, -1.2f);
+            var goldOutline = btnGO.AddComponent<Shadow>();
+            goldOutline.effectColor = GoldBorder;
+            goldOutline.effectDistance = new Vector2(0.5f, -0.5f);
+
+            // Glass highlight
+            var glass = new GameObject("Glass");
+            glass.transform.SetParent(btnGO.transform, false);
+            var glRect = glass.AddComponent<RectTransform>();
+            glRect.anchorMin = new Vector2(0f, 0.45f); glRect.anchorMax = Vector2.one;
+            glRect.offsetMin = Vector2.zero; glRect.offsetMax = Vector2.zero;
+            glass.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.08f);
+            glass.GetComponent<Image>().raycastTarget = false;
 
             var btn = btnGO.AddComponent<Button>();
             btn.targetGraphic = bg;
@@ -108,6 +121,8 @@ namespace AshenThrone.UI.Empire
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
+            labelGO.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.80f);
+            labelGO.GetComponent<Outline>().effectDistance = new Vector2(0.4f, -0.4f);
 
             _toggleButtons[placedId] = btnGO;
         }

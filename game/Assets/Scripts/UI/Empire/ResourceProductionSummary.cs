@@ -133,26 +133,75 @@ namespace AshenThrone.UI.Empire
             panelRect.offsetMax = Vector2.zero;
             var panelImg = panel.AddComponent<Image>();
             panelImg.color = PopupBg;
-            var panelOutline = panel.AddComponent<Outline>();
-            panelOutline.effectColor = PopupBorder;
-            panelOutline.effectDistance = new Vector2(2f, -2f);
 
-            // Title
-            CreateText(panel.transform, "Title", "PRODUCTION SUMMARY", 15, FontStyle.Bold,
-                HeaderColor, new Vector2(0.05f, 0.88f), new Vector2(0.95f, 0.98f));
+            // Triple border: outer glow → gold → inner
+            var outerGlow = panel.AddComponent<Outline>();
+            outerGlow.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.25f);
+            outerGlow.effectDistance = new Vector2(3f, -3f);
+            AddDecoLayer(panel.transform, PopupBorder, new Vector2(1.5f, -1.5f));
+            AddDecoLayer(panel.transform, new Color(0.50f, 0.40f, 0.20f, 0.30f), new Vector2(0.7f, -0.7f));
 
-            // Close btn
+            // Glass highlight (top half)
+            var glass = new GameObject("Glass");
+            glass.transform.SetParent(panel.transform, false);
+            var glRect = glass.AddComponent<RectTransform>();
+            glRect.anchorMin = new Vector2(0f, 0.48f); glRect.anchorMax = Vector2.one;
+            glRect.offsetMin = Vector2.zero; glRect.offsetMax = Vector2.zero;
+            glass.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.04f);
+            glass.GetComponent<Image>().raycastTarget = false;
+
+            // Corner accents
+            float cs = 0.03f;
+            float[][] corners = { new[]{0.01f,0.97f}, new[]{0.97f,0.97f}, new[]{0.01f,0.01f}, new[]{0.97f,0.01f} };
+            for (int ci = 0; ci < corners.Length; ci++)
+            {
+                var corner = new GameObject("Corner");
+                corner.transform.SetParent(panel.transform, false);
+                var cRect = corner.AddComponent<RectTransform>();
+                cRect.anchorMin = new Vector2(corners[ci][0], corners[ci][1]);
+                cRect.anchorMax = new Vector2(corners[ci][0]+cs, corners[ci][1]+cs);
+                cRect.offsetMin = Vector2.zero; cRect.offsetMax = Vector2.zero;
+                cRect.localRotation = Quaternion.Euler(0, 0, 45f);
+                corner.AddComponent<Image>().color = new Color(PopupBorder.r, PopupBorder.g, PopupBorder.b, 0.50f);
+                corner.GetComponent<Image>().raycastTarget = false;
+            }
+
+            // Header strip
+            var hStrip = new GameObject("HeaderStrip");
+            hStrip.transform.SetParent(panel.transform, false);
+            var hsRect = hStrip.AddComponent<RectTransform>();
+            hsRect.anchorMin = new Vector2(0.02f, 0.88f); hsRect.anchorMax = new Vector2(0.98f, 0.99f);
+            hsRect.offsetMin = Vector2.zero; hsRect.offsetMax = Vector2.zero;
+            hStrip.AddComponent<Image>().color = new Color(0.12f, 0.08f, 0.18f, 0.85f);
+            hStrip.GetComponent<Image>().raycastTarget = false;
+
+            // Title with ornate text
+            CreateOrnateText(panel.transform, "Title", "\u2726 PRODUCTION SUMMARY \u2726", 14, FontStyle.Bold,
+                HeaderColor, new Vector2(0.05f, 0.88f), new Vector2(0.85f, 0.99f));
+
+            // Gold separator
+            var sep = new GameObject("Sep");
+            sep.transform.SetParent(panel.transform, false);
+            var sepRect = sep.AddComponent<RectTransform>();
+            sepRect.anchorMin = new Vector2(0.06f, 0.875f); sepRect.anchorMax = new Vector2(0.94f, 0.878f);
+            sepRect.offsetMin = Vector2.zero; sepRect.offsetMax = Vector2.zero;
+            sep.AddComponent<Image>().color = new Color(PopupBorder.r, PopupBorder.g, PopupBorder.b, 0.35f);
+            sep.GetComponent<Image>().raycastTarget = false;
+
+            // Close btn (ornate)
             var closeGO = new GameObject("CloseBtn");
             closeGO.transform.SetParent(panel.transform, false);
             var closeRect = closeGO.AddComponent<RectTransform>();
-            closeRect.anchorMin = new Vector2(0.88f, 0.88f);
+            closeRect.anchorMin = new Vector2(0.88f, 0.89f);
             closeRect.anchorMax = new Vector2(0.98f, 0.98f);
             closeRect.offsetMin = Vector2.zero;
             closeRect.offsetMax = Vector2.zero;
             var closeBg = closeGO.AddComponent<Image>();
-            closeBg.color = new Color(0.60f, 0.20f, 0.20f, 0.8f);
+            closeBg.color = new Color(0.55f, 0.18f, 0.18f, 0.85f);
+            closeGO.AddComponent<Outline>().effectColor = new Color(0.75f, 0.25f, 0.25f, 0.35f);
+            closeGO.GetComponent<Outline>().effectDistance = new Vector2(1f, -1f);
             closeGO.AddComponent<Button>().onClick.AddListener(ClosePopup);
-            CreateText(closeGO.transform, "X", "\u2716", 12, FontStyle.Bold, Color.white,
+            CreateOrnateText(closeGO.transform, "X", "\u2716", 11, FontStyle.Bold, Color.white,
                 Vector2.zero, Vector2.one);
 
             // Calculate production totals
@@ -315,6 +364,45 @@ namespace AshenThrone.UI.Empire
             t.alignment = TextAnchor.MiddleLeft;
             t.color = color;
             t.raycastTarget = false;
+            go.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.55f);
+            go.GetComponent<Shadow>().effectDistance = new Vector2(0.3f, -0.5f);
+        }
+
+        private static void CreateOrnateText(Transform parent, string name, string text, int size,
+            FontStyle style, Color color, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var t = go.AddComponent<Text>();
+            t.text = text;
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.fontSize = size;
+            t.fontStyle = style;
+            t.alignment = TextAnchor.MiddleCenter;
+            t.color = color;
+            t.raycastTarget = false;
+            go.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.85f);
+            go.GetComponent<Outline>().effectDistance = new Vector2(0.7f, -0.7f);
+            go.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.60f);
+            go.GetComponent<Shadow>().effectDistance = new Vector2(0.4f, -0.7f);
+        }
+
+        private static void AddDecoLayer(Transform parent, Color borderColor, Vector2 dist)
+        {
+            var go = new GameObject("Border");
+            go.transform.SetParent(parent, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
+            go.AddComponent<Image>().color = new Color(0, 0, 0, 0);
+            go.GetComponent<Image>().raycastTarget = false;
+            go.AddComponent<Outline>().effectColor = borderColor;
+            go.GetComponent<Outline>().effectDistance = dist;
         }
 
         private static string FormatBuildingName(string id)
