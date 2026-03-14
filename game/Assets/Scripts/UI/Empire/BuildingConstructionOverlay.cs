@@ -85,6 +85,40 @@ namespace AshenThrone.UI.Empire
                     state.HammerText.transform.localRotation = Quaternion.Euler(0, 0, bob * 8f);
                 }
 
+                // Animate construction workers — horizontal oscillation
+                if (state.Workers != null)
+                {
+                    for (int i = 0; i < state.Workers.Length; i++)
+                    {
+                        if (state.Workers[i] == null) continue;
+                        float phase = state.WorkerPhases[i];
+                        float wave = Mathf.Sin(Time.time * 1.5f + phase);
+                        float xOffset = wave * 0.12f;
+                        float baseX = 0.15f + i * 0.35f;
+                        state.Workers[i].anchorMin = new Vector2(baseX + xOffset, 0.22f);
+                        state.Workers[i].anchorMax = new Vector2(baseX + xOffset + 0.08f, 0.38f);
+                        // Subtle vertical bob as worker "walks"
+                        float yBob = Mathf.Abs(Mathf.Sin(Time.time * 3f + phase)) * 0.015f;
+                        var min = state.Workers[i].anchorMin;
+                        var max = state.Workers[i].anchorMax;
+                        state.Workers[i].anchorMin = new Vector2(min.x, 0.22f + yBob);
+                        state.Workers[i].anchorMax = new Vector2(max.x, 0.38f + yBob);
+                    }
+                }
+
+                // Animate scaffolding shimmer — sweep left to right
+                if (state.ShimmerImg != null)
+                {
+                    var sRect = state.ShimmerImg.rectTransform;
+                    float sweep = Mathf.Repeat(Time.time * 0.3f + state.PhaseOffset, 1f);
+                    float sX = Mathf.Lerp(-0.4f, 1.1f, sweep);
+                    sRect.anchorMin = new Vector2(sX, 0f);
+                    sRect.anchorMax = new Vector2(sX + 0.3f, 1f);
+                    // Fade in and out at edges
+                    float fade = 1f - Mathf.Abs(sweep - 0.5f) * 2f;
+                    state.ShimmerImg.color = new Color(1f, 0.95f, 0.7f, 0.06f * fade);
+                }
+
                 // Flash bar when < 10s
                 if (state.FillImg != null)
                 {
@@ -120,7 +154,11 @@ namespace AshenThrone.UI.Empire
             {
                 // Play level-up burst before destroying
                 if (state.Root != null)
-                    SpawnLevelUpBurst(state.Root.transform.parent);
+                {
+                    var parent = state.Root.transform.parent;
+                    SpawnLevelUpBurst(parent);
+                    PulseLevelBadge(parent);
+                }
                 DestroyOverlay(evt.PlacedId);
             }
         }
@@ -172,7 +210,10 @@ namespace AshenThrone.UI.Empire
             var barBgImg = barBg.AddComponent<Image>();
             barBgImg.color = BarBgColor;
             barBgImg.raycastTarget = false;
-            var barBorder = barBg.AddComponent<Outline>();
+            var barOuterGlow = barBg.AddComponent<Outline>();
+            barOuterGlow.effectColor = new Color(0.90f, 0.72f, 0.28f, 0.20f);
+            barOuterGlow.effectDistance = new Vector2(1.2f, -1.2f);
+            var barBorder = barBg.AddComponent<Shadow>();
             barBorder.effectColor = BarBorderColor;
             barBorder.effectDistance = new Vector2(0.5f, -0.5f);
 
@@ -205,6 +246,9 @@ namespace AshenThrone.UI.Empire
             timerText.alignment = TextAnchor.MiddleCenter;
             timerText.color = TimerTextColor;
             timerText.raycastTarget = false;
+            var timerOutline = timerGO.AddComponent<Outline>();
+            timerOutline.effectColor = new Color(0, 0, 0, 0.90f);
+            timerOutline.effectDistance = new Vector2(0.6f, -0.6f);
             var timerShadow = timerGO.AddComponent<Shadow>();
             timerShadow.effectColor = new Color(0, 0, 0, 0.9f);
             timerShadow.effectDistance = new Vector2(0.8f, -0.8f);
@@ -228,6 +272,63 @@ namespace AshenThrone.UI.Empire
             hammerOutline.effectColor = new Color(0, 0, 0, 0.85f);
             hammerOutline.effectDistance = new Vector2(1f, -1f);
 
+            // Construction workers — 2 small figures walking along the base
+            const int workerCount = 2;
+            var workers = new RectTransform[workerCount];
+            var workerPhases = new float[workerCount];
+            for (int i = 0; i < workerCount; i++)
+            {
+                var workerGO = new GameObject($"Worker_{i}");
+                workerGO.transform.SetParent(root.transform, false);
+                var wRect = workerGO.AddComponent<RectTransform>();
+                float startX = 0.15f + i * 0.35f;
+                wRect.anchorMin = new Vector2(startX, 0.22f);
+                wRect.anchorMax = new Vector2(startX + 0.08f, 0.38f);
+                wRect.offsetMin = Vector2.zero;
+                wRect.offsetMax = Vector2.zero;
+
+                // Body (small colored rectangle)
+                var bodyImg = workerGO.AddComponent<Image>();
+                bodyImg.color = new Color(0.85f, 0.65f, 0.30f, 0.85f);
+                bodyImg.raycastTarget = false;
+
+                // Head dot (child)
+                var headGO = new GameObject("Head");
+                headGO.transform.SetParent(workerGO.transform, false);
+                var headRect = headGO.AddComponent<RectTransform>();
+                headRect.anchorMin = new Vector2(0.15f, 0.85f);
+                headRect.anchorMax = new Vector2(0.85f, 1.45f);
+                headRect.offsetMin = Vector2.zero;
+                headRect.offsetMax = Vector2.zero;
+                var headImg = headGO.AddComponent<Image>();
+                headImg.color = new Color(0.95f, 0.82f, 0.62f, 0.90f);
+                headImg.raycastTarget = false;
+
+                workers[i] = wRect;
+                workerPhases[i] = Random.Range(0f, Mathf.PI * 2f);
+            }
+
+            // Scaffolding shimmer — diagonal highlight that sweeps across construction tint
+            var shimmerGO = new GameObject("Shimmer");
+            shimmerGO.transform.SetParent(root.transform, false);
+            shimmerGO.transform.SetAsFirstSibling(); // Behind other overlay elements
+            var shimmerRect = shimmerGO.AddComponent<RectTransform>();
+            shimmerRect.anchorMin = new Vector2(-0.3f, 0f);
+            shimmerRect.anchorMax = new Vector2(0f, 1f);
+            shimmerRect.offsetMin = Vector2.zero;
+            shimmerRect.offsetMax = Vector2.zero;
+            shimmerRect.localRotation = Quaternion.Euler(0, 0, -15f);
+            var shimmerImg = shimmerGO.AddComponent<Image>();
+            shimmerImg.color = new Color(1f, 0.95f, 0.7f, 0.06f);
+            shimmerImg.raycastTarget = false;
+            var radialShimmer = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (radialShimmer == null)
+                radialShimmer = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+                    "Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (radialShimmer != null) shimmerImg.sprite = radialShimmer;
+
             _overlays[placedId] = new OverlayState
             {
                 Root = root,
@@ -236,7 +337,10 @@ namespace AshenThrone.UI.Empire
                 TimerText = timerText,
                 HammerText = hammerText,
                 TotalSeconds = totalSeconds,
-                PhaseOffset = Random.Range(0f, Mathf.PI * 2f)
+                PhaseOffset = Random.Range(0f, Mathf.PI * 2f),
+                Workers = workers,
+                WorkerPhases = workerPhases,
+                ShimmerImg = shimmerImg
             };
         }
 
@@ -322,6 +426,55 @@ namespace AshenThrone.UI.Empire
             Destroy(go);
         }
 
+        private void PulseLevelBadge(Transform buildingParent)
+        {
+            if (buildingParent == null) return;
+            var badgeT = buildingParent.Find("LevelBadge");
+            if (badgeT == null) return;
+
+            // Create a golden glow behind the badge
+            var glowGO = new GameObject("BadgePulse");
+            glowGO.transform.SetParent(badgeT, false);
+            var glowRect = glowGO.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(-0.5f, -0.5f);
+            glowRect.anchorMax = new Vector2(1.5f, 1.5f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            var glowImg = glowGO.AddComponent<Image>();
+            glowImg.color = new Color(1f, 0.85f, 0.25f, 0.7f);
+            glowImg.raycastTarget = false;
+            var radial = Resources.Load<Sprite>("UI/Production/radial_gradient");
+            #if UNITY_EDITOR
+            if (radial == null)
+                radial = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+                    "Assets/Art/UI/Production/radial_gradient.png");
+            #endif
+            if (radial != null) glowImg.sprite = radial;
+
+            StartCoroutine(AnimateBadgePulse(glowGO, glowImg));
+        }
+
+        private System.Collections.IEnumerator AnimateBadgePulse(GameObject go, Image img)
+        {
+            float duration = 0.8f;
+            float elapsed = 0f;
+            Color startColor = img.color;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Quick expand then fade
+                float scale = t < 0.2f
+                    ? Mathf.Lerp(0.5f, 1.4f, t / 0.2f)
+                    : Mathf.Lerp(1.4f, 1.0f, (t - 0.2f) / 0.8f);
+                go.transform.localScale = Vector3.one * scale;
+                img.color = new Color(startColor.r, startColor.g, startColor.b, startColor.a * (1f - t));
+                yield return null;
+            }
+            Destroy(go);
+        }
+
         private void DestroyOverlay(string placedId)
         {
             if (_overlays.TryGetValue(placedId, out var state))
@@ -351,6 +504,11 @@ namespace AshenThrone.UI.Empire
             public Text HammerText;
             public float TotalSeconds;
             public float PhaseOffset;
+            // Construction workers
+            public RectTransform[] Workers;
+            public float[] WorkerPhases;
+            // Scaffolding shimmer
+            public Image ShimmerImg;
         }
     }
 }

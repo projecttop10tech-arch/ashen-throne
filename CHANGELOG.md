@@ -4,6 +4,16 @@ All notable changes tracked here. Format: [ADDED] [CHANGED] [FIXED] [REMOVED].
 
 ---
 
+## [1.33.0] — 2026-03-14 (Empire: Construction Workers, Scaffolding Shimmer, Level-Up Badge Pulse)
+
+### CHANGED
+- **BuildingConstructionOverlay: construction workers** — 2 animated worker figures walk back and forth along the building base during upgrades. Each worker has body + head with per-worker phase offset for organic staggered movement. Horizontal oscillation with subtle vertical bob.
+- **BuildingConstructionOverlay: scaffolding shimmer** — Diagonal golden shimmer sweeps across the construction tint overlay, fading in/out at edges. Uses radial_gradient sprite for soft glow effect.
+- **BuildingConstructionOverlay: progress bar P&C upgrade** — Bar now has double border (outer glow + gold) instead of single outline. Timer text upgraded with Outline + Shadow for readability.
+- **BuildingConstructionOverlay: level-up badge pulse** — When upgrade completes, the building's LevelBadge gets a golden radial glow pulse (quick expand 0.5→1.4 then fade over 0.8s) in addition to the existing level-up burst animation.
+
+---
+
 ## [1.32.0] — 2026-03-14 (Empire: Speedup Dialog, Production Summary, Toast, Toggle, Badge Polish)
 
 ### CHANGED
